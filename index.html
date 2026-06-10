@@ -16,7 +16,7 @@
         .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1.2rem; margin-bottom:2rem; }
         .stat-card { background:white; border-radius:1.5rem; padding:1rem; display:flex; justify-content:space-between; align-items:center; }
         .filter-group { display:flex; flex-wrap:wrap; gap:0.6rem; margin-bottom:1.8rem; }
-        .filter-pill { background:white; border:1px solid #e2e8f0; padding:0.5rem 1.2rem; border-radius:60px; cursor:pointer; }
+        .filter-pill { background:white; border:1px solid #e2e8f0; padding:0.5rem 1.2rem; border-radius:60px; cursor:pointer; transition:0.2s; }
         .filter-pill.active { background:#10b981; color:white; border-color:#10b981; }
         .order-card { background:white; border-radius:1.25rem; margin-bottom:1.2rem; border:1px solid #edf2f7; overflow:hidden; }
         .order-header { padding:1rem; background:#fafcff; border-bottom:1px solid #eff3f8; display:flex; justify-content:space-between; flex-wrap:wrap; }
@@ -32,22 +32,31 @@
         .btn-outline-pending { border:1px solid #f59e0b; color:#f59e0b; }
         .toast-notif { position:fixed; bottom:24px; right:24px; background:#1e293b; color:white; padding:12px 20px; border-radius:60px; opacity:0; transition:0.2s; pointer-events:none; z-index:2000; }
         .toast-notif.show { opacity:1; }
-        .receipt-thumb { max-width:60px; max-height:60px; border-radius:8px; margin-top:4px; cursor:pointer; }
         .modal-upload { display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center; }
         .modal-upload.show { display:flex; }
         .modal-content { background:white; border-radius:1.5rem; padding:1.5rem; max-width:400px; width:90%; }
-        @media (max-width:640px){ .stat-number{font-size:1.4rem;} }
+        /* Stock management styles */
+        .stock-table { background:white; border-radius:1rem; overflow-x:auto; }
+        .stock-table th, .stock-table td { padding:0.75rem; vertical-align:middle; }
+        .stock-input { width:100px; border-radius:12px; border:1px solid #cbd5e1; padding:0.3rem 0.6rem; text-align:center; }
+        .btn-stock-save { background:#10b981; border:none; border-radius:40px; padding:0.4rem 1rem; font-size:0.8rem; }
+        .section-toggle { background:white; border:none; border-radius:40px; padding:0.4rem 1.2rem; font-size:0.8rem; margin-left:1rem; }
+        .toggle-switch { width:50px; height:24px; background:#cbd5e1; border-radius:30px; position:relative; cursor:pointer; transition:0.2s; display:inline-block; }
+        .toggle-switch.active { background:#10b981; }
+        .toggle-switch span { position:absolute; top:2px; left:2px; width:20px; height:20px; background:white; border-radius:50%; transition:0.2s; }
+        .toggle-switch.active span { left:28px; }
+        @media (max-width:640px){ .stat-number{font-size:1.4rem;} .stock-input{width:70px;} }
     </style>
 </head>
 <body>
 
-<!-- Modal untuk upload resit parcel -->
-<div id="parcelModal" class="modal-upload">
+<!-- Modal untuk masukkan nombor tracking -->
+<div id="trackingModal" class="modal-upload">
     <div class="modal-content">
         <h5 class="fw-bold mb-3"><i class="fa-solid fa-box-open text-success"></i> Selesai Pesanan</h5>
-        <p class="small">Sila muat naik gambar resit penghantaran (parcel) untuk dihantar kepada pelanggan.</p>
-        <input type="file" id="parcelReceiptInput" accept="image/jpeg,image/png,image/webp,image/gif" class="form-control mb-3">
-        <div id="parcelProgress" class="small text-success" style="display:none;">⏳ Memuat naik...</div>
+        <p class="small">Masukkan nombor tracking penghantaran (contoh: POS123456789).</p>
+        <input type="text" id="trackingNumber" class="form-control mb-3" placeholder="Nombor tracking" autocomplete="off">
+        <div id="trackingProgress" class="small text-success" style="display:none;">⏳ Menghantar...</div>
         <div class="d-flex gap-2 justify-content-end">
             <button class="btn btn-secondary btn-sm" id="cancelModalBtn">Batal</button>
             <button class="btn btn-success btn-sm" id="confirmCompleteBtn">Hantar & Selesai</button>
@@ -58,30 +67,60 @@
 <div id="loginPanel" class="login-premium text-center">
     <i class="fa-solid fa-crown fa-3x text-success mb-3"></i>
     <h4 class="fw-bold">VELXERA VENTURES</h4>
-    <input type="password" id="adminPassword" class="form-control my-3" placeholder="Kata Laluan">
-    <button class="btn btn-success w-100" id="loginBtn">Log Masuk</button>
+    <form id="loginForm" onsubmit="return false;">
+        <input type="password" id="adminPassword" class="form-control my-3" placeholder="Kata Laluan" autocomplete="off">
+        <button type="submit" class="btn btn-success w-100" id="loginBtn">Log Masuk</button>
+    </form>
     <p class="text-muted small mt-3">🔐 velxera2025</p>
 </div>
 
 <div id="adminContent" style="display:none;">
     <nav class="admin-navbar d-flex justify-content-between align-items-center">
-        <span class="brand-logo"><i class="fa-solid fa-leaf me-2"></i>VELXERA ADMIN</span>
+        <div>
+            <span class="brand-logo"><i class="fa-solid fa-leaf me-2"></i>VELXERA ADMIN</span>
+            <button class="section-toggle" id="toggleStockBtn"><i class="fa-solid fa-boxes"></i> Urus Stok</button>
+        </div>
         <button class="btn btn-sm btn-outline-light rounded-pill" id="logoutBtn">Keluar</button>
     </nav>
     <div class="container py-4">
-        <div class="stat-grid">
-            <div class="stat-card"><div><div class="stat-info"><h5>Jumlah</h5><div class="stat-number" id="statTotal">0</div></div></div><i class="fa-solid fa-chart-simple fa-2x text-success"></i></div>
-            <div class="stat-card"><div><div class="stat-info"><h5>Pending</h5><div class="stat-number" id="statPending">0</div></div></div><i class="fa-solid fa-clock fa-2x text-warning"></i></div>
-            <div class="stat-card"><div><div class="stat-info"><h5>Selesai</h5><div class="stat-number" id="statCompleted">0</div></div></div><i class="fa-solid fa-circle-check fa-2x text-primary"></i></div>
-            <div class="stat-card"><div><div class="stat-info"><h5>Batal</h5><div class="stat-number" id="statCancelled">0</div></div></div><i class="fa-solid fa-ban fa-2x text-danger"></i></div>
+        <!-- Section for Orders (default visible) -->
+        <div id="ordersSection">
+            <div class="stat-grid">
+                <div class="stat-card"><div><div class="stat-info"><h5>Jumlah</h5><div class="stat-number" id="statTotal">0</div></div></div><i class="fa-solid fa-chart-simple fa-2x text-success"></i></div>
+                <div class="stat-card"><div><div class="stat-info"><h5>Pending</h5><div class="stat-number" id="statPending">0</div></div></div><i class="fa-solid fa-clock fa-2x text-warning"></i></div>
+                <div class="stat-card"><div><div class="stat-info"><h5>Selesai</h5><div class="stat-number" id="statCompleted">0</div></div></div><i class="fa-solid fa-circle-check fa-2x text-primary"></i></div>
+                <div class="stat-card"><div><div class="stat-info"><h5>Batal</h5><div class="stat-number" id="statCancelled">0</div></div></div><i class="fa-solid fa-ban fa-2x text-danger"></i></div>
+            </div>
+            <div class="filter-group">
+                <div class="filter-pill active" data-filter="all">Semua</div>
+                <div class="filter-pill" data-filter="pending">Pending</div>
+                <div class="filter-pill" data-filter="completed">Selesai</div>
+                <div class="filter-pill" data-filter="cancelled">Batal</div>
+            </div>
+            <div id="ordersList">Memuatkan...</div>
         </div>
-        <div class="filter-group">
-            <div class="filter-pill active" data-filter="all">Semua</div>
-            <div class="filter-pill" data-filter="pending">Pending</div>
-            <div class="filter-pill" data-filter="completed">Selesai</div>
-            <div class="filter-pill" data-filter="cancelled">Batal</div>
+
+        <!-- Section for Stock Management (hidden initially) -->
+        <div id="stockSection" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold"><i class="fa-solid fa-boxes text-success"></i> Pengurusan Stok Produk</h5>
+                <button class="btn btn-sm btn-secondary" id="backToOrdersBtn"><i class="fa-solid fa-arrow-left"></i> Kembali ke Pesanan</button>
+            </div>
+            <div id="stockLoading" class="text-center py-5">Memuatkan data stok...</div>
+            <div id="stockContent" style="display:none;">
+                <div class="stock-table">
+                    <table class="table table-bordered align-middle">
+                        <thead class="table-light">
+                            <tr><th>Produk</th><th>Saiz</th><th>Jenis</th><th>Stok Semasa</th><th>Ready Stock</th><th>Stok Awal</th><th>Tindakan</th></tr>
+                        </thead>
+                        <tbody id="stockTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="text-end mt-3">
+                    <button class="btn btn-success btn-stock-save" id="saveAllStockBtn"><i class="fa-solid fa-save"></i> Simpan Semua Perubahan</button>
+                </div>
+            </div>
         </div>
-        <div id="ordersList">Memuatkan...</div>
     </div>
 </div>
 <div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
@@ -89,8 +128,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getFirestore, collection, doc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-    import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+    import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const firebaseConfig = {
         apiKey: "AIzaSyAdUZs-P5SPcivHHP9lRmdyOC355Op8bOU",
@@ -102,8 +140,8 @@
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const storage = getStorage(app);
 
+    // ==================== ORDER MANAGEMENT (SAME AS BEFORE) ====================
     let currentFilter = 'all';
     let ordersData = [];
     let pendingOrderForComplete = null;
@@ -112,8 +150,20 @@
         const t=document.getElementById('toastMsg'); 
         t.innerHTML=err?`⚠️ ${msg}`:`✅ ${msg}`; 
         t.classList.add('show'); 
-        setTimeout(()=>t.classList.remove('show'),2500); 
+        setTimeout(()=>t.classList.remove('show'),3000); 
     }
+
+    // Login form
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const pwd = document.getElementById('adminPassword').value;
+        if(pwd === 'velxera2025'){
+            sessionStorage.setItem('admin_auth', pwd);
+            checkAuth();
+        } else {
+            showToast('Kata laluan salah', true);
+        }
+    });
 
     function checkAuth() { 
         const auth=sessionStorage.getItem('admin_auth'); 
@@ -121,19 +171,12 @@
             document.getElementById('loginPanel').style.display='none'; 
             document.getElementById('adminContent').style.display='block'; 
             loadOrdersRealtime(); 
+            loadStockData(); // preload stock data but not display unless toggled
         } else { 
             document.getElementById('loginPanel').style.display='block'; 
             document.getElementById('adminContent').style.display='none'; 
         } 
     }
-
-    document.getElementById('loginBtn').onclick=()=>{ 
-        const pwd=document.getElementById('adminPassword').value; 
-        if(pwd==='velxera2025'){ 
-            sessionStorage.setItem('admin_auth',pwd); 
-            checkAuth(); 
-        } else showToast('Kata laluan salah',true); 
-    };
     document.getElementById('logoutBtn').onclick=()=>{ 
         sessionStorage.removeItem('admin_auth'); 
         checkAuth(); 
@@ -160,149 +203,56 @@
         }); 
     }
 
-    // ================== MAMPATAN IMEJ (FAST UPLOAD) ==================
-    async function compressImage(file, maxWidth=800, quality=0.7) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (e) => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > maxWidth) {
-                        height = (height * maxWidth) / width;
-                        width = maxWidth;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    canvas.toBlob((blob) => {
-                        if (!blob) {
-                            reject(new Error('Mampatan imej gagal'));
-                            return;
-                        }
-                        const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
-                        resolve(compressedFile);
-                    }, 'image/jpeg', quality);
-                };
-                img.onerror = reject;
-            };
-            reader.onerror = reject;
-        });
-    }
-
-    function sendWhatsAppWithImage(phoneNumber, message, imageUrl) {
+    function sendWhatsAppTracking(phoneNumber, customerName, orderId, trackingNumber) {
         let cleanPhone = phoneNumber.replace(/[\s\-\(\)\+]/g, '');
-        if (cleanPhone.startsWith('0')) {
-            cleanPhone = '60' + cleanPhone.substring(1);
-        }
-        if (!cleanPhone.startsWith('60') && !cleanPhone.startsWith('65')) {
-            cleanPhone = '60' + cleanPhone;
-        }
-        const fullMessage = `${message}\n\n📸 *Resit Penghantaran*: ${imageUrl}\n\nSila klik pautan di atas untuk melihat gambar.`;
-        const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(fullMessage)}`;
-        window.open(waUrl, '_blank');
+        if (cleanPhone.startsWith('0')) cleanPhone = '60' + cleanPhone.substring(1);
+        if (!cleanPhone.startsWith('60') && !cleanPhone.startsWith('65')) cleanPhone = '60' + cleanPhone;
+        const message = `Hai ${customerName}, pesanan anda (ID: ${orderId}) telah selesai dihantar.\n\n📦 *Nombor Tracking*: ${trackingNumber}\n\nAnda boleh track di laman web easy parcel https://easyparcel.com/my/.\n\nTerima kasih!`;
+        window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
     }
 
-    async function completeOrderWithReceipt(orderId, orderData) {
-        const fileInput = document.getElementById('parcelReceiptInput');
-        let file = fileInput.files[0];
-        if (!file) {
-            showToast('Sila pilih gambar resit penghantaran', true);
-            return false;
-        }
-        const allowedTypes = ['image/jpeg','image/png','image/webp','image/gif'];
-        if (!allowedTypes.includes(file.type)) {
-            showToast('Format fail tidak sah. Gunakan JPG/PNG/WEBP', true);
-            return false;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            showToast('Saiz fail maksimum 5MB', true);
-            return false;
-        }
-
-        const progressDiv = document.getElementById('parcelProgress');
+    async function completeOrderWithTracking(orderId, orderData, trackingNumber) {
+        const progressDiv = document.getElementById('trackingProgress');
         progressDiv.style.display = 'block';
-        progressDiv.innerHTML = '🖼️ Memampatkan imej... 0%';
-
-        // Mampatkan imej sebelum upload
-        let compressedFile;
+        progressDiv.innerHTML = '⏳ Menghantar notifikasi...';
         try {
-            compressedFile = await compressImage(file, 900, 0.7);
-            progressDiv.innerHTML = '⏳ Muat naik (sudah dimampatkan)... 0%';
-        } catch (err) {
-            progressDiv.style.display = 'none';
-            showToast('Gagal memampatkan imej: ' + err.message, true);
-            return false;
-        }
-
-        const fileExt = 'jpg'; // selepas mampatan, format jpeg
-        const fileName = `parcel_${orderId}_${Date.now()}.${fileExt}`;
-        const storageRef = ref(storage, `parcel_receipts/${fileName}`);
-        const uploadTask = uploadBytesResumable(storageRef, compressedFile);
-
-        try {
-            const downloadURL = await new Promise((resolve, reject) => {
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        progressDiv.innerHTML = `⏳ Muat naik ${Math.round(percent)}% (saiz termampat: ${(compressedFile.size/1024).toFixed(0)}KB)`;
-                    },
-                    (error) => reject(error),
-                    async () => {
-                        const url = await getDownloadURL(uploadTask.snapshot.ref);
-                        resolve(url);
-                    }
-                );
-            });
-            progressDiv.innerHTML = '✅ Resit parcel berjaya!';
             await updateDoc(doc(db, "orders", orderId), {
                 status: 'completed',
-                parcelReceiptUrl: downloadURL,
+                trackingNumber: trackingNumber,
                 completedAt: new Date().toISOString()
             });
-            const customerPhone = orderData.customer.phone;
-            const customerName = orderData.customer.name;
-            const message = `Hai ${customerName}, pesanan anda (ID: ${orderId}) telah selesai dihantar. Berikut resit penghantaran:`;
-            sendWhatsAppWithImage(customerPhone, message, downloadURL);
-            showToast('Pesanan diselesaikan & resit dihantar ke WhatsApp pelanggan');
+            sendWhatsAppTracking(orderData.customer.phone, orderData.customer.name, orderId, trackingNumber);
+            progressDiv.innerHTML = '✅ Selesai!';
+            showToast('Pesanan diselesaikan & tracking dihantar');
             return true;
         } catch (err) {
-            console.error(err);
-            showToast('Gagal muat naik resit: ' + err.message, true);
+            showToast('Gagal: ' + err.message, true);
             return false;
         } finally {
-            setTimeout(() => { progressDiv.style.display = 'none'; }, 2000);
+            setTimeout(() => { progressDiv.style.display = 'none'; }, 1500);
         }
     }
 
-    // Modal handlers (sama seperti asal)
-    const modal = document.getElementById('parcelModal');
+    const modal = document.getElementById('trackingModal');
     const cancelBtn = document.getElementById('cancelModalBtn');
     const confirmBtn = document.getElementById('confirmCompleteBtn');
 
-    function showParcelModal(orderId, orderData) {
+    function showTrackingModal(orderId, orderData) {
         pendingOrderForComplete = { id: orderId, data: orderData };
-        document.getElementById('parcelReceiptInput').value = '';
-        document.getElementById('parcelProgress').style.display = 'none';
+        document.getElementById('trackingNumber').value = '';
+        document.getElementById('trackingProgress').style.display = 'none';
         modal.classList.add('show');
     }
 
-    cancelBtn.onclick = () => {
-        modal.classList.remove('show');
-        pendingOrderForComplete = null;
-    };
-
+    cancelBtn.onclick = () => { modal.classList.remove('show'); pendingOrderForComplete = null; };
     confirmBtn.onclick = async () => {
         if (!pendingOrderForComplete) return;
+        const tracking = document.getElementById('trackingNumber').value.trim();
+        if (!tracking) { showToast('Sila masukkan nombor tracking', true); return; }
         const { id, data } = pendingOrderForComplete;
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = 'Memproses...';
-        await completeOrderWithReceipt(id, data);
+        await completeOrderWithTracking(id, data, tracking);
         confirmBtn.disabled = false;
         confirmBtn.innerHTML = 'Hantar & Selesai';
         modal.classList.remove('show');
@@ -318,15 +268,7 @@
             const itemsHtml = order.items.map(it=>`<li><i class="fa-regular fa-rectangle-list text-success me-2"></i>${it.prodName} (${it.size} - ${it.type}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}</li>`).join('');
             let statusClass = order.status==='pending'?'status-pending':(order.status==='completed'?'status-completed':'status-cancelled');
             let statusText = order.status==='pending'?'Pending':(order.status==='completed'?'Selesai':'Dibatalkan');
-            
-            const parcelReceiptHtml = order.parcelReceiptUrl ? `
-                <div class="mt-1">
-                    <small class="text-muted">📦 Resit penghantaran:</small><br>
-                    <a href="${order.parcelReceiptUrl}" target="_blank" class="small">Lihat resit parcel</a>
-                    <br><img src="${order.parcelReceiptUrl}" class="receipt-thumb" onclick="window.open('${order.parcelReceiptUrl}','_blank')">
-                </div>
-            ` : '';
-            
+            const trackingHtml = order.trackingNumber ? `<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">${order.trackingNumber}</span></div>` : '';
             html+=`
                 <div class="order-card">
                     <div class="order-header">
@@ -345,15 +287,9 @@
                             <div class="total-amount fw-bold">RM ${order.totalAmount.toFixed(2)}</div>
                         </div>
                         <div class="mt-2">
-                            ${order.receiptUrl ? `
-                                <div class="border rounded p-2 bg-light d-inline-block">
-                                    <i class="fa-regular fa-image text-success me-1"></i>
-                                    <a href="${order.receiptUrl}" target="_blank" class="small fw-bold">📸 Resit Bayaran</a>
-                                    <br><img src="${order.receiptUrl}" style="max-width:60px; border-radius:8px;">
-                                </div>
-                            ` : '<span class="text-muted small"><i class="fa-regular fa-receipt"></i> Tiada resit bayaran (Bayar Kemudian)</span>'}
+                            ${order.receiptUrl ? `<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-image text-success me-1"></i><a href="${order.receiptUrl}" target="_blank" class="small fw-bold">📸 Resit Bayaran</a><br><img src="${order.receiptUrl}" style="max-width:60px; border-radius:8px;"></div>` : '<span class="text-muted small"><i class="fa-regular fa-receipt"></i> Tiada resit bayaran</span>'}
                         </div>
-                        ${parcelReceiptHtml}
+                        ${trackingHtml}
                         <div class="order-footer d-flex justify-content-end gap-2 mt-2">
                             ${order.status!=='completed' && order.status!=='cancelled' ? `<button class="btn-action btn-outline-complete" data-id="${order.id}" data-status="complete_action">✔ Selesai</button>` : ''}
                             ${order.status!=='cancelled' ? `<button class="btn-action btn-outline-cancel" data-id="${order.id}" data-status="cancelled">✖ Batal</button>` : ''}
@@ -364,7 +300,6 @@
             `;
         });
         container.innerHTML = html;
-        
         document.querySelectorAll('.btn-action').forEach(btn=>{
             btn.addEventListener('click', async (e)=>{
                 e.stopPropagation();
@@ -372,15 +307,13 @@
                 const status = btn.dataset.status;
                 if (status === 'complete_action') {
                     const order = ordersData.find(o => o.id === id);
-                    if (order) showParcelModal(id, order);
-                    else showToast('Data pesanan tidak ditemui', true);
+                    if (order) showTrackingModal(id, order);
+                    else showToast('Data tidak ditemui', true);
                 } else {
                     try {
                         await updateDoc(doc(db, "orders", id), { status: status });
                         showToast(`Status -> ${status.toUpperCase()}`);
-                    } catch(err) {
-                        showToast(err.message, true);
-                    }
+                    } catch(err) { showToast(err.message, true); }
                 }
             });
         });
@@ -394,7 +327,163 @@
             renderOrders(); 
         });
     });
-    
+
+    // ==================== STOCK MANAGEMENT with READY STOCK ====================
+    let productsData = [];
+    let inventoryData = new Map(); // key => {stock, initialStock, readyStock}
+    let stockChanges = new Map(); // key => {stock, readyStock}
+    let readyStockChanges = new Map(); // key => boolean
+
+    async function loadStockData() {
+        try {
+            // Load products
+            const prodSnap = await getDocs(collection(db, "products"));
+            productsData = [];
+            prodSnap.forEach(doc => productsData.push({ id: doc.id, ...doc.data() }));
+            // Load inventory
+            const invSnap = await getDocs(collection(db, "inventory"));
+            inventoryData.clear();
+            invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
+            // Prepare stockChanges map with current stock and readyStock values
+            stockChanges.clear();
+            readyStockChanges.clear();
+            for (const product of productsData) {
+                if (product.variations) {
+                    for (const v of product.variations) {
+                        const key = `${product.id}_${v.size}_${v.type}`.replace(/\s/g, '_');
+                        const currentStock = inventoryData.get(key)?.stock ?? 100;
+                        const currentReady = inventoryData.get(key)?.readyStock !== undefined ? inventoryData.get(key).readyStock : true;
+                        stockChanges.set(key, currentStock);
+                        readyStockChanges.set(key, currentReady);
+                    }
+                }
+            }
+            renderStockTable();
+        } catch (err) {
+            console.error(err);
+            document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
+        }
+    }
+
+    function renderStockTable() {
+        const tbody = document.getElementById('stockTableBody');
+        tbody.innerHTML = '';
+        for (const product of productsData) {
+            if (!product.variations || product.variations.length === 0) continue;
+            for (const v of product.variations) {
+                const key = `${product.id}_${v.size}_${v.type}`.replace(/\s/g, '_');
+                const currentStock = stockChanges.get(key) ?? 100;
+                const readyStock = readyStockChanges.get(key) ?? true;
+                const invData = inventoryData.get(key) || {};
+                const initialStock = invData.initialStock ?? 100;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${escapeHtml(product.name)}</td>
+                    <td>${escapeHtml(v.size)}</td>
+                    <td>${escapeHtml(v.type)}</td>
+                    <td><input type="number" class="stock-input" data-key="${key}" value="${currentStock}" min="0" style="width:90px"></td>
+                    <td>
+                        <div class="toggle-switch ${readyStock ? 'active' : ''}" data-key="${key}" data-field="ready" style="display:inline-block;"></div>
+                        <span class="ms-2 small">${readyStock ? 'Ready Stock' : 'Habis / Tempahan'}</span>
+                     </td>
+                    <td>${initialStock}</td>
+                    <td><span class="badge bg-secondary">ubah stok</span></td>
+                `;
+                tbody.appendChild(row);
+                // Attach toggle click event
+                const toggleDiv = row.querySelector('.toggle-switch');
+                const statusSpan = row.querySelector('span.ms-2');
+                toggleDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newState = !readyStockChanges.get(key);
+                    readyStockChanges.set(key, newState);
+                    toggleDiv.classList.toggle('active', newState);
+                    statusSpan.innerText = newState ? 'Ready Stock' : 'Habis / Tempahan';
+                });
+            }
+        }
+        // attach change event to stock inputs
+        document.querySelectorAll('.stock-input').forEach(inp => {
+            inp.addEventListener('change', (e) => {
+                const key = inp.dataset.key;
+                const newVal = parseInt(inp.value);
+                if (!isNaN(newVal) && newVal >= 0) {
+                    stockChanges.set(key, newVal);
+                } else {
+                    inp.value = stockChanges.get(key) || 0;
+                }
+            });
+        });
+        document.getElementById('stockLoading').style.display = 'none';
+        document.getElementById('stockContent').style.display = 'block';
+    }
+
+    async function saveAllStockChanges() {
+        const saveBtn = document.getElementById('saveAllStockBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> Menyimpan...';
+        let successCount = 0;
+        let errorCount = 0;
+        // Gather all keys from stockChanges and readyStockChanges
+        const allKeys = new Set([...stockChanges.keys(), ...readyStockChanges.keys()]);
+        for (let key of allKeys) {
+            const newStock = stockChanges.has(key) ? stockChanges.get(key) : (inventoryData.get(key)?.stock ?? 100);
+            const newReady = readyStockChanges.has(key) ? readyStockChanges.get(key) : (inventoryData.get(key)?.readyStock ?? true);
+            const currentData = inventoryData.get(key) || {};
+            const initialStock = currentData.initialStock ?? 100;
+            const docRef = doc(db, "inventory", key);
+            try {
+                await setDoc(docRef, { stock: newStock, initialStock: initialStock, readyStock: newReady }, { merge: true });
+                successCount++;
+                // update local cache
+                inventoryData.set(key, { stock: newStock, initialStock, readyStock: newReady });
+            } catch (err) {
+                console.error(`Gagal update ${key}:`, err);
+                errorCount++;
+            }
+        }
+        // Refresh inventory data from firestore after save to keep consistency (optional but good)
+        const invSnap = await getDocs(collection(db, "inventory"));
+        inventoryData.clear();
+        invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
+        // Re-sync stockChanges and readyStockChanges with new values from server
+        for (const product of productsData) {
+            if (product.variations) {
+                for (const v of product.variations) {
+                    const key = `${product.id}_${v.size}_${v.type}`.replace(/\s/g, '_');
+                    const newStockVal = inventoryData.get(key)?.stock ?? 100;
+                    const newReadyVal = inventoryData.get(key)?.readyStock ?? true;
+                    stockChanges.set(key, newStockVal);
+                    readyStockChanges.set(key, newReadyVal);
+                }
+            }
+        }
+        renderStockTable(); // re-render to show updated values
+        showToast(`${successCount} item stok dikemas kini${errorCount ? `, ${errorCount} gagal` : ''}`, errorCount > 0);
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Semua Perubahan';
+    }
+
+    document.getElementById('saveAllStockBtn').addEventListener('click', saveAllStockChanges);
+
+    // Toggle between orders and stock sections
+    const ordersSection = document.getElementById('ordersSection');
+    const stockSection = document.getElementById('stockSection');
+    const toggleBtn = document.getElementById('toggleStockBtn');
+    const backBtn = document.getElementById('backToOrdersBtn');
+
+    toggleBtn.addEventListener('click', () => {
+        ordersSection.style.display = 'none';
+        stockSection.style.display = 'block';
+        loadStockData(); // reload fresh data when showing stock section
+    });
+    backBtn.addEventListener('click', () => {
+        stockSection.style.display = 'none';
+        ordersSection.style.display = 'block';
+    });
+
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
+
     checkAuth();
 </script>
 </body>
