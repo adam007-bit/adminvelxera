@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - VELXERA VENTURES</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #f1f5f9; font-family: 'Poppins', sans-serif; }
+        .order-card { background: white; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: 0.2s; margin-bottom: 16px; border-left: 5px solid #10b981; }
+        .order-card.cancelled { border-left-color: #ef4444; opacity: 0.7; }
+        .order-card.completed { border-left-color: #3b82f6; }
+        .status-badge { font-size: 12px; padding: 4px 10px; border-radius: 40px; }
+        .filter-btn { margin-right: 8px; margin-bottom: 8px; }
+        .login-container { max-width: 400px; margin: 100px auto; background: white; border-radius: 24px; padding: 32px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .navbar-brand { font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="adminContent" style="display: none;">
+    <nav class="navbar navbar-dark bg-dark px-3">
+        <span class="navbar-brand"><i class="fa-solid fa-chart-line"></i> Admin VELXERA VENTURES</span>
+        <button class="btn btn-outline-light btn-sm" id="logoutBtn"><i class="fa-solid fa-sign-out-alt"></i> Logout</button>
+    </nav>
+    <div class="container py-4">
+        <h4 class="fw-bold">📦 Pengurusan Pesanan</h4>
+        <div class="mb-3">
+            <button class="btn btn-sm btn-outline-success filter-btn" data-filter="all">Semua</button>
+            <button class="btn btn-sm btn-outline-warning filter-btn" data-filter="pending">Pending (Baru)</button>
+            <button class="btn btn-sm btn-outline-primary filter-btn" data-filter="completed">Selesai</button>
+            <button class="btn btn-sm btn-outline-danger filter-btn" data-filter="cancelled">Dibatalkan</button>
+        </div>
+        <div id="ordersList">Memuatkan pesanan...</div>
+    </div>
+</div>
+
+<div id="loginPanel" class="login-container text-center">
+    <i class="fa-solid fa-lock fa-3x text-success mb-3"></i>
+    <h5>Log Masuk Admin</h5>
+    <input type="password" id="adminPassword" class="form-control mb-2" placeholder="Kata Laluan">
+    <button class="btn btn-success w-100" id="loginBtn">Masuk</button>
+    <p class="text-muted small mt-3">Gunakan kata laluan: <strong>velxera2025</strong></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+    import { getFirestore, collection, doc, updateDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAdUZs-P5SPcivHHP9lRmdyOC355Op8bOU",
+        authDomain: "spmn-af4f9.firebaseapp.com",
+        projectId: "spmn-af4f9",
+        storageBucket: "spmn-af4f9.firebasestorage.app",
+        messagingSenderId: "621089003979",
+        appId: "1:621089003979:web:bc819aef604b26f33b7e4e"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let currentFilter = 'all';
+    let ordersData = [];
+
+    function checkAuth() {
+        const auth = sessionStorage.getItem('admin_auth');
+        if (auth === 'velxera2025') {
+            document.getElementById('loginPanel').style.display = 'none';
+            document.getElementById('adminContent').style.display = 'block';
+            loadOrdersRealtime();
+        } else {
+            document.getElementById('loginPanel').style.display = 'block';
+            document.getElementById('adminContent').style.display = 'none';
+        }
+    }
+
+    document.getElementById('loginBtn').onclick = () => {
+        const pwd = document.getElementById('adminPassword').value;
+        if (pwd === 'velxera2025') {
+            sessionStorage.setItem('admin_auth', pwd);
+            checkAuth();
+        } else {
+            alert('Kata laluan salah!');
+        }
+    };
+    document.getElementById('logoutBtn').onclick = () => {
+        sessionStorage.removeItem('admin_auth');
+        checkAuth();
+    };
+
+    function loadOrdersRealtime() {
+        const ordersRef = collection(db, "orders");
+        onSnapshot(ordersRef, (snapshot) => {
+            ordersData = [];
+            snapshot.forEach(docSnap => {
+                ordersData.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            // Susun mengikut tarikh terbaru di atas
+            ordersData.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            renderOrders();
+        });
+    }
+
+    function renderOrders() {
+        let filtered = ordersData;
+        if (currentFilter !== 'all') {
+            filtered = ordersData.filter(o => o.status === currentFilter);
+        }
+        const container = document.getElementById('ordersList');
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="alert alert-secondary">Tiada pesanan.</div>';
+            return;
+        }
+        let html = '';
+        filtered.forEach(order => {
+            const itemsHtml = order.items.map(it => `<li class="small">${it.prodName} (${it.size} - ${it.type}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}</li>`).join('');
+            let statusClass = '';
+            if (order.status === 'pending') statusClass = 'bg-warning text-dark';
+            else if (order.status === 'completed') statusClass = 'bg-primary';
+            else statusClass = 'bg-danger';
+            
+            html += `
+                <div class="order-card p-3 ${order.status}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>🧾 ${order.orderId}</strong><br>
+                            <small><i class="fa-regular fa-user"></i> ${order.customer.name} | 📞 ${order.customer.phone}</small><br>
+                            <small><i class="fa-regular fa-location-dot"></i> ${order.customer.address_line1}, ${order.customer.postcode} ${order.customer.state}</small>
+                        </div>
+                        <div><span class="status-badge ${statusClass}">${order.status.toUpperCase()}</span></div>
+                    </div>
+                    <div class="mt-2"><ul class="mb-1">${itemsHtml}</ul></div>
+                    <div><small><i class="fa-regular fa-building"></i> Bank: ${order.bankName || 'Tiada'} | Bayaran: ${order.paymentMethod}</small></div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <strong>💰 RM ${order.totalAmount.toFixed(2)}</strong>
+                        <div>
+                            ${order.status !== 'completed' ? `<button class="btn btn-sm btn-primary me-1" onclick="updateStatus('${order.id}','completed')">✔ Selesai</button>` : ''}
+                            ${order.status !== 'cancelled' ? `<button class="btn btn-sm btn-danger me-1" onclick="updateStatus('${order.id}','cancelled')">✖ Batal</button>` : ''}
+                            ${order.status !== 'pending' ? `<button class="btn btn-sm btn-secondary" onclick="updateStatus('${order.id}','pending')">↩ Pending</button>` : ''}
+                        </div>
+                    </div>
+                    <div class="text-muted small mt-1">📅 ${new Date(order.createdAt).toLocaleString()}</div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    window.updateStatus = async (orderId, newStatus) => {
+        try {
+            await updateDoc(doc(db, "orders", orderId), { status: newStatus });
+            alert('Status berjaya dikemaskini');
+        } catch (err) {
+            alert('Gagal: ' + err.message);
+        }
+    };
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.onclick = () => {
+            currentFilter = btn.dataset.filter;
+            renderOrders();
+        };
+    });
+
+    checkAuth();
+</script>
+</body>
+</html>
