@@ -1,11 +1,11 @@
 {
-  "name": "VELXERA VENTURES",
-  "short_name": "VELXERA",
+  "name": "ADMIN -VELXERA ",
+  "short_name": "admin-Velxera",
   "description": "Tempahan produk peptide dan beauty",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#10b981",
-  "theme_color": "#10b981",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "icon.jpg",
