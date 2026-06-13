@@ -1,16 +1,16 @@
 {
-  "name": "VELXERA Admin",
-  "short_name": "VELXERA Admin",
-  "description": "Panel pentadbir VELXERA VENTURES",
-  "start_url": "admin.html",
+  "name": "VELXERA VENTURES",
+  "short_name": "VELXERA",
+  "description": "Tempahan produk peptide dan beauty",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#10b981",
   "theme_color": "#10b981",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "icon.jpg",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
