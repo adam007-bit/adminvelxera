@@ -45,14 +45,21 @@
         .modal-content { background:white; border-radius:1.5rem; padding:1.5rem; max-width:400px; width:90%; }
         .stock-table { background:white; border-radius:1rem; overflow-x:auto; }
         .stock-table th, .stock-table td { padding:0.75rem; vertical-align:middle; }
-        .stock-input { width:100px; border-radius:12px; border:1px solid #cbd5e1; padding:0.3rem 0.6rem; text-align:center; }
+        .stock-input { width:110px; border-radius:12px; border:1px solid #cbd5e1; padding:0.3rem 0.6rem; text-align:center; }
         .btn-stock-save { background:#10b981; border:none; border-radius:40px; padding:0.4rem 1rem; font-size:0.8rem; }
         .section-toggle { background:white; border:none; border-radius:40px; padding:0.4rem 1.2rem; font-size:0.8rem; margin-left:1rem; }
+        .report-container { background:white; border-radius:1.5rem; padding:1.5rem; margin-top:1.5rem; }
+        .report-filter { display:flex; gap:1rem; margin-bottom:1rem; }
+        .report-filter button { border:1px solid #cbd5e1; background:white; border-radius:40px; padding:0.3rem 1rem; }
+        .report-filter button.active { background:#10b981; color:white; border-color:#10b981; }
+        .report-stats { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem; }
+        .report-card { background:#f8fafc; border-radius:1rem; padding:0.8rem 1.2rem; flex:1; text-align:center; }
+        .product-name-normal { font-weight:500; } /* tiada transform uppercase */
         .toggle-switch { width:50px; height:24px; background:#cbd5e1; border-radius:30px; position:relative; cursor:pointer; transition:0.2s; display:inline-block; }
         .toggle-switch.active { background:#10b981; }
         .toggle-switch span { position:absolute; top:2px; left:2px; width:20px; height:20px; background:white; border-radius:50%; transition:0.2s; }
         .toggle-switch.active span { left:28px; }
-        @media (max-width:640px){ .stat-number{font-size:1.4rem;} .stock-input{width:70px;} }
+        @media (max-width:640px){ .stat-number{font-size:1.4rem;} .stock-input{width:80px;} }
     </style>
 </head>
 <body>
@@ -86,6 +93,7 @@
         <div>
             <span class="brand-logo"><i class="fa-solid fa-leaf me-2"></i>VELXERA ADMIN</span>
             <button class="section-toggle" id="toggleStockBtn"><i class="fa-solid fa-boxes"></i> Urus Stok</button>
+            <button class="section-toggle" id="toggleReportBtn"><i class="fa-solid fa-chart-line"></i> Laporan</button>
         </div>
         <button class="btn btn-sm btn-outline-light rounded-pill" id="logoutBtn">Keluar</button>
     </nav>
@@ -107,7 +115,7 @@
             <div id="ordersList">Memuatkan...</div>
         </div>
 
-        <!-- Section for Stock Management (hidden initially) -->
+        <!-- Section for Stock Management -->
         <div id="stockSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold"><i class="fa-solid fa-boxes text-success"></i> Pengurusan Stok Produk</h5>
@@ -118,7 +126,7 @@
                 <div class="stock-table">
                     <table class="table table-bordered align-middle">
                         <thead class="table-light">
-                            <tr><th>Produk</th><th>Saiz</th><th>Jenis</th><th>Stok Semasa</th><th>Ready Stock</th><th>Stok Awal</th><th>Tindakan</th></tr>
+                            <tr><th>Produk</th><th>Saiz</th><th>Jenis</th><th>Stok Awal (tetap 1000)</th><th>Baki Stok (Pre-order)</th><th>Ready Stock</th><th>Status Ready</th></tr>
                         </thead>
                         <tbody id="stockTableBody"></tbody>
                     </table>
@@ -128,6 +136,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- Section for Reports -->
+        <div id="reportSection" style="display:none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold"><i class="fa-solid fa-chart-line text-success"></i> Laporan Jualan</h5>
+                <button class="btn btn-sm btn-secondary" id="backToOrdersFromReportBtn"><i class="fa-solid fa-arrow-left"></i> Kembali ke Pesanan</button>
+            </div>
+            <div class="report-container">
+                <div class="report-filter">
+                    <button id="weeklyReportBtn" class="active">Mingguan</button>
+                    <button id="monthlyReportBtn">Bulanan</button>
+                </div>
+                <div id="reportStats" class="report-stats"></div>
+                <div id="reportDetails"></div>
+            </div>
+        </div>
     </div>
 </div>
 <div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
@@ -135,7 +159,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+    import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
     const firebaseConfig = {
         apiKey: "AIzaSyAdUZs-P5SPcivHHP9lRmdyOC355Op8bOU",
@@ -148,7 +172,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // ==================== HELPER: clean document ID ====================
     function sanitizeFirestoreId(raw) {
         return raw.replace(/[\/\\\(\)&%#\?:;,.*+=|<>\[\]\{\}`~!@\$^]/g, '_').replace(/\s+/g, '_');
     }
@@ -219,7 +242,6 @@
         }); 
     }
 
-    // ========== SELESAI PESANAN (simpan tracking, tanpa WhatsApp) ==========
     async function completeOrderWithTracking(orderId, orderData, trackingNumber) {
         const progressDiv = document.getElementById('trackingProgress');
         progressDiv.style.display = 'block';
@@ -285,7 +307,7 @@
                     </div>
                     <div class="order-body">
                         <div class="customer-detail d-flex gap-3 flex-wrap small">
-                            <span><i class="fa-regular fa-user"></i> ${order.customer.name}</span>
+                            <span><i class="fa-regular fa-user"></i> ${escapeHtml(order.customer.name)}</span>
                             <span><i class="fa-brands fa-whatsapp"></i> ${order.customer.phone}</span>
                             <span><i class="fa-regular fa-location-dot"></i> ${order.customer.address_line1}, ${order.customer.postcode} ${order.customer.state}</span>
                         </div>
@@ -336,11 +358,11 @@
         });
     });
 
-    // ==================== STOCK MANAGEMENT ====================
+    // ==================== STOCK MANAGEMENT (NEW COLUMNS) ====================
     let productsData = [];
     let inventoryData = new Map();
-    let stockChanges = new Map();
-    let readyStockChanges = new Map();
+    let stockChanges = new Map();      // Baki Stok (pre-order)
+    let readyStockChanges = new Map(); // Ready Stock
 
     async function loadStockData() {
         try {
@@ -356,10 +378,17 @@
                 if (product.variations) {
                     for (const v of product.variations) {
                         const key = getVariationKey(product.id, v.size, v.type);
-                        const currentStock = inventoryData.get(key)?.stock ?? 100;
-                        const currentReady = inventoryData.get(key)?.readyStock !== undefined ? inventoryData.get(key).readyStock : true;
+                        const existing = inventoryData.get(key);
+                        // Set default: stock (baki) = 1000, initialStock = 1000, readyStock = 0
+                        const currentStock = existing?.stock ?? 1000;
+                        const currentReady = existing?.readyStock ?? 0;
                         stockChanges.set(key, currentStock);
                         readyStockChanges.set(key, currentReady);
+                        // Ensure initialStock = 1000 for all
+                        if (!existing || existing.initialStock !== 1000) {
+                            await setDoc(doc(db, "inventory", key), { initialStock: 1000, stock: currentStock, readyStock: currentReady }, { merge: true });
+                            inventoryData.set(key, { initialStock: 1000, stock: currentStock, readyStock: currentReady });
+                        }
                     }
                 }
             }
@@ -377,43 +406,61 @@
             if (!product.variations || product.variations.length === 0) continue;
             for (const v of product.variations) {
                 const key = getVariationKey(product.id, v.size, v.type);
-                const currentStock = stockChanges.get(key) ?? 100;
-                const readyStock = readyStockChanges.get(key) ?? true;
+                const currentStock = stockChanges.get(key) ?? 1000;      // Baki stok pre-order
+                const currentReady = readyStockChanges.get(key) ?? 0;    // Ready stock
                 const invData = inventoryData.get(key) || {};
-                const initialStock = invData.initialStock ?? 100;
+                const initialStock = invData.initialStock ?? 1000;
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${escapeHtml(product.name)}</td>
+                    <td class="product-name-normal">${escapeHtml(product.name)}</td>
                     <td>${escapeHtml(v.size)}</td>
                     <td>${escapeHtml(v.type)}</td>
-                    <td><input type="number" class="stock-input" data-key="${key}" value="${currentStock}" min="0" style="width:90px"></td>
-                    <td>
-                        <div class="toggle-switch ${readyStock ? 'active' : ''}" data-key="${key}" data-field="ready" style="display:inline-block;"></div>
-                        <span class="ms-2 small">${readyStock ? 'Ready Stock' : 'Habis / Tempahan'}</span>
-                      </td>
                     <td>${initialStock}</td>
-                    <td><span class="badge bg-secondary">ubah stok</span></td>
+                    <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0" style="width:110px"></td>
+                    <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0" style="width:110px"></td>
+                    <td>
+                        <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggle" style="display:inline-block;"></div>
+                        <span class="ms-2 small">${currentReady > 0 ? 'Ready Stock' : 'Pre-order / Habis'}</span>
+                    </td>
                 `;
                 tbody.appendChild(row);
                 const toggleDiv = row.querySelector('.toggle-switch');
                 const statusSpan = row.querySelector('span.ms-2');
                 toggleDiv.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const newState = !readyStockChanges.get(key);
-                    readyStockChanges.set(key, newState);
-                    toggleDiv.classList.toggle('active', newState);
-                    statusSpan.innerText = newState ? 'Ready Stock' : 'Habis / Tempahan';
+                    const readyInput = row.querySelector(`input[data-field="ready"]`);
+                    let newReady = parseInt(readyInput.value);
+                    if (newReady > 0) {
+                        // Jika sudah >0, toggle tidak ubah nilai
+                    } else {
+                        newReady = newReady === 0 ? 1 : 0;
+                        readyInput.value = newReady;
+                        readyStockChanges.set(key, newReady);
+                    }
+                    toggleDiv.classList.toggle('active', newReady > 0);
+                    statusSpan.innerText = newReady > 0 ? 'Ready Stock' : 'Pre-order / Habis';
                 });
             }
         }
+        // Attach change events for inputs
         document.querySelectorAll('.stock-input').forEach(inp => {
             inp.addEventListener('change', (e) => {
                 const key = inp.dataset.key;
-                const newVal = parseInt(inp.value);
-                if (!isNaN(newVal) && newVal >= 0) {
+                const field = inp.dataset.field;
+                let newVal = parseInt(inp.value);
+                if (isNaN(newVal)) newVal = 0;
+                if (field === 'stock') {
                     stockChanges.set(key, newVal);
-                } else {
-                    inp.value = stockChanges.get(key) || 0;
+                } else if (field === 'ready') {
+                    readyStockChanges.set(key, newVal);
+                    // update toggle UI
+                    const row = inp.closest('tr');
+                    const toggleDiv = row.querySelector('.toggle-switch');
+                    const statusSpan = row.querySelector('span.ms-2');
+                    if (toggleDiv) {
+                        toggleDiv.classList.toggle('active', newVal > 0);
+                        statusSpan.innerText = newVal > 0 ? 'Ready Stock' : 'Pre-order / Habis';
+                    }
                 }
             });
         });
@@ -429,15 +476,13 @@
         let errorCount = 0;
         const allKeys = new Set([...stockChanges.keys(), ...readyStockChanges.keys()]);
         for (let key of allKeys) {
-            const newStock = stockChanges.has(key) ? stockChanges.get(key) : (inventoryData.get(key)?.stock ?? 100);
-            const newReady = readyStockChanges.has(key) ? readyStockChanges.get(key) : (inventoryData.get(key)?.readyStock ?? true);
-            const currentData = inventoryData.get(key) || {};
-            const initialStock = currentData.initialStock ?? 100;
+            const newStock = stockChanges.get(key) ?? 1000;
+            const newReady = readyStockChanges.get(key) ?? 0;
             const docRef = doc(db, "inventory", key);
             try {
-                await setDoc(docRef, { stock: newStock, initialStock: initialStock, readyStock: newReady }, { merge: true });
+                await setDoc(docRef, { stock: newStock, initialStock: 1000, readyStock: newReady }, { merge: true });
                 successCount++;
-                inventoryData.set(key, { stock: newStock, initialStock, readyStock: newReady });
+                inventoryData.set(key, { initialStock: 1000, stock: newStock, readyStock: newReady });
             } catch (err) {
                 console.error(`Gagal update ${key}:`, err);
                 errorCount++;
@@ -446,6 +491,7 @@
                 }
             }
         }
+        // Refresh data from DB to sync
         const invSnap = await getDocs(collection(db, "inventory"));
         inventoryData.clear();
         invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
@@ -453,8 +499,8 @@
             if (product.variations) {
                 for (const v of product.variations) {
                     const key = getVariationKey(product.id, v.size, v.type);
-                    const newStockVal = inventoryData.get(key)?.stock ?? 100;
-                    const newReadyVal = inventoryData.get(key)?.readyStock ?? true;
+                    const newStockVal = inventoryData.get(key)?.stock ?? 1000;
+                    const newReadyVal = inventoryData.get(key)?.readyStock ?? 0;
                     stockChanges.set(key, newStockVal);
                     readyStockChanges.set(key, newReadyVal);
                 }
@@ -468,22 +514,152 @@
 
     document.getElementById('saveAllStockBtn').addEventListener('click', saveAllStockChanges);
 
+    // ==================== REPORT (MONTHLY / WEEKLY) ====================
+    let reportType = 'weekly'; // 'weekly' or 'monthly'
+    let completedOrders = []; // will be filled from ordersData filtered completed
+
+    function updateReport() {
+        completedOrders = ordersData.filter(o => o.status === 'completed');
+        if (reportType === 'weekly') generateWeeklyReport();
+        else generateMonthlyReport();
+    }
+
+    function getWeekNumber(date) {
+        const d = new Date(date);
+        d.setHours(0,0,0,0);
+        d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+        const week1 = new Date(d.getFullYear(), 0, 4);
+        return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    }
+
+    function generateWeeklyReport() {
+        const weeksMap = new Map(); // key: "YYYY-WW"
+        completedOrders.forEach(order => {
+            const date = new Date(order.completedAt || order.createdAt);
+            const year = date.getFullYear();
+            const week = getWeekNumber(date);
+            const key = `${year}-W${week}`;
+            if (!weeksMap.has(key)) {
+                weeksMap.set(key, { week: week, year: year, orders: [], totalSales: 0, totalItems: 0 });
+            }
+            const weekData = weeksMap.get(key);
+            weekData.orders.push(order);
+            weekData.totalSales += order.totalAmount;
+            weekData.totalItems += order.items.reduce((sum, it) => sum + it.qty, 0);
+        });
+        const sortedWeeks = Array.from(weeksMap.keys()).sort().reverse();
+        const statsDiv = document.getElementById('reportStats');
+        const detailsDiv = document.getElementById('reportDetails');
+        if (sortedWeeks.length === 0) {
+            statsDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan selesai</div>';
+            detailsDiv.innerHTML = '';
+            return;
+        }
+        const latest = weeksMap.get(sortedWeeks[0]);
+        statsDiv.innerHTML = `
+            <div class="report-card"><i class="fa-solid fa-calendar-week"></i> <strong>Minggu Terkini</strong><br>${latest.week} / ${latest.year}<br>${latest.orders.length} pesanan<br>RM ${latest.totalSales.toFixed(2)}</div>
+            <div class="report-card"><i class="fa-solid fa-boxes"></i> <strong>Jumlah Item</strong><br>${latest.totalItems} unit</div>
+            <div class="report-card"><i class="fa-solid fa-chart-simple"></i> <strong>Purata / Pesanan</strong><br>RM ${(latest.totalSales/latest.orders.length).toFixed(2)}</div>
+        `;
+        let html = '<h6 class="mt-3">📋 Senarai Mingguan (terbaru ke lama)</h6><div class="list-group">';
+        for (let key of sortedWeeks) {
+            const data = weeksMap.get(key);
+            html += `<div class="list-group-item"><strong>Minggu ${data.week} / ${data.year}</strong> – ${data.orders.length} pesanan, RM ${data.totalSales.toFixed(2)}, ${data.totalItems} item</div>`;
+        }
+        html += '</div>';
+        detailsDiv.innerHTML = html;
+    }
+
+    function generateMonthlyReport() {
+        const monthsMap = new Map();
+        completedOrders.forEach(order => {
+            const date = new Date(order.completedAt || order.createdAt);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const key = `${year}-${month}`;
+            if (!monthsMap.has(key)) {
+                monthsMap.set(key, { year, month, orders: [], totalSales: 0, totalItems: 0 });
+            }
+            const monthData = monthsMap.get(key);
+            monthData.orders.push(order);
+            monthData.totalSales += order.totalAmount;
+            monthData.totalItems += order.items.reduce((sum, it) => sum + it.qty, 0);
+        });
+        const sortedMonths = Array.from(monthsMap.keys()).sort().reverse();
+        const statsDiv = document.getElementById('reportStats');
+        const detailsDiv = document.getElementById('reportDetails');
+        if (sortedMonths.length === 0) {
+            statsDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan selesai</div>';
+            detailsDiv.innerHTML = '';
+            return;
+        }
+        const latest = monthsMap.get(sortedMonths[0]);
+        statsDiv.innerHTML = `
+            <div class="report-card"><i class="fa-solid fa-calendar-alt"></i> <strong>Bulan Terkini</strong><br>${latest.month} / ${latest.year}<br>${latest.orders.length} pesanan<br>RM ${latest.totalSales.toFixed(2)}</div>
+            <div class="report-card"><i class="fa-solid fa-boxes"></i> <strong>Jumlah Item</strong><br>${latest.totalItems} unit</div>
+            <div class="report-card"><i class="fa-solid fa-chart-simple"></i> <strong>Purata / Pesanan</strong><br>RM ${(latest.totalSales/latest.orders.length).toFixed(2)}</div>
+        `;
+        let html = '<h6 class="mt-3">📋 Senarai Bulanan (terbaru ke lama)</h6><div class="list-group">';
+        for (let key of sortedMonths) {
+            const data = monthsMap.get(key);
+            html += `<div class="list-group-item"><strong>Bulan ${data.month} / ${data.year}</strong> – ${data.orders.length} pesanan, RM ${data.totalSales.toFixed(2)}, ${data.totalItems} item</div>`;
+        }
+        html += '</div>';
+        detailsDiv.innerHTML = html;
+    }
+
+    // ==================== SECTION TOGGLING ====================
     const ordersSection = document.getElementById('ordersSection');
     const stockSection = document.getElementById('stockSection');
-    const toggleBtn = document.getElementById('toggleStockBtn');
-    const backBtn = document.getElementById('backToOrdersBtn');
+    const reportSection = document.getElementById('reportSection');
+    const toggleStockBtn = document.getElementById('toggleStockBtn');
+    const toggleReportBtn = document.getElementById('toggleReportBtn');
+    const backToOrdersBtn = document.getElementById('backToOrdersBtn');
+    const backToOrdersFromReportBtn = document.getElementById('backToOrdersFromReportBtn');
 
-    toggleBtn.addEventListener('click', () => {
+    toggleStockBtn.addEventListener('click', () => {
         ordersSection.style.display = 'none';
         stockSection.style.display = 'block';
-        loadStockData();
+        reportSection.style.display = 'none';
+        loadStockData(); // refresh stock data
     });
-    backBtn.addEventListener('click', () => {
+    toggleReportBtn.addEventListener('click', () => {
+        ordersSection.style.display = 'none';
         stockSection.style.display = 'none';
+        reportSection.style.display = 'block';
+        updateReport(); // generate report based on current ordersData
+    });
+    function showOrdersSection() {
         ordersSection.style.display = 'block';
+        stockSection.style.display = 'none';
+        reportSection.style.display = 'none';
+    }
+    backToOrdersBtn.onclick = showOrdersSection;
+    backToOrdersFromReportBtn.onclick = showOrdersSection;
+
+    // Report type switching
+    document.getElementById('weeklyReportBtn').addEventListener('click', () => {
+        reportType = 'weekly';
+        document.getElementById('weeklyReportBtn').classList.add('active');
+        document.getElementById('monthlyReportBtn').classList.remove('active');
+        updateReport();
+    });
+    document.getElementById('monthlyReportBtn').addEventListener('click', () => {
+        reportType = 'monthly';
+        document.getElementById('monthlyReportBtn').classList.add('active');
+        document.getElementById('weeklyReportBtn').classList.remove('active');
+        updateReport();
     });
 
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':m==='>'?'&gt;':m); }
+
+    // Listen for orders updates to refresh report when needed
+    let previousCompletedCount = 0;
+    setInterval(() => {
+        if (reportSection.style.display === 'block') {
+            updateReport();
+        }
+    }, 5000); // auto refresh report setiap 5 saat
 
     checkAuth();
 </script>
