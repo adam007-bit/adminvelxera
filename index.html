@@ -54,7 +54,7 @@
         .report-filter button.active { background:#10b981; color:white; border-color:#10b981; }
         .report-stats { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem; }
         .report-card { background:#f8fafc; border-radius:1rem; padding:0.8rem 1.2rem; flex:1; text-align:center; }
-        .product-name-normal { font-weight:500; } /* tiada transform uppercase */
+        .product-name-normal { font-weight:500; }
         .toggle-switch { width:50px; height:24px; background:#cbd5e1; border-radius:30px; position:relative; cursor:pointer; transition:0.2s; display:inline-block; }
         .toggle-switch.active { background:#10b981; }
         .toggle-switch span { position:absolute; top:2px; left:2px; width:20px; height:20px; background:white; border-radius:50%; transition:0.2s; }
@@ -181,7 +181,7 @@
         return sanitizeFirestoreId(raw);
     }
 
-    // ==================== DATA PRODUK DARI KOD FRONTEND ====================
+    // ==================== DATA PRODUK (SAMA SEPERTI KOD PELANGGAN) ====================
     // ORAL PEPTIDES
     const oralPeptidesData = [
         { id: "oral_5amino_1mq", name: "5-Amino-1MQ", category: "oral", description: "Supports metabolism, helps increase calorie burning, and may assist with fat loss.", variations: [{ size: "50mg", type: "60 Capsules", price: 210 }], stock: 100 },
@@ -194,18 +194,18 @@
         { id: "oral_kpv", name: "KPV", category: "oral", description: "Used to calm inflammation in the gut, skin, and throughout the body.", variations: [{ size: "300mcg", type: "60 Capsules", price: 100 }], stock: 100 }
     ];
 
-    // PRODUK TAMBAHAN (solvent, beauty, peptides)
+    // PRODUK TAMBAHAN (solvent, beauty, peptides) – diselaraskan dengan kod pertama
     const additionalProducts = [
         // SOLVENT
         { id: "solvent_bac_water", name: "Bac Water", category: "solvent", description: "Bacteriostatic water for reconstitution.", variations: [{ size: "3ml", type: "Vial", price: 4 }, { size: "10ml", type: "Vial", price: 5 }], stock: 100 },
-        { id: "solvent_usb_bac_water", name: "USP Bac Water", category: "solvent", description: "Bacteriostatic water for reconstitution.", variations: [{ size: "10ml", type: "Vial", price: 5 }], stock: 100 },
+        { id: "solvent_usb_bac_water", name: "USP Bac Water", category: "solvent", description: "Bacteriostatic water for reconstitution.", variations: [{ size: "10ml", type: "Vial", price: 12 }], stock: 100 },
         { id: "solvent_steriled_water", name: "Sterilized Water", category: "solvent", description: "Sterile water for injection.", variations: [{ size: "10ml", type: "Vial", price: 5 }], stock: 100 },
         { id: "solvent_acetic_acid", name: "Acetic Acid", category: "solvent", description: "For peptide reconstitution.", variations: [{ size: "10ml", type: "Vial", price: 5 }], stock: 100 },
 
         // BEAUTY PEPTIDES
-        { id: "beauty_ghk_cu", name: "GHK-Cu", category: "beauty", description: "Copper peptide for hair and skin (injectable).", variations: [{ size: "50mg", type: "Vial", price: 12 }, { size: "1000mg", type: "Vial", price: 40 }], stock: 100 },
+        { id: "beauty_ghk_cu", name: "GHK-Cu", category: "beauty", description: "Copper peptide for hair and skin (injectable).", variations: [{ size: "50mg", type: "Vial", price: 12 }, { size: "100mg", type: "Vial", price: 15 }], stock: 100 },
         { id: "beauty_ahk_cu", name: "AHK-CU", category: "beauty", description: "Copper peptide for hair growth.", variations: [{ size: "50mg", type: "Vial", price: 20 }, { size: "100mg", type: "Vial", price: 35 }], stock: 100 },
-        { id: "beauty_glutathione", name: "Glutathione", category: "beauty", description: "Antioxidant for skin brightening.", variations: [{ size: "600mg", type: "Vial", price: 15 }, { size: "1500mg", type: "Vial", price: 35 }], stock: 100 },
+        { id: "beauty_glutathione", name: "Glutathione (Fuan)", category: "beauty", description: "Antioxidant for skin brightening.", variations: [{ size: "600mg", type: "Vial", price: 15 }, { size: "1500mg", type: "Vial", price: 35 }], stock: 100 },
         { id: "beauty_glow", name: "Glow", category: "beauty", description: "Skin brightening and anti-aging.", variations: [{ size: "70mg", type: "Vial", price: 70 }], stock: 100 },
         { id: "beauty_klow", name: "Klow", category: "beauty", description: "Brightening and anti-aging peptide complex.", variations: [{ size: "80mg", type: "Vial", price: 80 }], stock: 100 },
         { id: "beauty_snap8", name: "Snap-8", category: "beauty", description: "Anti-aging peptide.", variations: [{ size: "10mg", type: "Vial", price: 20 }], stock: 100 },
@@ -225,7 +225,7 @@
         { id: "beauty_oligo_peptide24", name: "Oligo Peptide 24", category: "beauty", description: "Anti-aging peptide complex.", variations: [{ size: "10mg", type: "Peptide", price: 15 }], stock: 100 },
         { id: "beauty_vitamin_c_tablet", name: "Vitamin C Tablet With Essense", category: "beauty", description: "Vitamin C brightening tablets with essence.", variations: [{ size: "10pcs", type: "Tablet", price: 20 }], stock: 100 },
         { id: "beauty_acne_serum", name: "Acne Serum", category: "beauty", description: "Anti-acne and soothing serum.", variations: [{ size: "5ml", type: "Serum", price: 10 }], stock: 100 },
-        { id: "beauty_hydro_glow", name: "Hydro Glow Serum", category: "beauty", description: "Hydrating and brightening serum.", variations: [{ size: "5ml", type: "Serum", price: 25 }], stock: 100 },
+        { id: "beauty_hydro_glow", name: "Hydro Glow Serum", category: "beauty", description: "Hydrating and brightening serum.", variations: [{ size: "5ml", type: "Serum", price: 10 }], stock: 100 },
         { id: "beauty_ghkcu_serum", name: "GHK-Cu Serum", category: "beauty", description: "Copper peptide serum for anti-aging.", variations: [{ size: "5ml", type: "Serum", price: 10 }], stock: 100 },
         { id: "beauty_ghkcu_topical", name: "GHK-Cu Topical", category: "beauty", description: "Copper peptide topical.", variations: [{ size: "1000mg", type: "Vial", price: 40 }], stock: 100 },
         { id: "beauty_fiona_masker", name: "Fiona Masker", category: "beauty", description: "Facial mask.", variations: [{ size: "10mg", type: "Set", price: 15 }], stock: 100 },
@@ -507,20 +507,17 @@
         });
     });
 
-    // ==================== STOCK MANAGEMENT (MERGING PRODUK DARI FIRESTORE + DATA TEMPATAN) ====================
+    // ==================== STOCK MANAGEMENT ====================
     let productsData = [];
     let inventoryData = new Map();
-    let stockChanges = new Map();      // Baki Stok (pre-order)
-    let readyStockChanges = new Map(); // Ready Stock
+    let stockChanges = new Map();
+    let readyStockChanges = new Map();
 
     async function loadStockData() {
         try {
-            // 1. Dapatkan produk dari Firestore
             const prodSnap = await getDocs(collection(db, "products"));
             let firestoreProducts = [];
             prodSnap.forEach(doc => firestoreProducts.push({ id: doc.id, ...doc.data() }));
-            
-            // 2. Gabungkan dengan produk dari data tempatan (elak pendua berdasarkan id)
             const allLocalProducts = [...oralPeptidesData, ...additionalProducts];
             const mergedProducts = [...firestoreProducts];
             for (const localProd of allLocalProducts) {
@@ -530,7 +527,6 @@
             }
             productsData = mergedProducts;
             
-            // 3. Dapatkan inventory dari Firestore
             const invSnap = await getDocs(collection(db, "inventory"));
             inventoryData.clear();
             invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
@@ -538,7 +534,6 @@
             stockChanges.clear();
             readyStockChanges.clear();
             
-            // 4. Initialize untuk setiap variasi produk
             for (const product of productsData) {
                 if (product.variations) {
                     for (const v of product.variations) {
@@ -605,7 +600,6 @@
                 });
             }
         }
-        // Attach change events for inputs
         document.querySelectorAll('.stock-input').forEach(inp => {
             inp.addEventListener('change', (e) => {
                 const key = inp.dataset.key;
@@ -653,7 +647,6 @@
                 }
             }
         }
-        // Refresh data from DB to sync
         const invSnap = await getDocs(collection(db, "inventory"));
         inventoryData.clear();
         invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
@@ -676,7 +669,7 @@
 
     document.getElementById('saveAllStockBtn').addEventListener('click', saveAllStockChanges);
 
-    // ==================== REPORT (MONTHLY / WEEKLY) ====================
+    // ==================== REPORT ====================
     let reportType = 'weekly';
     let completedOrders = [];
 
@@ -783,7 +776,7 @@
         ordersSection.style.display = 'none';
         stockSection.style.display = 'block';
         reportSection.style.display = 'none';
-        loadStockData(); // refresh stock data
+        loadStockData();
     });
     toggleReportBtn.addEventListener('click', () => {
         ordersSection.style.display = 'none';
@@ -814,7 +807,6 @@
 
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':m==='>'?'&gt;':m); }
 
-    // Auto refresh report
     setInterval(() => {
         if (reportSection.style.display === 'block') {
             updateReport();
@@ -824,7 +816,6 @@
     checkAuth();
 </script>
 
-<!-- Service Worker Registration for PWA -->
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
