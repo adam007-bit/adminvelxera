@@ -418,15 +418,89 @@
         document.getElementById('statCancelled').innerText=cancelled; 
     }
 
-    function loadOrdersRealtime(){ 
-        onSnapshot(collection(db,"orders"),(snap)=>{ 
-            ordersData=[]; 
-            snap.forEach(d=>ordersData.push({id:d.id,...d.data()})); 
-            ordersData.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)); 
-            updateStats(); 
-            renderOrders(); 
-        }); 
+    // Simpan ID pesanan sebelumnya untuk mengesan pesanan baru
+let previousOrderIds = new Set();
+
+function loadOrdersRealtime(){ 
+    onSnapshot(collection(db,"orders"),(snap)=>{ 
+        const newOrders = [];
+        const currentOrderIds = new Set();
+        
+        snap.forEach(doc => {
+            const orderData = { id: doc.id, ...doc.data() };
+            ordersData.push(orderData);
+            currentOrderIds.add(doc.id);
+        });
+        
+        // Susun mengikut tarikh
+        ordersData.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+        
+        // Semak jika ada ID baharu (pesanan baru)
+        let hasNewOrder = false;
+        for (let id of currentOrderIds) {
+            if (!previousOrderIds.has(id)) {
+                hasNewOrder = true;
+                break;
+            }
+        }
+        
+        // Jika ada pesanan baru, mainkan notifikasi
+        if (hasNewOrder && currentOrderIds.size > 0) {
+            playNotificationSound();
+            showOrderNotification();
+        }
+        
+        // Kemas kini set ID untuk rujukan seterusnya
+        previousOrderIds = currentOrderIds;
+        
+        updateStats(); 
+        renderOrders(); 
+    }); 
+}
+
+// Fungsi untuk bunyi notifikasi
+function playNotificationSound() {
+    try {
+        // Cuba mainkan bunyi menggunakan Web Audio API (tiada fail audio diperlukan)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.frequency.value = 800; // Nada tinggi
+        oscillator.type = 'sine';
+        gainNode.gain.value = 0.3;
+        oscillator.start();
+        setTimeout(() => { oscillator.stop(); }, 200);
+        // Bunyi kedua (bip-bip)
+        setTimeout(() => {
+            const osc2 = audioCtx.createOscillator();
+            const gain2 = audioCtx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(audioCtx.destination);
+            osc2.frequency.value = 1000;
+            osc2.type = 'sine';
+            gain2.gain.value = 0.3;
+            osc2.start();
+            setTimeout(() => { osc2.stop(); }, 200);
+        }, 300);
+    } catch(e) {
+        // Jika Web Audio tidak disokong, guna console log
+        console.log('🔔 Pesanan baru!');
     }
+}
+
+// Fungsi untuk popup notifikasi
+function showOrderNotification() {
+    // Gunakan toast yang sedia ada
+    const toast = document.getElementById('toastMsg');
+    toast.innerHTML = '🛒 Pesanan Baru! Sila semak senarai.';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 5000);
+    
+    // Popup alert (pilihan)
+    // alert('🛒 Pesanan Baru! Sila semak senarai pesanan.');
+}
 
     async function completeOrderWithTracking(orderId, orderData, trackingNumber) {
         const progressDiv = document.getElementById('trackingProgress');
