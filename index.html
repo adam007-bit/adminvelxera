@@ -695,20 +695,17 @@ function showOrderNotification() {
                 tbody.appendChild(row);
                 const toggleDiv = row.querySelector('.toggle-switch');
                 const statusSpan = row.querySelector('span.ms-2');
-                toggleDiv.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const readyInput = row.querySelector(`input[data-field="ready"]`);
-                    let newReady = parseInt(readyInput.value);
-                    if (newReady > 0) {
-                        // no change
-                    } else {
-                        newReady = newReady === 0 ? 1 : 0;
-                        readyInput.value = newReady;
-                        readyStockChanges.set(key, newReady);
-                    }
-                    toggleDiv.classList.toggle('active', newReady > 0);
-                    statusSpan.innerText = newReady > 0 ? 'Ready Stock' : 'Pre-order / Habis';
-                });
+               toggleDiv.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const readyInput = row.querySelector(`input[data-field="ready"]`);
+    let currentReady = parseInt(readyInput.value) || 0;
+    // Toggle: jika >0 jadi 0, jika 0 jadi 1
+    let newReady = currentReady > 0 ? 0 : 1;
+    readyInput.value = newReady;
+    readyStockChanges.set(key, newReady);
+    toggleDiv.classList.toggle('active', newReady > 0);
+    statusSpan.innerText = newReady > 0 ? 'Ready Stock' : 'Pre-order / Habis';
+});
             }
         }
         document.querySelectorAll('.stock-input').forEach(inp => {
