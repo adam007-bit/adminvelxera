@@ -94,6 +94,7 @@
             <span class="brand-logo"><i class="fa-solid fa-leaf me-2"></i>VELXERA ADMIN</span>
             <button class="section-toggle" id="toggleStockBtn"><i class="fa-solid fa-boxes"></i> Urus Stok</button>
             <button class="section-toggle" id="toggleReportBtn"><i class="fa-solid fa-chart-line"></i> Laporan</button>
+            <button class="section-toggle" id="toggleProductReportBtn"><i class="fa-solid fa-boxes"></i> Laporan Produk</button>
         </div>
         <button class="btn btn-sm btn-outline-light rounded-pill" id="logoutBtn">Keluar</button>
     </nav>
@@ -153,6 +154,37 @@
             </div>
         </div>
     </div>
+    <!-- Section for Product Sales Report -->
+<div id="productReportSection" style="display:none;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold"><i class="fa-solid fa-boxes text-success"></i> Laporan Jualan Mengikut Produk</h5>
+        <button class="btn btn-sm btn-secondary" id="backToOrdersFromProductReportBtn"><i class="fa-solid fa-arrow-left"></i> Kembali ke Pesanan</button>
+    </div>
+    <div class="report-container">
+        <div class="mb-3">
+            <button class="btn btn-sm btn-outline-primary" id="productReportAll">Semua Masa</button>
+            <button class="btn btn-sm btn-outline-primary" id="productReportWeekly">Minggu Ini</button>
+            <button class="btn btn-sm btn-outline-primary" id="productReportMonthly">Bulan Ini</button>
+        </div>
+        <div id="productReportStats" class="report-stats"></div>
+        <div id="productReportTable" class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Produk</th>
+                        <th>Saiz</th>
+                        <th>Jenis</th>
+                        <th>Total Kuantiti Dipesan</th>
+                        <th>Jumlah Item (RM)</th>
+                    </tr>
+                </thead>
+                <tbody id="productReportBody">
+                    <tr><td colspan="5" class="text-center">Tiada data</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 </div>
 <div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
 
@@ -870,51 +902,131 @@ function showOrderNotification() {
         html += '</div>';
         detailsDiv.innerHTML = html;
     }
-
-    // ==================== SECTION TOGGLING ====================
-    const ordersSection = document.getElementById('ordersSection');
-    const stockSection = document.getElementById('stockSection');
-    const reportSection = document.getElementById('reportSection');
-    const toggleStockBtn = document.getElementById('toggleStockBtn');
-    const toggleReportBtn = document.getElementById('toggleReportBtn');
-    const backToOrdersBtn = document.getElementById('backToOrdersBtn');
-    const backToOrdersFromReportBtn = document.getElementById('backToOrdersFromReportBtn');
-
-    toggleStockBtn.addEventListener('click', () => {
-        ordersSection.style.display = 'none';
-        stockSection.style.display = 'block';
-        reportSection.style.display = 'none';
-        loadStockData();
-    });
-    toggleReportBtn.addEventListener('click', () => {
-        ordersSection.style.display = 'none';
-        stockSection.style.display = 'none';
-        reportSection.style.display = 'block';
-        updateReport();
-    });
-    function showOrdersSection() {
-        ordersSection.style.display = 'block';
-        stockSection.style.display = 'none';
-        reportSection.style.display = 'none';
+function generateProductReport(filter = 'all') {
+    const now = new Date();
+    let startDate = null;
+    if (filter === 'weekly') {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        startDate = new Date(now);
+        startDate.setDate(diff);
+        startDate.setHours(0,0,0,0);
+    } else if (filter === 'monthly') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
-    backToOrdersBtn.onclick = showOrdersSection;
-    backToOrdersFromReportBtn.onclick = showOrdersSection;
-
-    document.getElementById('weeklyReportBtn').addEventListener('click', () => {
-        reportType = 'weekly';
-        document.getElementById('weeklyReportBtn').classList.add('active');
-        document.getElementById('monthlyReportBtn').classList.remove('active');
-        updateReport();
+    
+    // Kumpulkan semua pesanan completed + pending
+    const allOrders = ordersData.filter(o => o.status === 'completed' || o.status === 'pending');
+    const productMap = new Map();
+    
+    allOrders.forEach(order => {
+        if (startDate) {
+            const orderDate = new Date(order.createdAt);
+            if (orderDate < startDate) return;
+        }
+        order.items.forEach(item => {
+            const key = `${item.prodName}_${item.size}_${item.type}`;
+            if (!productMap.has(key)) {
+                productMap.set(key, {
+                    name: item.prodName,
+                    size: item.size,
+                    type: item.type,
+                    totalQty: 0,
+                    totalRevenue: 0
+                });
+            }
+            const data = productMap.get(key);
+            data.totalQty += item.qty;
+            data.totalRevenue += item.price * item.qty;
+        });
     });
-    document.getElementById('monthlyReportBtn').addEventListener('click', () => {
-        reportType = 'monthly';
-        document.getElementById('monthlyReportBtn').classList.add('active');
-        document.getElementById('weeklyReportBtn').classList.remove('active');
-        updateReport();
+    
+    const tbody = document.getElementById('productReportBody');
+    const statsDiv = document.getElementById('productReportStats');
+    const sorted = Array.from(productMap.values()).sort((a, b) => b.totalQty - a.totalQty);
+    
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tiada data</td></tr>';
+        statsDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan dalam tempoh ini</div>';
+        return;
+    }
+    
+    let html = '';
+    let totalOverallQty = 0;
+    let totalOverallRevenue = 0;
+    sorted.forEach(p => {
+        html += `<tr>
+            <td>${escapeHtml(p.name)}</td>
+            <td>${escapeHtml(p.size)}</td>
+            <td>${escapeHtml(p.type)}</td>
+            <td class="fw-bold">${p.totalQty}</td>
+            <td>RM ${p.totalRevenue.toFixed(2)}</td>
+        </tr>`;
+        totalOverallQty += p.totalQty;
+        totalOverallRevenue += p.totalRevenue;
     });
+    tbody.innerHTML = html;
+    
+    statsDiv.innerHTML = `
+        <div class="report-card"><i class="fa-solid fa-boxes"></i> <strong>Jumlah Produk</strong><br>${sorted.length}</div>
+        <div class="report-card"><i class="fa-solid fa-cubes"></i> <strong>Total Unit Terjual</strong><br>${totalOverallQty}</div>
+        <div class="report-card"><i class="fa-solid fa-ring"></i> <strong>Total Pendapatan</strong><br>RM ${totalOverallRevenue.toFixed(2)}</div>
+    `;
+}
+    // ==================== SECTION TOGGLING ====================
+const ordersSection = document.getElementById('ordersSection');
+const stockSection = document.getElementById('stockSection');
+const reportSection = document.getElementById('reportSection');
+const productReportSection = document.getElementById('productReportSection');
 
+const toggleStockBtn = document.getElementById('toggleStockBtn');
+const toggleReportBtn = document.getElementById('toggleReportBtn');
+const toggleProductReportBtn = document.getElementById('toggleProductReportBtn');
+
+const backToOrdersBtn = document.getElementById('backToOrdersBtn');
+const backToOrdersFromReportBtn = document.getElementById('backToOrdersFromReportBtn');
+const backToOrdersFromProductReportBtn = document.getElementById('backToOrdersFromProductReportBtn');
+
+function showOrdersSection() {
+    ordersSection.style.display = 'block';
+    stockSection.style.display = 'none';
+    reportSection.style.display = 'none';
+    productReportSection.style.display = 'none';
+}
+
+toggleStockBtn.addEventListener('click', () => {
+    ordersSection.style.display = 'none';
+    stockSection.style.display = 'block';
+    reportSection.style.display = 'none';
+    productReportSection.style.display = 'none';
+    loadStockData();
+});
+
+toggleReportBtn.addEventListener('click', () => {
+    ordersSection.style.display = 'none';
+    stockSection.style.display = 'none';
+    reportSection.style.display = 'block';
+    productReportSection.style.display = 'none';
+    updateReport();
+});
+
+toggleProductReportBtn.addEventListener('click', () => {
+    ordersSection.style.display = 'none';
+    stockSection.style.display = 'none';
+    reportSection.style.display = 'none';
+    productReportSection.style.display = 'block';
+    generateProductReport('all');
+});
+
+backToOrdersBtn.onclick = showOrdersSection;
+backToOrdersFromReportBtn.onclick = showOrdersSection;
+backToOrdersFromProductReportBtn.onclick = showOrdersSection;
+   
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':m==='>'?'&gt;':m); }
-
+// Butang filter untuk Laporan Produk
+document.getElementById('productReportAll').addEventListener('click', () => generateProductReport('all'));
+document.getElementById('productReportWeekly').addEventListener('click', () => generateProductReport('weekly'));
+document.getElementById('productReportMonthly').addEventListener('click', () => generateProductReport('monthly'));
     setInterval(() => {
         if (reportSection.style.display === 'block') {
             updateReport();
