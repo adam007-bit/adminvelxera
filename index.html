@@ -459,37 +459,45 @@ function loadOrdersRealtime(){
         const currentOrderIds = new Set();
         
         snap.forEach(doc => {
-            const orderData = { id: doc.id, ...doc.data() };
-            ordersData.push(orderData);
+            newOrders.push({ id: doc.id, ...doc.data() });
             currentOrderIds.add(doc.id);
         });
         
-        // Susun mengikut tarikh
+        ordersData = newOrders;
         ordersData.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
         
-        // Semak jika ada ID baharu (pesanan baru)
+        // ====== SEMAK NOTIFIKASI ======
+        const savedIds = JSON.parse(localStorage.getItem('admin_notified_orders') || '[]');
+        const savedSet = new Set(savedIds);
         let hasNewOrder = false;
+        
         for (let id of currentOrderIds) {
-            if (!previousOrderIds.has(id)) {
-                hasNewOrder = true;
-                break;
+            if (!savedSet.has(id)) {
+                // Semak jika pesanan baru (dalam 60 saat terakhir)
+                const order = ordersData.find(o => o.id === id);
+                if (order) {
+                    const orderTime = new Date(order.createdAt).getTime();
+                    const now = Date.now();
+                    if (now - orderTime < 60000) { // 60 saat
+                        hasNewOrder = true;
+                    }
+                }
+                savedSet.add(id);
             }
         }
         
-        // Jika ada pesanan baru, mainkan notifikasi
-        if (hasNewOrder && currentOrderIds.size > 0) {
+        // Simpan semula ID yang telah diberitahu
+        localStorage.setItem('admin_notified_orders', JSON.stringify([...savedSet]));
+        
+        if (hasNewOrder) {
             playNotificationSound();
             showOrderNotification();
         }
-        
-        // Kemas kini set ID untuk rujukan seterusnya
-        previousOrderIds = currentOrderIds;
         
         updateStats(); 
         renderOrders(); 
     }); 
 }
-
 // Fungsi untuk bunyi notifikasi
 function playNotificationSound() {
     try {
@@ -687,7 +695,23 @@ function showOrderNotification() {
                         stockChanges.set(key, currentStock);
                         readyStockChanges.set(key, currentReady);
                         if (!existing || existing.initialStock !== 1000) {
-                            await setDoc(doc(db, "inventory", key), { initialStock: 1000, stock: currentStock, readyStock: currentReady }, { merge: true });
+                           // Semak sama ada existing ada
+               const existing = inventoryData.get(key);
+               const initialStockToUse = existing?.initialStock ?? 1000;  // 👈 Guna nilai sedia ada
+
+               if (!existing) {
+    await setDoc(doc(db, "inventory", key), { 
+        initialStock: 1000, 
+        stock: currentStock, 
+        readyStock: currentReady 
+    }, { merge: true });
+} else {
+    // Hanya update stock dan readyStock, biarkan initialStock
+    await setDoc(doc(db, "inventory", key), { 
+        stock: currentStock, 
+        readyStock: currentReady 
+    }, { merge: true });
+}
                             inventoryData.set(key, { initialStock: 1000, stock: currentStock, readyStock: currentReady });
                         }
                     }
