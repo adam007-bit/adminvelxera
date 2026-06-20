@@ -67,18 +67,31 @@
 </head>
 <body>
 <!-- Preview invoice untuk Admin (tersembunyi) -->
-<div id="adminInvoicePreview" style="position:fixed; left:-9999px; top:-9999px; width:800px; background:white; padding:30px; font-family:'Inter',sans-serif; z-index:-1;">
+<div id="adminInvoicePreview" style="position:fixed; left:-9999px; top:-9999px; width:800px; background:white; padding:40px; font-family:'Poppins',sans-serif; z-index:-1; font-size:14px; line-height:1.6; color:#1e293b;">
+    <style>
+        #adminInvoicePreview h2 { font-size:28px; margin:0 0 8px 0; letter-spacing:1px; }
+        #adminInvoicePreview .subhead { font-size:13px; color:#64748b; margin:0; }
+        #adminInvoicePreview .admin-copy { background:#fef3c7; padding:8px; border-radius:6px; font-weight:bold; color:#b45309; font-size:14px; display:inline-block; margin-bottom:12px; }
+        #adminInvoicePreview hr { border:1px solid #10b981; margin:16px 0; }
+        #adminInvoicePreview .customer-detail { font-size:14px; margin-bottom:20px; }
+        #adminInvoicePreview table { width:100%; border-collapse:collapse; margin:16px 0; font-size:13px; }
+        #adminInvoicePreview table th { background:#f1f5f9; padding:10px 8px; text-align:left; font-weight:600; border-bottom:2px solid #10b981; }
+        #adminInvoicePreview table td { padding:8px; border-bottom:1px solid #e2e8f0; }
+        #adminInvoicePreview table tfoot td { font-weight:600; border-top:2px solid #10b981; padding-top:10px; }
+        #adminInvoicePreview .total-row { font-size:18px; color:#10b981; }
+        #adminInvoicePreview .footer-note { margin-top:30px; font-size:11px; text-align:center; color:#94a3b8; border-top:1px solid #e2e8f0; padding-top:20px; }
+        #adminInvoicePreview .info-grid { display:flex; gap:30px; flex-wrap:wrap; margin:12px 0; }
+        #adminInvoicePreview .info-grid div { font-size:13px; }
+        #adminInvoicePreview .info-grid strong { color:#0f172a; }
+    </style>
     <div style="text-align:center; margin-bottom:20px;">
         <h2 style="color:#10b981;">VELXERA VENTURES</h2>
-        <p>No 80A Jalan Banyan 2, Bukit Banyan, 08000 Sungai Petani, Kedah<br>Tel/WhatsApp: 0124794979 | Email: velxera.co@gmail.com</p>
-        <hr style="border:1px solid #10b981;">
-        <div style="background:#fef3c7; padding:6px; border-radius:8px; font-weight:bold; color:#b45309;">SALINAN ADMIN</div>
+        <p class="subhead">No 80A Jalan Banyan 2, Bukit Banyan, 08000 Sungai Petani, Kedah<br>Tel/WhatsApp: 0124794979 | Email: velxera.co@gmail.com</p>
+        <div class="admin-copy">📄 SALINAN ADMIN</div>
+        <hr>
     </div>
     <div id="adminInvoiceContent"></div>
-    <div style="text-align:center; margin-top:30px; font-size:11px;">
-        <hr>
-        <p>Terima kasih atas kepercayaan anda! &copy; VELXERA VENTURES</p>
-    </div>
+    <div class="footer-note">Terima kasih atas kepercayaan anda! &copy; VELXERA VENTURES</div>
 </div>
 <!-- Modal untuk masukkan nombor tracking -->
 <div id="trackingModal" class="modal-upload">
@@ -692,7 +705,6 @@ function showOrderNotification() {
     });
 // ==================== PRINT INVOIS UNTUK ADMIN ====================
 async function adminPrintInvoice(orderId) {
-    // Cari order dalam ordersData
     const order = ordersData.find(o => o.id === orderId);
     if (!order) {
         showToast('Pesanan tidak dijumpai', true);
@@ -702,7 +714,6 @@ async function adminPrintInvoice(orderId) {
     const previewDiv = document.getElementById('adminInvoicePreview');
     const contentDiv = document.getElementById('adminInvoiceContent');
 
-    // Sediakan data
     const customer = order.customer;
     const items = order.items;
     const totalAmount = order.totalAmount;
@@ -712,43 +723,50 @@ async function adminPrintInvoice(orderId) {
     const bankName = order.bankName || 'Tiada';
     const orderIdDisplay = order.orderId || order.id;
     const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Tarikh tidak tersedia';
+    const stickerValue = order.sticker || 'Yes';  // 👈 Ambil sticker
 
     const subtotal = items.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
-    // Bina HTML untuk invois
     let itemsHtml = items.map(i => `
-        <tr style="border-bottom:1px solid #e2e8f0;">
-            <td style="padding:6px 0;">${escapeHtml(i.prodName)} (${escapeHtml(i.size)} - ${escapeHtml(i.type)})</td>
-            <td style="padding:6px 0; text-align:center;">${i.qty}</td>
-            <td style="padding:6px 0; text-align:right;">RM ${i.price.toFixed(2)}</td>
-            <td style="padding:6px 0; text-align:right;">RM ${(i.price * i.qty).toFixed(2)}</td>
+        <tr>
+            <td>${escapeHtml(i.prodName)} (${escapeHtml(i.size)} - ${escapeHtml(i.type)})</td>
+            <td style="text-align:center;">${i.qty}</td>
+            <td style="text-align:right;">RM ${i.price.toFixed(2)}</td>
+            <td style="text-align:right;">RM ${(i.price * i.qty).toFixed(2)}</td>
         </tr>
     `).join('');
 
     contentDiv.innerHTML = `
-        <h3 style="text-align:center;">INVOIS PESANAN</h3>
-        <p style="text-align:center;"><strong>ID Pesanan:</strong> ${orderIdDisplay}</p>
-        <p style="text-align:center;"><strong>Tarikh:</strong> ${createdAt}</p>
-        <hr>
-        <div style="margin-bottom:20px;"><strong>Kepada:</strong><br>${escapeHtml(customer.name)}<br>${escapeHtml(customer.phone)}<br>${escapeHtml(customer.address_line1)}, ${escapeHtml(customer.postcode)} ${escapeHtml(customer.state)}</div>
-        <table style="width:100%; border-collapse:collapse; margin:20px 0;">
-            <thead><tr><th style="text-align:left;">Produk</th><th style="text-align:center;">Kuantiti</th><th style="text-align:right;">Harga Unit (RM)</th><th style="text-align:right;">Jumlah (RM)</th></tr></thead>
+        <h3 style="text-align:center; font-size:20px; margin:0 0 4px 0;">INVOIS PESANAN</h3>
+        <p style="text-align:center; font-size:13px; color:#475569;"><strong>ID Pesanan:</strong> ${orderIdDisplay} &nbsp;|&nbsp; <strong>Tarikh:</strong> ${createdAt}</p>
+        <div class="customer-detail">
+            <strong>Kepada:</strong><br>
+            ${escapeHtml(customer.name)}<br>
+            ${escapeHtml(customer.phone)}<br>
+            ${escapeHtml(customer.address_line1)}, ${escapeHtml(customer.postcode)} ${escapeHtml(customer.state)}
+        </div>
+        <table>
+            <thead><tr><th>Produk</th><th style="text-align:center;">Kuantiti</th><th style="text-align:right;">Harga Unit (RM)</th><th style="text-align:right;">Jumlah (RM)</th></tr></thead>
             <tbody>${itemsHtml}</tbody>
             <tfoot>
-                <tr><td colspan="3" style="text-align:right; padding-top:10px;"><strong>Subtotal:</strong></td><td style="text-align:right; padding-top:10px;">RM ${subtotal.toFixed(2)}</td></tr>
+                <tr><td colspan="3" style="text-align:right; padding-top:10px;"><strong>Subtotal:</strong></td><td style="text-align:right;">RM ${subtotal.toFixed(2)}</td></tr>
                 <tr><td colspan="3" style="text-align:right;"><strong>Penghantaran (${escapeHtml(shippingRegion)}):</strong></td><td style="text-align:right;">RM ${shippingCost.toFixed(2)}</td></tr>
-                <tr style="border-top:2px solid #10b981;"><td colspan="3" style="text-align:right;"><strong>TOTAL:</strong></td><td style="text-align:right;"><strong>RM ${totalAmount.toFixed(2)}</strong></td></tr>
+                <tr class="total-row"><td colspan="3" style="text-align:right;"><strong>TOTAL:</strong></td><td style="text-align:right;"><strong>RM ${totalAmount.toFixed(2)}</strong></td></tr>
             </tfoot>
         </table>
-        <div><strong>Kaedah Bayaran:</strong> ${escapeHtml(paymentMethod)}<br>${bankName && bankName !== "Tiada" ? `<strong>Bank Pengirim:</strong> ${escapeHtml(bankName)}<br>` : ''}<strong>Status:</strong> ${order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan')}</div>
-        ${order.receiptUrl ? `<div><strong>Resit Bayaran:</strong> <a href="${order.receiptUrl}" target="_blank">Lihat Resit</a></div>` : ''}
+        <div class="info-grid">
+            <div><strong>Kaedah Bayaran:</strong> ${escapeHtml(paymentMethod)}</div>
+            ${bankName && bankName !== "Tiada" ? `<div><strong>Bank Pengirim:</strong> ${escapeHtml(bankName)}</div>` : ''}
+            <div><strong>Sticker on vials?</strong> ${escapeHtml(stickerValue)}</div>
+            <div><strong>Status:</strong> ${order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan')}</div>
+        </div>
+        ${order.receiptUrl ? `<div style="margin-top:12px;"><strong>Resit Bayaran:</strong> <a href="${order.receiptUrl}" target="_blank" style="color:#10b981;">Lihat Resit</a></div>` : ''}
         ${order.trackingNumber ? `<div><strong>Tracking:</strong> ${escapeHtml(order.trackingNumber)}</div>` : ''}
     `;
 
-    // Gunakan html2canvas + jsPDF
     const { jsPDF } = window.jspdf;
     try {
-        const canvas = await html2canvas(previewDiv, { scale: 2, backgroundColor: '#ffffff' });
+        const canvas = await html2canvas(previewDiv, { scale: 3, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
         const imgWidth = 210;
