@@ -838,70 +838,68 @@ async function adminPrintInvoice(orderId) {
     let stockChanges = new Map();
     let readyStockChanges = new Map();
 
-    async function loadStockData() {
-        try {
-            const prodSnap = await getDocs(collection(db, "products"));
-            let firestoreProducts = [];
-            prodSnap.forEach(doc => firestoreProducts.push({ id: doc.id, ...doc.data() }));
-            const allLocalProducts = [...oralPeptidesData, ...additionalProducts];
-            const mergedProducts = [...firestoreProducts];
-            for (const localProd of allLocalProducts) {
-                if (!mergedProducts.some(p => p.id === localProd.id)) {
-                    mergedProducts.push(localProd);
-                }
-            }
-            productsData = mergedProducts;
-            
-            const invSnap = await getDocs(collection(db, "inventory"));
-            inventoryData.clear();
-            invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
-            
-            stockChanges.clear();
-            readyStockChanges.clear();
-            
-      for (const product of productsData) {
-    if (product.variations) {
-        for (const v of product.variations) {
-            const key = getVariationKey(product.id, v.size, v.type);
-            const existing = inventoryData.get(key);
-            const currentStock = existing?.stock ?? 1000;
-            const currentReady = existing?.readyStock ?? 0;
-
-            stockChanges.set(key, currentStock);
-            readyStockChanges.set(key, currentReady);
-
-            // Hanya proses jika tiada rekod atau initialStock bukan 1000
-            if (!existing || existing.initialStock !== 1000) {
-                if (!existing) {
-                    // Dokumen baru – set initialStock = 1000
-                    await setDoc(doc(db, "inventory", key), {
-                        initialStock: 1000,
-                        stock: currentStock,
-                        readyStock: currentReady
-                    }, { merge: true });
-                } else {
-                    // Dokumen sedia ada – hanya update stock & readyStock, biarkan initialStock
-                    await setDoc(doc(db, "inventory", key), {
-                        stock: currentStock,
-                        readyStock: currentReady
-                    }, { merge: true });
-                }
-                // Kemaskini cache dengan nilai yang betul
-                inventoryData.set(key, {
-                    initialStock: existing?.initialStock ?? 1000,
-                    stock: currentStock,
-                    readyStock: currentReady
-                });
+async function loadStockData() {
+    try {
+        const prodSnap = await getDocs(collection(db, "products"));
+        let firestoreProducts = [];
+        prodSnap.forEach(doc => firestoreProducts.push({ id: doc.id, ...doc.data() }));
+        const allLocalProducts = [...oralPeptidesData, ...additionalProducts];
+        const mergedProducts = [...firestoreProducts];
+        for (const localProd of allLocalProducts) {
+            if (!mergedProducts.some(p => p.id === localProd.id)) {
+                mergedProducts.push(localProd);
             }
         }
+        productsData = mergedProducts;
+        
+        const invSnap = await getDocs(collection(db, "inventory"));
+        inventoryData.clear();
+        invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
+        
+        stockChanges.clear();
+        readyStockChanges.clear();
+        
+        for (const product of productsData) {
+            if (product.variations) {
+                for (const v of product.variations) {
+                    const key = getVariationKey(product.id, v.size, v.type);
+                    const existing = inventoryData.get(key);
+                    const currentStock = existing?.stock ?? 1000;
+                    const currentReady = existing?.readyStock ?? 0;
+
+                    stockChanges.set(key, currentStock);
+                    readyStockChanges.set(key, currentReady);
+
+                    if (!existing) {
+                        // Dokumen belum wujud – buat baharu dengan initialStock=1000
+                        await setDoc(doc(db, "inventory", key), {
+                            initialStock: 1000,
+                            stock: currentStock,
+                            readyStock: currentReady
+                        }, { merge: true });
+                        inventoryData.set(key, { initialStock: 1000, stock: currentStock, readyStock: currentReady });
+                    } else {
+                        // Dokumen sedia ada – pastikan initialStock tidak hilang
+                        if (!existing.initialStock) {
+                            await setDoc(doc(db, "inventory", key), { initialStock: 1000 }, { merge: true });
+                            existing.initialStock = 1000;
+                        }
+                        // Simpan data terkini ke cache
+                        inventoryData.set(key, {
+                            initialStock: existing.initialStock,
+                            stock: existing.stock ?? 1000,
+                            readyStock: existing.readyStock ?? 0
+                        });
+                    }
+                }
+            }
+        }
+        renderStockTable();
+    } catch (err) {
+        console.error(err);
+        document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
     }
 }
-renderStockTable();  // Pastikan ini di luar loop
-        } catch (err) {
-            console.error(err);
-            document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
-        }
-    }
 
     function renderStockTable() {
         const tbody = document.getElementById('stockTableBody');
@@ -967,48 +965,63 @@ renderStockTable();  // Pastikan ini di luar loop
         document.getElementById('stockContent').style.display = 'block';
     }
 
-    async function saveAllStockChanges() {
-        const saveBtn = document.getElementById('saveAllStockBtn');
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> Menyimpan...';
-        let successCount = 0;
-        let errorCount = 0;
-        const allKeys = new Set([...stockChanges.keys(), ...readyStockChanges.keys()]);
-        for (let key of allKeys) {
-            const newStock = stockChanges.get(key) ?? 1000;
-            const newReady = readyStockChanges.get(key) ?? 0;
-            const docRef = doc(db, "inventory", key);
-            try {
-                await setDoc(docRef, { stock: newStock, initialStock: 1000, readyStock: newReady }, { merge: true });
-                successCount++;
-                inventoryData.set(key, { initialStock: 1000, stock: newStock, readyStock: newReady });
-            } catch (err) {
-                console.error(`Gagal update ${key}:`, err);
-                errorCount++;
-                if (err.message.includes('permission')) {
-                    showToast('Ralat kebenaran: Kemaskini Firestore Rules – benarkan update inventory', true);
-                }
+async function saveAllStockChanges() {
+    const saveBtn = document.getElementById('saveAllStockBtn');
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> Menyimpan...';
+    let successCount = 0;
+    let errorCount = 0;
+    const allKeys = new Set([...stockChanges.keys(), ...readyStockChanges.keys()]);
+    for (let key of allKeys) {
+        const newStock = stockChanges.get(key) ?? 1000;
+        const newReady = readyStockChanges.get(key) ?? 0;
+        const docRef = doc(db, "inventory", key);
+        try {
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                // ✅ Dokumen sedia ada – hanya update stock & readyStock, biarkan initialStock
+                await updateDoc(docRef, { stock: newStock, readyStock: newReady });
+            } else {
+                // ✅ Dokumen baharu – set initialStock=1000
+                await setDoc(docRef, { initialStock: 1000, stock: newStock, readyStock: newReady });
+            }
+            successCount++;
+            // Kemaskini cache
+            const invData = docSnap.exists() ? docSnap.data() : {};
+            inventoryData.set(key, {
+                initialStock: invData.initialStock ?? 1000,
+                stock: newStock,
+                readyStock: newReady
+            });
+        } catch (err) {
+            console.error(`Gagal update ${key}:`, err);
+            errorCount++;
+            if (err.message.includes('permission')) {
+                showToast('Ralat kebenaran: Kemaskini Firestore Rules – benarkan update inventory', true);
             }
         }
-        const invSnap = await getDocs(collection(db, "inventory"));
-        inventoryData.clear();
-        invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
-        for (const product of productsData) {
-            if (product.variations) {
-                for (const v of product.variations) {
-                    const key = getVariationKey(product.id, v.size, v.type);
-                    const newStockVal = inventoryData.get(key)?.stock ?? 1000;
-                    const newReadyVal = inventoryData.get(key)?.readyStock ?? 0;
-                    stockChanges.set(key, newStockVal);
-                    readyStockChanges.set(key, newReadyVal);
-                }
-            }
-        }
-        renderStockTable();
-        showToast(`${successCount} item stok dikemas kini${errorCount ? `, ${errorCount} gagal` : ''}`, errorCount > 0);
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Semua Perubahan';
     }
+    // Refresh data dari Firestore untuk pastikan konsisten
+    const invSnap = await getDocs(collection(db, "inventory"));
+    inventoryData.clear();
+    invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
+    // Kemaskini perubahan untuk ditunjukkan dalam jadual
+    for (const product of productsData) {
+        if (product.variations) {
+            for (const v of product.variations) {
+                const key = getVariationKey(product.id, v.size, v.type);
+                const newStockVal = inventoryData.get(key)?.stock ?? 1000;
+                const newReadyVal = inventoryData.get(key)?.readyStock ?? 0;
+                stockChanges.set(key, newStockVal);
+                readyStockChanges.set(key, newReadyVal);
+            }
+        }
+    }
+    renderStockTable();
+    showToast(`${successCount} item stok dikemas kini${errorCount ? `, ${errorCount} gagal` : ''}`, errorCount > 0);
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Semua Perubahan';
+}
 
     document.getElementById('saveAllStockBtn').addEventListener('click', saveAllStockChanges);
 
