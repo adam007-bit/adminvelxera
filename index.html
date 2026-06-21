@@ -649,14 +649,30 @@ function showOrderNotification() {
                         <div class="total-amount fw-bold">RM ${order.totalAmount.toFixed(2)}</div>
                     </div>
                     <div class="mt-2">
-                      ${order.receiptUrl ? (() => {
-    const url = order.receiptUrl.toLowerCase();
-    const isPdf = url.endsWith('.pdf');
-    return `<div class="border rounded p-2 bg-light d-inline-block">
-        <i class="fa-regular fa-image text-success me-1"></i>
-        <a href="${order.receiptUrl}" target="_blank" class="small fw-bold">📸 Resit Bayaran</a><br>
-        ${isPdf ? `<i class="fa-regular fa-file-pdf text-danger" style="font-size:24px;"></i><span class="ms-1">PDF</span>` : `<img src="${order.receiptUrl}" style="max-width:60px; border-radius:8px;" onerror="this.style.display='none'">`}
-    </div>`;
+        // ===== BAHAGIAN RESIT =====
+${order.receiptUrl ? (() => {
+    const url = order.receiptUrl;
+    const isPdf = url.toLowerCase().endsWith('.pdf');
+    const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url);
+    
+    if (isPdf) {
+        return `<div class="border rounded p-2 bg-light d-inline-block">
+            <i class="fa-regular fa-file-pdf text-danger me-1"></i>
+            <a href="${url}" target="_blank" class="small fw-bold">📄 Resit Bayaran (PDF)</a>
+        </div>`;
+    } else if (isImage) {
+        return `<div class="border rounded p-2 bg-light d-inline-block">
+            <i class="fa-regular fa-image text-success me-1"></i>
+            <a href="${url}" target="_blank" class="small fw-bold">📸 Resit Bayaran</a><br>
+            <img src="${url}" style="max-width:60px; border-radius:8px;" onerror="this.style.display='none'">
+        </div>`;
+    } else {
+        // Jika tidak diketahui, paparkan pautan sahaja
+        return `<div class="border rounded p-2 bg-light d-inline-block">
+            <i class="fa-regular fa-file me-1"></i>
+            <a href="${url}" target="_blank" class="small fw-bold">📄 Lihat Resit</a>
+        </div>`;
+    }
 })() : '<span class="text-muted small"><i class="fa-regular fa-receipt"></i> Tiada resit bayaran</span>'}
                     </div>
                     ${trackingHtml}
