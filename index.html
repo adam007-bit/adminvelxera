@@ -8,7 +8,7 @@
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+   <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#10b981">
     
@@ -724,6 +724,7 @@ async function adminPrintInvoice(orderId) {
     const orderIdDisplay = order.orderId || order.id;
     const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Tarikh tidak tersedia';
     const stickerValue = order.sticker || 'Yes';  // 👈 Ambil sticker
+  
 
     const subtotal = items.reduce((sum, i) => sum + (i.price * i.qty), 0);
 
@@ -766,7 +767,12 @@ async function adminPrintInvoice(orderId) {
 
     const { jsPDF } = window.jspdf;
     try {
-        const canvas = await html2canvas(previewDiv, { scale: 3, backgroundColor: '#ffffff' });
+        const canvas = await html2canvas(previewDiv, { 
+    scale: 3, 
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    allowTaint: false
+});
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
         const imgWidth = 210;
