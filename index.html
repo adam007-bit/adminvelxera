@@ -41,7 +41,23 @@
         .btn-outline-complete { border:1px solid #3b82f6; color:#3b82f6; }
         .btn-outline-cancel { border:1px solid #ef4444; color:#ef4444; }
         .btn-outline-pending { border:1px solid #f59e0b; color:#f59e0b; }
-        .toast-notif { position:fixed; bottom:24px; right:24px; background:#1e293b; color:white; padding:12px 20px; border-radius:60px; opacity:0; transition:0.2s; pointer-events:none; z-index:2000; }
+      .toast-notif { 
+    position:fixed; 
+    top:80px; 
+    left:50%; 
+    transform:translateX(-50%); 
+    background:#1e293b; 
+    color:white; 
+    padding:12px 24px; 
+    border-radius:60px; 
+    opacity:0; 
+    transition:0.3s; 
+    pointer-events:none; 
+    z-index:2000;
+    box-shadow:0 10px 30px rgba(0,0,0,0.2);
+    font-weight:500;
+}
+.toast-notif.show { opacity:1; transform:translateX(-50%) translateY(0); }
         .toast-notif.show { opacity:1; }
         .modal-upload { display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center; }
         .modal-upload.show { display:flex; }
