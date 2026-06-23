@@ -216,13 +216,16 @@
         <div id="productReportTable" class="table-responsive">
             <table class="table table-bordered table-striped">
                 <thead>
-                    <tr>
-                        <th>Produk</th>
-                        <th>Saiz</th>
-                        <th>Jenis</th>
-                        <th>Total Kuantiti Dipesan</th>
-                        <th>Jumlah Item (RM)</th>
-                    </tr>
+                   <tr>
+    <th>Produk</th>
+    <th>Saiz</th>
+    <th>Jenis</th>
+    <th>Stok Awal (tetap 1000)</th>
+    <th>Baki Stok (Pre-order)</th>
+    <th>Ready Stock</th>
+    <th>Status Ready</th>
+    <th>Status Pre-order</th>  <!-- <-- TAMBAH INI -->
+</tr>
                 </thead>
                 <tbody id="productReportBody">
                     <tr><td colspan="5" class="text-center">Tiada data</td></tr>
@@ -846,6 +849,7 @@ async function adminPrintInvoice(orderId) {
     let inventoryData = new Map();
     let stockChanges = new Map();
     let readyStockChanges = new Map();
+    let preorderChanges = new Map();
 
 async function loadStockData() {
     try {
@@ -860,14 +864,15 @@ async function loadStockData() {
             }
         }
         productsData = mergedProducts;
-        
+
         const invSnap = await getDocs(collection(db, "inventory"));
         inventoryData.clear();
         invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
-        
+
         stockChanges.clear();
         readyStockChanges.clear();
-        
+        preorderChanges.clear(); // <-- TAMBAH
+
         for (const product of productsData) {
             if (product.variations) {
                 for (const v of product.variations) {
@@ -875,29 +880,35 @@ async function loadStockData() {
                     const existing = inventoryData.get(key);
                     const currentStock = existing?.stock ?? 1000;
                     const currentReady = existing?.readyStock ?? 0;
+                    const currentAllowPreorder = existing?.allowPreorder ?? true; // <-- TAMBAH
 
                     stockChanges.set(key, currentStock);
                     readyStockChanges.set(key, currentReady);
+                    preorderChanges.set(key, currentAllowPreorder); // <-- TAMBAH
 
                     if (!existing) {
-                        // Dokumen belum wujud – buat baharu dengan initialStock=1000
                         await setDoc(doc(db, "inventory", key), {
                             initialStock: 1000,
                             stock: currentStock,
-                            readyStock: currentReady
+                            readyStock: currentReady,
+                            allowPreorder: currentAllowPreorder // <-- TAMBAH
                         }, { merge: true });
-                        inventoryData.set(key, { initialStock: 1000, stock: currentStock, readyStock: currentReady });
+                        inventoryData.set(key, {
+                            initialStock: 1000,
+                            stock: currentStock,
+                            readyStock: currentReady,
+                            allowPreorder: currentAllowPreorder // <-- TAMBAH
+                        });
                     } else {
-                        // Dokumen sedia ada – pastikan initialStock tidak hilang
                         if (!existing.initialStock) {
                             await setDoc(doc(db, "inventory", key), { initialStock: 1000 }, { merge: true });
                             existing.initialStock = 1000;
                         }
-                        // Simpan data terkini ke cache
                         inventoryData.set(key, {
                             initialStock: existing.initialStock,
                             stock: existing.stock ?? 1000,
-                            readyStock: existing.readyStock ?? 0
+                            readyStock: existing.readyStock ?? 0,
+                            allowPreorder: existing.allowPreorder ?? true // <-- TAMBAH
                         });
                     }
                 }
@@ -909,98 +920,129 @@ async function loadStockData() {
         document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
     }
 }
+function renderStockTable() {
+    const tbody = document.getElementById('stockTableBody');
+    tbody.innerHTML = '';
+    for (const product of productsData) {
+        if (!product.variations || product.variations.length === 0) continue;
+        for (const v of product.variations) {
+            const key = getVariationKey(product.id, v.size, v.type);
+            const currentStock = stockChanges.get(key) ?? 1000;
+            const currentReady = readyStockChanges.get(key) ?? 0;
+            const currentAllowPreorder = preorderChanges.get(key) ?? true; // <-- TAMBAH
+            const invData = inventoryData.get(key) || {};
+            const initialStock = invData.initialStock ?? 1000;
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="product-name-normal">${escapeHtml(product.name)}</td>
+                <td>${escapeHtml(v.size)}</td>
+                <td>${escapeHtml(v.type)}</td>
+                <td>${initialStock}</td>
+                <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0" style="width:110px"></td>
+                <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0" style="width:110px"></td>
+                <td>
+                    <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady" style="display:inline-block;"></div>
+                    <span class="ms-2 small">${currentReady > 0 ? 'Ready Stock' : 'Pre-order / Habis'}</span>
+                </td>
+                <td>
+                    <div class="toggle-switch ${currentAllowPreorder ? 'active' : ''}" data-key="${key}" data-field="togglePreorder" style="display:inline-block;"></div>
+                    <span class="ms-2 small">${currentAllowPreorder ? '✔ Boleh Pre-order' : '✖ Tutup Pre-order'}</span>
+                </td>
+            `;
+            tbody.appendChild(row);
 
-    function renderStockTable() {
-        const tbody = document.getElementById('stockTableBody');
-        tbody.innerHTML = '';
-        for (const product of productsData) {
-            if (!product.variations || product.variations.length === 0) continue;
-            for (const v of product.variations) {
-                const key = getVariationKey(product.id, v.size, v.type);
-                const currentStock = stockChanges.get(key) ?? 1000;
-                const currentReady = readyStockChanges.get(key) ?? 0;
-                const invData = inventoryData.get(key) || {};
-                const initialStock = invData.initialStock ?? 1000;
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="product-name-normal">${escapeHtml(product.name)}</td>
-                    <td>${escapeHtml(v.size)}</td>
-                    <td>${escapeHtml(v.type)}</td>
-                    <td>${initialStock}</td>
-                    <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0" style="width:110px"></td>
-                    <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0" style="width:110px"></td>
-                    <td>
-                        <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggle" style="display:inline-block;"></div>
-                        <span class="ms-2 small">${currentReady > 0 ? 'Ready Stock' : 'Pre-order / Habis'}</span>
-                    </td>
-                `;
-                tbody.appendChild(row);
-                const toggleDiv = row.querySelector('.toggle-switch');
-                const statusSpan = row.querySelector('span.ms-2');
-               toggleDiv.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const readyInput = row.querySelector(`input[data-field="ready"]`);
-    let currentReady = parseInt(readyInput.value) || 0;
-    // Toggle: jika >0 jadi 0, jika 0 jadi 1
-    let newReady = currentReady > 0 ? 0 : 1;
-    readyInput.value = newReady;
-    readyStockChanges.set(key, newReady);
-    toggleDiv.classList.toggle('active', newReady > 0);
-    statusSpan.innerText = newReady > 0 ? 'Ready Stock' : 'Pre-order / Habis';
-});
+            // Event untuk toggle Ready Stock
+            const toggleReady = row.querySelector('.toggle-switch[data-field="toggleReady"]');
+            const statusSpanReady = row.querySelector('span.ms-2');
+            if (toggleReady) {
+                toggleReady.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const readyInput = row.querySelector(`input[data-field="ready"]`);
+                    let currentReady = parseInt(readyInput.value) || 0;
+                    let newReady = currentReady > 0 ? 0 : 1;
+                    readyInput.value = newReady;
+                    readyStockChanges.set(key, newReady);
+                    toggleReady.classList.toggle('active', newReady > 0);
+                    statusSpanReady.innerText = newReady > 0 ? 'Ready Stock' : 'Pre-order / Habis';
+                });
+            }
+
+            // Event untuk toggle Pre-order
+            const togglePreorder = row.querySelector('.toggle-switch[data-field="togglePreorder"]');
+            const statusSpanPreorder = row.querySelectorAll('span.ms-2')[1];
+            if (togglePreorder) {
+                togglePreorder.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const current = preorderChanges.get(key) ?? true;
+                    const newVal = !current;
+                    preorderChanges.set(key, newVal);
+                    togglePreorder.classList.toggle('active', newVal);
+                    statusSpanPreorder.innerText = newVal ? '✔ Boleh Pre-order' : '✖ Tutup Pre-order';
+                });
             }
         }
-        document.querySelectorAll('.stock-input').forEach(inp => {
-            inp.addEventListener('change', (e) => {
-                const key = inp.dataset.key;
-                const field = inp.dataset.field;
-                let newVal = parseInt(inp.value);
-                if (isNaN(newVal)) newVal = 0;
-                if (field === 'stock') {
-                    stockChanges.set(key, newVal);
-                } else if (field === 'ready') {
-                    readyStockChanges.set(key, newVal);
-                    const row = inp.closest('tr');
-                    const toggleDiv = row.querySelector('.toggle-switch');
-                    const statusSpan = row.querySelector('span.ms-2');
-                    if (toggleDiv) {
-                        toggleDiv.classList.toggle('active', newVal > 0);
-                        statusSpan.innerText = newVal > 0 ? 'Ready Stock' : 'Pre-order / Habis';
-                    }
-                }
-            });
-        });
-        document.getElementById('stockLoading').style.display = 'none';
-        document.getElementById('stockContent').style.display = 'block';
     }
 
+    // Event untuk input stock & ready
+    document.querySelectorAll('.stock-input').forEach(inp => {
+        inp.addEventListener('change', (e) => {
+            const key = inp.dataset.key;
+            const field = inp.dataset.field;
+            let newVal = parseInt(inp.value);
+            if (isNaN(newVal)) newVal = 0;
+            if (field === 'stock') {
+                stockChanges.set(key, newVal);
+            } else if (field === 'ready') {
+                readyStockChanges.set(key, newVal);
+                const row = inp.closest('tr');
+                const toggleReady = row.querySelector('.toggle-switch[data-field="toggleReady"]');
+                const statusSpanReady = row.querySelector('span.ms-2');
+                if (toggleReady) {
+                    toggleReady.classList.toggle('active', newVal > 0);
+                    statusSpanReady.innerText = newVal > 0 ? 'Ready Stock' : 'Pre-order / Habis';
+                }
+            }
+        });
+    });
+
+    document.getElementById('stockLoading').style.display = 'none';
+    document.getElementById('stockContent').style.display = 'block';
+}
 async function saveAllStockChanges() {
     const saveBtn = document.getElementById('saveAllStockBtn');
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> Menyimpan...';
     let successCount = 0;
     let errorCount = 0;
-    const allKeys = new Set([...stockChanges.keys(), ...readyStockChanges.keys()]);
-    for (let key of allKeys) {
+    const allKeys = new Set([...stockChanges.keys(), ...readyStockChanges.keys(), ...preorderChanges.keys()]);
+    for (const key of allKeys) {
         const newStock = stockChanges.get(key) ?? 1000;
         const newReady = readyStockChanges.get(key) ?? 0;
+        const newAllowPreorder = preorderChanges.get(key) ?? true; // <-- TAMBAH
         const docRef = doc(db, "inventory", key);
         try {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
-                // ✅ Dokumen sedia ada – hanya update stock & readyStock, biarkan initialStock
-                await updateDoc(docRef, { stock: newStock, readyStock: newReady });
+                await updateDoc(docRef, {
+                    stock: newStock,
+                    readyStock: newReady,
+                    allowPreorder: newAllowPreorder // <-- TAMBAH
+                });
             } else {
-                // ✅ Dokumen baharu – set initialStock=1000
-                await setDoc(docRef, { initialStock: 1000, stock: newStock, readyStock: newReady });
+                await setDoc(docRef, {
+                    initialStock: 1000,
+                    stock: newStock,
+                    readyStock: newReady,
+                    allowPreorder: newAllowPreorder // <-- TAMBAH
+                });
             }
             successCount++;
-            // Kemaskini cache
             const invData = docSnap.exists() ? docSnap.data() : {};
             inventoryData.set(key, {
                 initialStock: invData.initialStock ?? 1000,
                 stock: newStock,
-                readyStock: newReady
+                readyStock: newReady,
+                allowPreorder: newAllowPreorder // <-- TAMBAH
             });
         } catch (err) {
             console.error(`Gagal update ${key}:`, err);
@@ -1010,19 +1052,20 @@ async function saveAllStockChanges() {
             }
         }
     }
-    // Refresh data dari Firestore untuk pastikan konsisten
+    // Refresh data
     const invSnap = await getDocs(collection(db, "inventory"));
     inventoryData.clear();
     invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
-    // Kemaskini perubahan untuk ditunjukkan dalam jadual
     for (const product of productsData) {
         if (product.variations) {
             for (const v of product.variations) {
                 const key = getVariationKey(product.id, v.size, v.type);
                 const newStockVal = inventoryData.get(key)?.stock ?? 1000;
                 const newReadyVal = inventoryData.get(key)?.readyStock ?? 0;
+                const newPreorderVal = inventoryData.get(key)?.allowPreorder ?? true; // <-- TAMBAH
                 stockChanges.set(key, newStockVal);
                 readyStockChanges.set(key, newReadyVal);
+                preorderChanges.set(key, newPreorderVal); // <-- TAMBAH
             }
         }
     }
