@@ -950,7 +950,7 @@ function renderStockTable() {
                 <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0" style="width:110px"></td>
                 <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0" style="width:110px"></td>
                 <td>
-                    <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady" style="display:inline-block;"></div>
+                    <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady" style="display:inline-block;"><span></span></div>
                     <span class="ms-2 small">${currentReady > 0 ? 'Ready Stock' : 'Pre-order / Habis'}</span>
                 </td>
                 <td>
