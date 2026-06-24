@@ -286,14 +286,12 @@ import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, 
 
     // PRODUK TAMBAHAN (solvent, beauty, peptides) – diselaraskan dengan kod pertama
     const additionalProducts = [
-    // SOLVENT{ id: "peptide_slu_pp_322", name: "SLU-PP-322", category: "peptides", description: "SLU-PP-322 peptide.", variations: [{ size: "5mg", type: "Vial", price: 45 }], stock: 100 },
-
+    // SOLVENT
     { id: "solvent_bac_water", name: "Bac Water", category: "solvent", description: "Bacteriostatic water for reconstitution.", variations: [{ size: "3ml", type: "Vial", price: 4 }, { size: "10ml", type: "Vial", price: 5 }], stock: 100 },
     { id: "solvent_usb_bac_water", name: "USP Bac Water", category: "solvent", description: "Bacteriostatic water for reconstitution.", variations: [{ size: "10ml", type: "Vial", price: 12 }], stock: 100 },
     { id: "solvent_steriled_water", name: "Sterilized Water", category: "solvent", description: "Sterile water for injection.", variations: [{ size: "10ml", type: "Vial", price: 5 }], stock: 100 },
-    { id: "solvent_acetic_acid", name: "Acetic Acid", category: "solvent", description: "For peptide reconstitution.", variations: [{ size: "3ml", type: "Vial", price: 4 }, { size: "10ml", type: "Vial", price: 5 }], stock: 100 },
-
-         // BEAUTY PEPTIDES
+   { id: "solvent_acetic_acid", name: "Acetic Acid", category: "solvent", description: "For peptide reconstitution.", variations: [{ size: "3ml", type: "Vial", price: 4 }, { size: "10ml", type: "Vial", price: 5 }], stock: 100 },
+    // BEAUTY PEPTIDES
     { id: "beauty_ghk_cu", name: "GHK-Cu", category: "beauty", description: "Copper peptide for hair and skin (injectable).", variations: [{ size: "50mg", type: "Vial", price: 12 }, { size: "100mg", type: "Vial", price: 15 }], stock: 100 },
     { id: "beauty_ahk_cu", name: "AHK-CU", category: "beauty", description: "Copper peptide for hair growth.", variations: [{ size: "50mg", type: "Vial", price: 20 }, { size: "100mg", type: "Vial", price: 35 }], stock: 100 },
     { id: "beauty_glutathione", name: "Glutathione (Fuan)", category: "beauty", description: "Antioxidant for skin brightening.", variations: [{ size: "600mg", type: "Vial", price: 15 }, { size: "1500mg", type: "Vial", price: 35 }], stock: 100 },
@@ -320,8 +318,7 @@ import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, 
     { id: "beauty_ghkcu_serum", name: "GHK-Cu Serum", category: "beauty", description: "Copper peptide serum for anti-aging.", variations: [{ size: "5ml", type: "Serum", price: 10 }], stock: 100 },
     { id: "beauty_ghkcu_topical", name: "GHK-Cu Topical", category: "beauty", description: "Copper peptide topical.", variations: [{ size: "1000mg", type: "Vial", price: 40 }], stock: 100 },
     { id: "beauty_fiona_masker", name: "Fiona Masker", category: "beauty", description: "Facial mask.", variations: [{ size: "10mg", type: "Set", price: 15 }], stock: 100 },
-    
-// ===== PRODUK BEAUTY TAMBAHAN (dari senarai) =====
+
 { id: "beauty_gluthion_600mg_1vial", name: "Gluthion Injection - 600mg", category: "beauty", description: "Gluthion injection 600mg per vial.", variations: [{ size: "1 vial", type: "Vial", price: 16 }, { size: "10 vials", type: "Vial", price: 160 }], stock: 100 },
 { id: "beauty_glutaone_1200mg", name: "Glutaone Injection - 1200mg", category: "beauty", description: "Glutaone injection 1200mg per vial.", variations: [{ size: "1 vial", type: "Vial", price: 19 }, { size: "10 vials", type: "Vial", price: 190 }], stock: 100 },
 { id: "beauty_chiotocin_25mg_10vial", name: "Chiotocin Injection - 25mg", category: "beauty", description: "Chiotocin injection 25mg, 10 vials per box.", variations: [{ size: "10 vials", type: "Vial", price: 100 }], stock: 100 },
@@ -358,12 +355,11 @@ import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, 
 { id: "beauty_marine_collagen", name: "Marine Collagen", category: "beauty", description: "Marine collagen for skin elasticity and hydration.", variations: [{ size: "5ml", type: "Vial", price: 25 }], stock: 100 },
 // ===== EXOSOME PDRN =====
 { id: "beauty_exosome_pdrn", name: "Exosome PDRN", category: "beauty", description: "Exosome PDRN for cellular regeneration and tissue repair.", variations: [{ size: "100mg", type: "Vial", price: 35 }], stock: 100 },
-
-
-        // PEPTIDES (injectable & fat loss)
+{ id: "beauty_hikari_premium_drip", name: "Hikari Premium Drip", category: "beauty", description: "Hikari Premium Drip for skin hydration and rejuvenation.", variations: [{ size: "500ml", type: "Drip", price: 220 }], stock: 100 },
+    // PEPTIDES (injectable & fat loss)
     { id: "peptide_retatrutide", name: "Retatrutide", category: "peptides", description: "Triple agonist for weight management.", variations: [{ size: "5mg", type: "Vial", price: 25 }, { size: "10mg", type: "Vial", price: 30 }, { size: "15mg", type: "Vial", price: 45 }, { size: "20mg", type: "Vial", price: 50 }, { size: "30mg", type: "Vial", price: 75 }, { size: "40mg", type: "Vial", price: 90 }], stock: 100 },
     { id: "peptide_reta_cagri", name: "Reta Cagri", category: "peptides", description: "Retatrutide + Cagrilintide blend.", variations: [{ size: "10mg", type: "Vial", price: 80 }], stock: 100 },
-    { id: "peptide_reta_tirze", name: "Reta Tirze", category: "peptides", description: "Retatrutide + Tirzepatide blend.", variations: [{ size: "60mg", type: "Vial", price: 180 }], stock: 100 },
+    { id: "peptide_reta_tirze", name: "Reta Tirze", category: "peptides", description: "Retatrutide + Tirzepatide blend.", variations: [{ size: "60mg", type: "Vial", price: 80 }], stock: 100 },
     { id: "peptide_tirzepatide", name: "Tirzepatide", category: "peptides", description: "Dual GIP/GLP-1 agonist.", variations: [{ size: "10mg", type: "Vial", price: 25 }, { size: "15mg", type: "Vial", price: 35 }, { size: "20mg", type: "Vial", price: 40 }, { size: "30mg", type: "Vial", price: 50 }], stock: 100 },
     { id: "peptide_semaglutide", name: "Semaglutide", category: "peptides", description: "GLP-1 for weight management.", variations: [{ size: "10mg", type: "Vial", price: 25 }, { size: "15mg", type: "Vial", price: 30 }, { size: "20mg", type: "Vial", price: 35 }, { size: "30mg", type: "Vial", price: 45 }], stock: 100 },
     { id: "peptide_cagrilintide", name: "Cagrilintide", category: "peptides", description: "Amylin analogue.", variations: [{ size: "5mg", type: "Vial", price: 45 }, { size: "10mg", type: "Vial", price: 65 }], stock: 100 },
@@ -444,7 +440,7 @@ import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, 
     { id: "vitamin_b6", name: "Vitamin B6", category: "peptides", description: "Vitamin supplement.", variations: [{ size: "2ml", type: "Vial", price: 15 }], stock: 100 },
     { id: "vitamin_b12_1ml", name: "Vitamin B12", category: "peptides", description: "Vitamin supplement.", variations: [{ size: "10ml", type: "Vial", price: 15 },{ size: "1ml", type: "Vial", price: 10 }], stock: 100 },
     { id: "vitamin_c", name: "Vitamin C", category: "peptides", description: "Vitamin supplement.", variations: [{ size: "2ml", type: "Vial", price: 15 }], stock: 100 },
-    { id: "vitamin_d2", name: "Vitamin D2", category: "peptides", description: "Vitamin supplement.", variations: [{ size: "10ml", type: "Vial", price: 25 }], stock: 100 },
+    { id: "vitamin_d2", name: "Vitamin D2", category: "peptides", description: "Vitamin supplement.", variations: [{ size: "1ml", type: "Vial", price: 25 }], stock: 100 },
     { id: "fatloss_super_human_blend", name: "Super Human Blend", category: "peptides", description: "Fat burning and energy blend.", variations: [{ size: "10ml", type: "Vial", price: 35 }], stock: 100 },
     { id: "fatloss_super_shred", name: "Super Shred", category: "peptides", description: "Advanced fat loss support.", variations: [{ size: "10ml", type: "Vial", price: 50 }], stock: 100 },
     { id: "fatloss_shred", name: "Shred", category: "peptides", description: "Fat loss support.", variations: [{ size: "10ml", type: "Vial", price: 70 }], stock: 100 },
@@ -461,10 +457,10 @@ import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, 
     { id: "peptide_slu_pp_322", name: "SLU-PP-322", category: "peptides", description: "SLU-PP-322 peptide.", variations: [{ size: "5mg", type: "Vial", price: 45 }], stock: 100 },
     { id: "peptide_5amino_1mq", name: "5 Amino 1MQ", category: "peptides", description: "5 Amino 1MQ peptide.", variations: [{ size: "5mg", type: "Vial", price: 25 },{ size: "10mg", type: "Vial", price: 35 },{ size: "50mg", type: "Vial", price: 65 }], stock: 100 },
     { id: "peptide_kpv", name: "KPV", category: "peptides", description: "KPV peptide.", variations: [{ size: "5mg", type: "Vial", price: 25 },{ size: "10mg", type: "Vial", price: 30 }], stock: 100 },
-     { id: "peptide_bpc157", name: "BPC-157", category: "peptides", description: "Healing and repair peptide for tissue regeneration, gut health, and injury recovery.", variations: [{ size: "5mg", type: "Vial", price: 25 }, { size: "10mg", type: "Vial", price: 35 }], stock: 100 },
+    { id: "peptide_bpc157", name: "BPC-157", category: "peptides", description: "Healing and repair peptide for tissue regeneration, gut health, and injury recovery.", variations: [{ size: "5mg", type: "Vial", price: 25 }, { size: "10mg", type: "Vial", price: 35 }], stock: 100 },
     { id: "peptide_larazotide", name: "Larazotide", category: "peptides", description: "Tight junction regulator for gut health and inflammation.", variations: [{ size: "10mg", type: "Vial", price: 40 }, { size: "50mg", type: "Vial", price: 60 }], stock: 100 },
     { id: "peptide_eloralintide", name: "Eloralintide", category: "peptides", description: "GLP-1 receptor agonist for weight management.", variations: [{ size: "10mg", type: "Vial", price: 40 }, { size: "50mg", type: "Vial", price: 60 }], stock: 100 },
-      // ===== ELORA TIRZE =====
+    // ===== ELORA TIRZE =====
 { id: "peptide_elora_tirze", name: "Elora Tirze", category: "peptides", description: "Elora Tirze peptide for weight management and metabolic support.", variations: [{ size: "5mg", type: "Vial", price: 30 },{ size: "10mg", type: "Vial", price: 40 },{ size: "15mg", type: "Vial", price: 45 },{ size: "20mg", type: "Vial", price: 60 },{ size: "30mg", type: "Vial", price: 65 },{ size: "40mg", type: "Vial", price: 85 }
 ], stock: 100 }
     ];
