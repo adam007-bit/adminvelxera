@@ -80,6 +80,7 @@
         .toggle-switch span { position:absolute; top:2px; left:2px; width:20px; height:20px; background:white; border-radius:50%; transition:0.2s; }
         .toggle-switch.active span { left:28px; }
         @media (max-width:640px){ .stat-number{font-size:1.4rem;} .stock-input{width:80px;} }
+        .updated-badge { background:#f59e0b; color:#1e293b; font-size:0.65rem; padding:0.2rem 0.6rem; border-radius:30px; font-weight:600; margin-left:0.5rem; }
     </style>
 </head>
 <body>
@@ -124,7 +125,8 @@
     </div>
 </div>
 
-<div id="loginPanel" class="login-premium text-center">
+<!-- Login Panel – hidden now because no password required -->
+<div id="loginPanel" class="login-premium text-center" style="display:none;">
     <i class="fa-solid fa-crown fa-3x text-success mb-3"></i>
     <h4 class="fw-bold">VELXERA VENTURES</h4>
     <form id="loginForm" onsubmit="return false;">
@@ -134,7 +136,7 @@
     <p class="text-muted small mt-3">🔐 velxera2025</p>
 </div>
 
-<div id="adminContent" style="display:none;">
+<div id="adminContent" style="display:block;">
     <nav class="admin-navbar d-flex justify-content-between align-items-center">
         <div>
             <span class="brand-logo"><i class="fa-solid fa-leaf me-2"></i>VELXERA ADMIN</span>
@@ -477,33 +479,16 @@ import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, 
         setTimeout(()=>t.classList.remove('show'),3000); 
     }
 
-    document.getElementById('loginForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const pwd = document.getElementById('adminPassword').value;
-        if(pwd === 'velxera2025'){
-            sessionStorage.setItem('admin_auth', pwd);
-            checkAuth();
-        } else {
-            showToast('Kata laluan salah', true);
-        }
+    // No login needed – directly show admin content
+    document.addEventListener('DOMContentLoaded', () => {
+        loadOrdersRealtime();
+        loadStockData();
     });
 
-    function checkAuth() { 
-        const auth=sessionStorage.getItem('admin_auth'); 
-        if(auth==='velxera2025'){ 
-            document.getElementById('loginPanel').style.display='none'; 
-            document.getElementById('adminContent').style.display='block'; 
-            loadOrdersRealtime(); 
-            loadStockData();
-        } else { 
-            document.getElementById('loginPanel').style.display='block'; 
-            document.getElementById('adminContent').style.display='none'; 
-        } 
-    }
-    document.getElementById('logoutBtn').onclick=()=>{ 
-        sessionStorage.removeItem('admin_auth'); 
-        checkAuth(); 
-    };
+    // Logout button just reloads the page
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        location.reload();
+    });
 
     function updateStats(){ 
         const total=ordersData.length; 
@@ -665,10 +650,19 @@ function renderOrders(){
         let statusClass = order.status==='pending'?'status-pending':(order.status==='completed'?'status-completed':'status-cancelled');
         let statusText = order.status==='pending'?'Pending':(order.status==='completed'?'Selesai':'Dibatalkan');
         const trackingHtml = order.trackingNumber ? `<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">${order.trackingNumber}</span></div>` : '';
+        
+        // TAMBAHAN: Semak jika pesanan telah dikemaskini
+        const createdAt = new Date(order.createdAt).toISOString();
+        const updatedAt = order.updatedAt ? new Date(order.updatedAt).toISOString() : null;
+        let updatedBadge = '';
+        if (updatedAt && updatedAt !== createdAt) {
+            updatedBadge = `<span class="badge bg-warning text-dark ms-2"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini</span>`;
+        }
+        
         html+=`
             <div class="order-card">
                 <div class="order-header">
-                    <span class="order-id"><i class="fa-solid fa-receipt"></i> ${order.orderId || order.id}</span>
+                    <span class="order-id"><i class="fa-solid fa-receipt"></i> ${order.orderId || order.id} ${updatedBadge}</span>
                     <span class="status-badge-premium ${statusClass}">${statusText}</span>
                 </div>
                 <div class="order-body">
@@ -1305,8 +1299,6 @@ document.getElementById('productReportMonthly').addEventListener('click', () => 
             updateReport();
         }
     }, 5000);
-
-    checkAuth();
 </script>
 
 <script>
