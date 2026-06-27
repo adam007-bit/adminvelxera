@@ -955,7 +955,7 @@ const additionalProducts = [
         }
         let html = '';
         filtered.forEach(order => {
-            const itemsHtml = order.items.map(it =>
+            const itemsHtml = (order.items || []).map(it => ...)
                 `<li><i class="fa-solid fa-rectangle-list text-success me-2"></i>${escapeHtml(it.prodName)} (${escapeHtml(it.size)} - ${escapeHtml(it.type)}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}</li>`
             ).join('');
             let statusClass = order.status === 'pending' ? 'status-pending' : (order.status === 'completed' ? 'status-completed' : 'status-cancelled');
