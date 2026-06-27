@@ -26,15 +26,12 @@
             color: #0b1a2e; 
             padding-top: 0;
         }
-        /* Scrollbar custom */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #e9edf3; border-radius: 8px; }
         ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 8px; }
 
-        /* Login panel – tersembunyi (tanpa kata laluan) */
         .login-premium { display: none; }
 
-        /* Navbar Admin */
         .admin-navbar {
             background: linear-gradient(135deg, #0b1a2e 0%, #1a2f44 100%);
             padding: 0.8rem 1.8rem;
@@ -80,10 +77,8 @@
         }
         .btn-logout:hover { background: rgba(239, 68, 68, 0.25); color: #fff; }
 
-        /* Main container */
         .main-container { max-width: 1360px; margin: 0 auto; padding: 1.5rem 1.2rem; }
 
-        /* Stat Cards */
         .stat-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -110,7 +105,6 @@
         .stat-icon.blue { color: #3b82f6; }
         .stat-icon.red { color: #ef4444; }
 
-        /* Filter Pills */
         .filter-group {
             display: flex;
             flex-wrap: wrap;
@@ -136,7 +130,6 @@
             box-shadow: 0 4px 12px rgba(16,185,129,0.25);
         }
 
-        /* Order Cards */
         .order-card {
             background: #fff;
             border-radius: 1.5rem;
@@ -223,7 +216,6 @@
             letter-spacing: 0.3px;
         }
 
-        /* Toast */
         .toast-notif {
             position: fixed;
             top: 90px;
@@ -244,7 +236,6 @@
         }
         .toast-notif.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-        /* Modal Tracking */
         .modal-upload {
             display: none;
             position: fixed;
@@ -273,7 +264,6 @@
         .modal-content-box .form-control { border-radius: 14px; border: 1px solid #e2e8f0; }
         .modal-content-box .form-control:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
 
-        /* Stock Management */
         .stock-table {
             background: #fff;
             border-radius: 1.5rem;
@@ -316,7 +306,6 @@
         }
         .btn-stock-save:hover { background: #059669; transform: scale(1.02); }
 
-        /* Toggle Switch */
         .toggle-switch {
             width: 44px;
             height: 22px;
@@ -342,7 +331,6 @@
         }
         .toggle-switch.active span { left: 24px; }
 
-        /* Report section */
         .report-container {
             background: #fff;
             border-radius: 1.5rem;
@@ -382,7 +370,6 @@
         .report-card strong { display: block; font-size: 0.7rem; text-transform: uppercase; color: #64748b; }
         .report-card span { font-size: 1.2rem; font-weight: 700; color: #0b1a2e; }
 
-        /* Responsive */
         @media (max-width: 640px) {
             .admin-navbar { padding: 0.6rem 1rem; flex-wrap: wrap; gap: 0.5rem; }
             .brand-logo { font-size: 1.2rem; }
@@ -394,7 +381,6 @@
             .stock-input { width: 70px; }
         }
 
-        /* Loading placeholder */
         .loading-placeholder {
             display: flex;
             align-items: center;
@@ -597,7 +583,7 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
     import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-    const firebaseConfig = {
+    var firebaseConfig = {
         apiKey: "AIzaSyAdUZs-P5SPcivHHP9lRmdyOC355Op8bOU",
         authDomain: "spmn-af4f9.firebaseapp.com",
         projectId: "spmn-af4f9",
@@ -605,26 +591,27 @@
         messagingSenderId: "621089003979",
         appId: "1:621089003979:web:bc819aef604b26f33b7e4e"
     };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    var app = initializeApp(firebaseConfig);
+    var db = getFirestore(app);
 
     // Helper
     function sanitizeFirestoreId(raw) {
         return raw.replace(/[\/\\\(\)&%#\?:;,.*+=|<>\[\]\{\}`~!@\$^]/g, '_').replace(/\s+/g, '_');
     }
     function getVariationKey(prodId, size, type) {
-        return sanitizeFirestoreId(`${prodId}_${size}_${type}`);
+        return sanitizeFirestoreId(prodId + '_' + size + '_' + type);
     }
-    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':m==='>'?'&gt;':m); }
-    function showToast(msg, err=false) { 
-        const t=document.getElementById('toastMsg'); 
-        t.innerHTML=err ? `⚠️ ${msg}` : `✅ ${msg}`; 
-        t.classList.add('show'); 
-        setTimeout(()=>t.classList.remove('show'), 3500); 
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m) { return m==='&'?'&amp;':m==='<'?'&lt;':m==='>'?'&gt;':m; }); }
+    function showToast(msg, err) {
+        err = err || false;
+        var t = document.getElementById('toastMsg');
+        t.innerHTML = err ? '⚠️ ' + msg : '✅ ' + msg;
+        t.classList.add('show');
+        setTimeout(function() { t.classList.remove('show'); }, 3500);
     }
 
 // ORAL PEPTIDES - kategori 'oral'
-const oralPeptidesData = [
+var oralPeptidesData = [
     { id: "oral_5amino_1mq", name: "5-Amino-1MQ", category: "oral", description: "Supports metabolism, helps increase calorie burning, and may assist with fat loss.", variations: [{ size: "50mg", type: "60 Capsules", price: 210 }], stock: 100 },
     { id: "oral_bpc157", name: "BPC-157", category: "oral", description: "Supports recovery, tissue repair, gut health, and injury healing.", variations: [{ size: "500mcg", type: "100 Capsules", price: 160 }], stock: 100 },
     { id: "oral_tesofensine", name: "Tesofensine", category: "oral", description: "Helps reduce appetite, control cravings, and support weight loss.", variations: [{ size: "500mcg", type: "60 Capsules", price: 140 }], stock: 100 },
@@ -636,7 +623,7 @@ const oralPeptidesData = [
 ];
 
 // ========== PRODUK TAMBAHAN ==========
-const additionalProducts = [
+var additionalProducts = [
     // SOLVENT
     { id: "solvent_bac_water", name: "Bac Water", category: "solvent", description: "Bacteriostatic water for reconstitution.", variations: [{ size: "3ml", type: "Vial", price: 4 }, { size: "10ml", type: "Vial", price: 5 }], stock: 100 },
     { id: "solvent_usb_bac_water", name: "USP Bac Water", category: "solvent", description: "Bacteriostatic water for reconstitution.", variations: [{ size: "10ml", type: "Vial", price: 12 }], stock: 100 },
@@ -814,29 +801,29 @@ const additionalProducts = [
 ];
 
     // ==================== STATE ====================
-    let currentFilter = 'all';
-    let ordersData = [];
-    let pendingOrderForComplete = null;
-    let productsData = [];
-    let inventoryData = new Map();
-    let stockChanges = new Map();
-    let readyStockChanges = new Map();
-    let preorderChanges = new Map();
+    var currentFilter = 'all';
+    var ordersData = [];
+    var pendingOrderForComplete = null;
+    var productsData = [];
+    var inventoryData = new Map();
+    var stockChanges = new Map();
+    var readyStockChanges = new Map();
+    var preorderChanges = new Map();
 
     // ==================== INIT ====================
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', function() {
         loadOrdersRealtime();
         loadStockData();
     });
 
-    document.getElementById('logoutBtn').addEventListener('click', () => location.reload());
+    document.getElementById('logoutBtn').addEventListener('click', function() { location.reload(); });
 
     // ==================== ORDER FUNCTIONS ====================
     function updateStats() {
-        const total = ordersData.length;
-        const pending = ordersData.filter(o => o.status === 'pending').length;
-        const completed = ordersData.filter(o => o.status === 'completed').length;
-        const cancelled = ordersData.filter(o => o.status === 'cancelled').length;
+        var total = ordersData.length;
+        var pending = ordersData.filter(function(o) { return o.status === 'pending'; }).length;
+        var completed = ordersData.filter(function(o) { return o.status === 'completed'; }).length;
+        var cancelled = ordersData.filter(function(o) { return o.status === 'cancelled'; }).length;
         document.getElementById('statTotal').innerText = total;
         document.getElementById('statPending').innerText = pending;
         document.getElementById('statCompleted').innerText = completed;
@@ -844,34 +831,36 @@ const additionalProducts = [
     }
 
     function loadOrdersRealtime() {
-        onSnapshot(collection(db, "orders"), (snap) => {
-            const newOrders = [];
-            const currentOrderIds = new Set();
-            snap.forEach(doc => {
-                newOrders.push({ id: doc.id, ...doc.data() });
+        onSnapshot(collection(db, "orders"), function(snap) {
+            var newOrders = [];
+            var currentOrderIds = new Set();
+            snap.forEach(function(doc) {
+                var data = doc.data();
+                data.id = doc.id;
+                newOrders.push(data);
                 currentOrderIds.add(doc.id);
             });
             ordersData = newOrders;
-            ordersData.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            ordersData.sort(function(a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
 
             // Notifikasi pesanan baru
-            const savedIds = JSON.parse(localStorage.getItem('admin_notified_orders') || '[]');
-            const savedSet = new Set(savedIds);
-            let hasNewOrder = false;
-            for (let id of currentOrderIds) {
+            var savedIds = JSON.parse(localStorage.getItem('admin_notified_orders') || '[]');
+            var savedSet = new Set(savedIds);
+            var hasNewOrder = false;
+            currentOrderIds.forEach(function(id) {
                 if (!savedSet.has(id)) {
-                    const order = ordersData.find(o => o.id === id);
+                    var order = ordersData.find(function(o) { return o.id === id; });
                     if (order) {
-                        const orderTime = new Date(order.createdAt).getTime();
-                        const now = Date.now();
+                        var orderTime = new Date(order.createdAt).getTime();
+                        var now = Date.now();
                         if (now - orderTime < 60000) {
                             hasNewOrder = true;
                         }
                     }
                     savedSet.add(id);
                 }
-            }
-            localStorage.setItem('admin_notified_orders', JSON.stringify([...savedSet]));
+            });
+            localStorage.setItem('admin_notified_orders', JSON.stringify(Array.from(savedSet)));
             if (hasNewOrder) {
                 playNotificationSound();
                 showToast('🛒 Pesanan Baru! Semak senarai.');
@@ -884,32 +873,32 @@ const additionalProducts = [
 
     function playNotificationSound() {
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
+            var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.frequency.value = 800;
             osc.type = 'sine';
             gain.gain.value = 0.3;
             osc.start();
-            setTimeout(() => { osc.stop(); }, 200);
-            setTimeout(() => {
-                const osc2 = audioCtx.createOscillator();
-                const gain2 = audioCtx.createGain();
+            setTimeout(function() { osc.stop(); }, 200);
+            setTimeout(function() {
+                var osc2 = audioCtx.createOscillator();
+                var gain2 = audioCtx.createGain();
                 osc2.connect(gain2);
                 gain2.connect(audioCtx.destination);
                 osc2.frequency.value = 1000;
                 osc2.type = 'sine';
                 gain2.gain.value = 0.3;
                 osc2.start();
-                setTimeout(() => { osc2.stop(); }, 200);
+                setTimeout(function() { osc2.stop(); }, 200);
             }, 300);
         } catch(e) { console.log('🔔 Pesanan baru!'); }
     }
 
     async function completeOrderWithTracking(orderId, orderData, trackingNumber) {
-        const progressDiv = document.getElementById('trackingProgress');
+        var progressDiv = document.getElementById('trackingProgress');
         progressDiv.style.display = 'block';
         progressDiv.innerHTML = '⏳ Menyimpan...';
         try {
@@ -925,18 +914,19 @@ const additionalProducts = [
             showToast('Gagal: ' + err.message, true);
             return false;
         } finally {
-            setTimeout(() => { progressDiv.style.display = 'none'; }, 1500);
+            setTimeout(function() { progressDiv.style.display = 'none'; }, 1500);
         }
     }
 
-    const modal = document.getElementById('trackingModal');
-    document.getElementById('cancelModalBtn').onclick = () => { modal.classList.remove('show'); pendingOrderForComplete = null; };
-    document.getElementById('confirmCompleteBtn').onclick = async () => {
+    var modal = document.getElementById('trackingModal');
+    document.getElementById('cancelModalBtn').onclick = function() { modal.classList.remove('show'); pendingOrderForComplete = null; };
+    document.getElementById('confirmCompleteBtn').onclick = async function() {
         if (!pendingOrderForComplete) return;
-        const tracking = document.getElementById('trackingNumber').value.trim();
+        var tracking = document.getElementById('trackingNumber').value.trim();
         if (!tracking) { showToast('Sila masukkan nombor tracking', true); return; }
-        const { id, data } = pendingOrderForComplete;
-        const btn = document.getElementById('confirmCompleteBtn');
+        var id = pendingOrderForComplete.id;
+        var data = pendingOrderForComplete.data;
+        var btn = document.getElementById('confirmCompleteBtn');
         btn.disabled = true;
         btn.innerHTML = 'Memproses...';
         await completeOrderWithTracking(id, data, tracking);
@@ -947,26 +937,29 @@ const additionalProducts = [
     };
 
     function renderOrders() {
-        let filtered = currentFilter === 'all' ? ordersData : ordersData.filter(o => o.status === currentFilter);
-        const container = document.getElementById('ordersList');
+        var filtered = currentFilter === 'all' ? ordersData : ordersData.filter(function(o) { return o.status === currentFilter; });
+        var container = document.getElementById('ordersList');
         if (filtered.length === 0) {
             container.innerHTML = '<div class="text-center py-4 text-muted">Tiada pesanan</div>';
             return;
         }
-        let html = '';
-        filtered.forEach(order => {
-            const itemsHtml = (order.items || []).map(it => ...)
-                `<li><i class="fa-solid fa-rectangle-list text-success me-2"></i>${escapeHtml(it.prodName)} (${escapeHtml(it.size)} - ${escapeHtml(it.type)}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}</li>`
-            ).join('');
-            let statusClass = order.status === 'pending' ? 'status-pending' : (order.status === 'completed' ? 'status-completed' : 'status-cancelled');
-            let statusText = order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan');
-            const trackingHtml = order.trackingNumber ? `<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">${escapeHtml(order.trackingNumber)}</span></div>` : '';
+        var html = '';
+        filtered.forEach(function(order) {
+            var items = order.items || [];
+            var itemsHtml = '';
+            for (var i = 0; i < items.length; i++) {
+                var it = items[i];
+                itemsHtml += '<li><i class="fa-solid fa-rectangle-list text-success me-2"></i>' + escapeHtml(it.prodName) + ' (' + escapeHtml(it.size) + ' - ' + escapeHtml(it.type) + ') x' + it.qty + ' = RM' + (it.price*it.qty).toFixed(2) + '</li>';
+            }
+            var statusClass = order.status === 'pending' ? 'status-pending' : (order.status === 'completed' ? 'status-completed' : 'status-cancelled');
+            var statusText = order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan');
+            var trackingHtml = order.trackingNumber ? '<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">' + escapeHtml(order.trackingNumber) + '</span></div>' : '';
 
-            const createdAt = new Date(order.createdAt).toISOString();
-            const updatedAt = order.updatedAt ? new Date(order.updatedAt).toISOString() : null;
-            let updatedBadge = '';
+            var createdAt = new Date(order.createdAt).toISOString();
+            var updatedAt = order.updatedAt ? new Date(order.updatedAt).toISOString() : null;
+            var updatedBadge = '';
             if (updatedAt && updatedAt !== createdAt) {
-                updatedBadge = `<span class="updated-badge"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini</span>`;
+                updatedBadge = '<span class="updated-badge"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini</span>';
             }
 
             html += `
@@ -977,35 +970,35 @@ const additionalProducts = [
                     </div>
                     <div class="order-body">
                         <div class="customer-detail">
-                            <span><i class="fa-regular fa-user"></i> ${escapeHtml(order.customer.name)}</span>
-                            <span><i class="fa-brands fa-whatsapp"></i> ${escapeHtml(order.customer.phone)}</span>
-                            <span><i class="fa-regular fa-location-dot"></i> ${escapeHtml(order.customer.address_line1)}, ${escapeHtml(order.customer.postcode)} ${escapeHtml(order.customer.state)}</span>
+                            <span><i class="fa-regular fa-user"></i> ${escapeHtml(order.customer ? order.customer.name : '')}</span>
+                            <span><i class="fa-brands fa-whatsapp"></i> ${escapeHtml(order.customer ? order.customer.phone : '')}</span>
+                            <span><i class="fa-regular fa-location-dot"></i> ${escapeHtml(order.customer ? order.customer.address_line1 : '')}, ${escapeHtml(order.customer ? order.customer.postcode : '')} ${escapeHtml(order.customer ? order.customer.state : '')}</span>
                         </div>
                         <div class="items-list"><ul class="small mb-0">${itemsHtml}</ul></div>
                         <div class="d-flex justify-content-between flex-wrap">
                             <div><small class="text-muted">Bank: ${escapeHtml(order.bankName || 'Tiada')} | ${escapeHtml(order.paymentMethod)}</small></div>
-                            <div class="total-amount fw-bold">RM ${order.totalAmount.toFixed(2)}</div>
+                            <div class="total-amount fw-bold">RM ${order.totalAmount ? order.totalAmount.toFixed(2) : '0.00'}</div>
                         </div>
                         <div class="mt-2">
-                            ${order.receiptUrl ? (() => {
-                                const url = order.receiptUrl;
-                                const isPdf = url.toLowerCase().endsWith('.pdf');
-                                const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url);
+                            ${order.receiptUrl ? (function() {
+                                var url = order.receiptUrl;
+                                var isPdf = url.toLowerCase().endsWith('.pdf');
+                                var isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url);
                                 if (isPdf) {
-                                    return `<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file-pdf text-danger me-1"></i><a href="${url}" target="_blank" class="small fw-bold">📄 Resit Bayaran (PDF)</a></div>`;
+                                    return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file-pdf text-danger me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Resit Bayaran (PDF)</a></div>';
                                 } else if (isImage) {
-                                    return `<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-image text-success me-1"></i><a href="${url}" target="_blank" class="small fw-bold">📸 Resit Bayaran</a><br><img src="${url}" style="max-width:60px; border-radius:8px;" onerror="this.style.display='none'"></div>`;
+                                    return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-image text-success me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📸 Resit Bayaran</a><br><img src="' + url + '" style="max-width:60px; border-radius:8px;" onerror="this.style.display=\'none\'"></div>';
                                 } else {
-                                    return `<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file me-1"></i><a href="${url}" target="_blank" class="small fw-bold">📄 Lihat Resit</a></div>`;
+                                    return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Lihat Resit</a></div>';
                                 }
                             })() : '<span class="text-muted small"><i class="fa-regular fa-receipt"></i> Tiada resit bayaran</span>'}
                         </div>
                         ${trackingHtml}
                         <div class="order-footer">
-                            ${order.status !== 'completed' && order.status !== 'cancelled' ? `<button class="btn-action btn-outline-complete" data-id="${order.id}" data-status="complete_action">✔ Selesai</button>` : ''}
-                            ${order.status !== 'cancelled' ? `<button class="btn-action btn-outline-cancel" data-id="${order.id}" data-status="cancelled">✖ Batal</button>` : ''}
-                            ${order.status !== 'pending' ? `<button class="btn-action btn-outline-pending" data-id="${order.id}" data-status="pending">↩ Pending</button>` : ''}
-                            <button class="btn-action btn-outline-print" data-id="${order.id}">🖨️ Print Invois</button>
+                            ${order.status !== 'completed' && order.status !== 'cancelled' ? '<button class="btn-action btn-outline-complete" data-id="' + order.id + '" data-status="complete_action">✔ Selesai</button>' : ''}
+                            ${order.status !== 'cancelled' ? '<button class="btn-action btn-outline-cancel" data-id="' + order.id + '" data-status="cancelled">✖ Batal</button>' : ''}
+                            ${order.status !== 'pending' ? '<button class="btn-action btn-outline-pending" data-id="' + order.id + '" data-status="pending">↩ Pending</button>' : ''}
+                            <button class="btn-action btn-outline-print" data-id="' + order.id + '">🖨️ Print Invois</button>
                         </div>
                     </div>
                 </div>
@@ -1014,77 +1007,90 @@ const additionalProducts = [
         container.innerHTML = html;
 
         // Event listeners
-        document.querySelectorAll('.btn-action:not(.btn-outline-print)').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const id = btn.dataset.id;
-                const status = btn.dataset.status;
-                if (status === 'complete_action') {
-                    const order = ordersData.find(o => o.id === id);
-                    if (order) { pendingOrderForComplete = { id, data: order }; modal.classList.add('show'); }
-                    else showToast('Data tidak ditemui', true);
-                } else {
-                    try {
-                        await updateDoc(doc(db, "orders", id), { status: status });
-                        showToast(`Status -> ${status.toUpperCase()}`);
-                    } catch(err) { showToast(err.message, true); }
-                }
-            });
-        });
-        document.querySelectorAll('.btn-outline-print').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                adminPrintInvoice(this.dataset.id);
-            });
-        });
+        var actionBtns = document.querySelectorAll('.btn-action:not(.btn-outline-print)');
+        for (var i = 0; i < actionBtns.length; i++) {
+            (function(btn) {
+                btn.addEventListener('click', async function(e) {
+                    e.stopPropagation();
+                    var id = this.dataset.id;
+                    var status = this.dataset.status;
+                    if (status === 'complete_action') {
+                        var order = ordersData.find(function(o) { return o.id === id; });
+                        if (order) { pendingOrderForComplete = { id: id, data: order }; modal.classList.add('show'); }
+                        else showToast('Data tidak ditemui', true);
+                    } else {
+                        try {
+                            await updateDoc(doc(db, "orders", id), { status: status });
+                            showToast('Status -> ' + status.toUpperCase());
+                        } catch(err) { showToast(err.message, true); }
+                    }
+                });
+            })(actionBtns[i]);
+        }
+
+        var printBtns = document.querySelectorAll('.btn-outline-print');
+        for (var j = 0; j < printBtns.length; j++) {
+            (function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    adminPrintInvoice(this.dataset.id);
+                });
+            })(printBtns[j]);
+        }
     }
 
     // Filter pills
-    document.querySelectorAll('.filter-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.filter;
-            renderOrders();
-        });
-    });
+    var filterPills = document.querySelectorAll('.filter-pill');
+    for (var k = 0; k < filterPills.length; k++) {
+        (function(pill) {
+            pill.addEventListener('click', function() {
+                var activePills = document.querySelectorAll('.filter-pill');
+                for (var p = 0; p < activePills.length; p++) {
+                    activePills[p].classList.remove('active');
+                }
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                renderOrders();
+            });
+        })(filterPills[k]);
+    }
 
     // ==================== PRINT INVOIS ADMIN ====================
     async function adminPrintInvoice(orderId) {
-        const order = ordersData.find(o => o.id === orderId);
+        var order = ordersData.find(function(o) { return o.id === orderId; });
         if (!order) { showToast('Pesanan tidak dijumpai', true); return; }
 
-        const previewDiv = document.getElementById('adminInvoicePreview');
-        const contentDiv = document.getElementById('adminInvoiceContent');
-        const customer = order.customer;
-        const items = order.items;
-        const totalAmount = order.totalAmount;
-        const shippingCost = order.shipping?.cost || 0;
-        const shippingRegion = order.shipping?.region || 'Tidak dinyatakan';
-        const paymentMethod = order.paymentMethod || 'Tiada';
-        const bankName = order.bankName || 'Tiada';
-        const orderIdDisplay = order.orderId || order.id;
-        const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Tarikh tidak tersedia';
-        const stickerValue = order.sticker || 'Yes';
-        const subtotal = items.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        var previewDiv = document.getElementById('adminInvoicePreview');
+        var contentDiv = document.getElementById('adminInvoiceContent');
+        var customer = order.customer || {};
+        var items = order.items || [];
+        var totalAmount = order.totalAmount || 0;
+        var shippingCost = order.shipping ? order.shipping.cost : 0;
+        var shippingRegion = order.shipping ? order.shipping.region : 'Tidak dinyatakan';
+        var paymentMethod = order.paymentMethod || 'Tiada';
+        var bankName = order.bankName || 'Tiada';
+        var orderIdDisplay = order.orderId || order.id;
+        var createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Tarikh tidak tersedia';
+        var stickerValue = order.sticker || 'Yes';
+        var subtotal = 0;
+        for (var i = 0; i < items.length; i++) {
+            subtotal += items[i].price * items[i].qty;
+        }
 
-        let itemsHtml = items.map(i => `
-            <tr>
-                <td>${escapeHtml(i.prodName)} (${escapeHtml(i.size)} - ${escapeHtml(i.type)})</td>
-                <td style="text-align:center;">${i.qty}</td>
-                <td style="text-align:right;">RM ${i.price.toFixed(2)}</td>
-                <td style="text-align:right;">RM ${(i.price * i.qty).toFixed(2)}</td>
-            </tr>
-        `).join('');
+        var itemsHtml = '';
+        for (var i2 = 0; i2 < items.length; i2++) {
+            var item = items[i2];
+            itemsHtml += '<tr><td>' + escapeHtml(item.prodName) + ' (' + escapeHtml(item.size) + ' - ' + escapeHtml(item.type) + ')</td><td style="text-align:center;">' + item.qty + '</td><td style="text-align:right;">RM ' + item.price.toFixed(2) + '</td><td style="text-align:right;">RM ' + (item.price * item.qty).toFixed(2) + '</td></tr>';
+        }
 
         contentDiv.innerHTML = `
             <h3 style="text-align:center; font-size:20px; margin:0 0 4px 0;">INVOIS PESANAN</h3>
             <p style="text-align:center; font-size:13px; color:#475569;"><strong>ID Pesanan:</strong> ${escapeHtml(orderIdDisplay)} &nbsp;|&nbsp; <strong>Tarikh:</strong> ${escapeHtml(createdAt)}</p>
             <div class="customer-detail">
                 <strong>Kepada:</strong><br>
-                ${escapeHtml(customer.name)}<br>
-                ${escapeHtml(customer.phone)}<br>
-                ${escapeHtml(customer.address_line1)}, ${escapeHtml(customer.postcode)} ${escapeHtml(customer.state)}
+                ${escapeHtml(customer.name || '')}<br>
+                ${escapeHtml(customer.phone || '')}<br>
+                ${escapeHtml(customer.address_line1 || '')}, ${escapeHtml(customer.postcode || '')} ${escapeHtml(customer.state || '')}
             </div>
             <table>
                 <thead><tr><th>Produk</th><th style="text-align:center;">Kuantiti</th><th style="text-align:right;">Harga Unit (RM)</th><th style="text-align:right;">Jumlah (RM)</th></tr></thead>
@@ -1097,24 +1103,24 @@ const additionalProducts = [
             </table>
             <div class="info-grid">
                 <div><strong>Kaedah Bayaran:</strong> ${escapeHtml(paymentMethod)}</div>
-                ${bankName && bankName !== "Tiada" ? `<div><strong>Bank Pengirim:</strong> ${escapeHtml(bankName)}</div>` : ''}
+                ${bankName && bankName !== "Tiada" ? '<div><strong>Bank Pengirim:</strong> ' + escapeHtml(bankName) + '</div>' : ''}
                 <div><strong>Sticker on vials?</strong> ${escapeHtml(stickerValue)}</div>
                 <div><strong>Status:</strong> ${order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan')}</div>
             </div>
-            ${order.receiptUrl ? `<div style="margin-top:12px;"><strong>Resit Bayaran:</strong> <a href="${order.receiptUrl}" target="_blank" style="color:#10b981;">Lihat Resit</a></div>` : ''}
-            ${order.trackingNumber ? `<div><strong>Tracking:</strong> ${escapeHtml(order.trackingNumber)}</div>` : ''}
+            ${order.receiptUrl ? '<div style="margin-top:12px;"><strong>Resit Bayaran:</strong> <a href="' + order.receiptUrl + '" target="_blank" style="color:#10b981;">Lihat Resit</a></div>' : ''}
+            ${order.trackingNumber ? '<div><strong>Tracking:</strong> ' + escapeHtml(order.trackingNumber) + '</div>' : ''}
         `;
 
-        const { jsPDF } = window.jspdf;
+        var jsPDF = window.jspdf;
         try {
-            const canvas = await html2canvas(previewDiv, { scale: 3, backgroundColor: '#ffffff', useCORS: true, allowTaint: false });
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-            const imgWidth = 210;
-            const pageHeight = 297;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
+            var canvas = await html2canvas(previewDiv, { scale: 3, backgroundColor: '#ffffff', useCORS: true, allowTaint: false });
+            var imgData = canvas.toDataURL('image/png');
+            var pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            var imgWidth = 210;
+            var pageHeight = 297;
+            var imgHeight = (canvas.height * imgWidth) / canvas.width;
+            var heightLeft = imgHeight;
+            var position = 0;
             pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
             heightLeft -= pageHeight;
             while (heightLeft > 0) {
@@ -1123,7 +1129,7 @@ const additionalProducts = [
                 pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
             }
-            pdf.save(`Invoice_${orderIdDisplay}_Admin.pdf`);
+            pdf.save('Invoice_' + orderIdDisplay + '_Admin.pdf');
             showToast('📄 Invois admin dimuat turun');
         } catch (err) {
             console.error(err);
@@ -1134,34 +1140,42 @@ const additionalProducts = [
     // ==================== STOCK MANAGEMENT ====================
     async function loadStockData() {
         try {
-            const prodSnap = await getDocs(collection(db, "products"));
-            let firestoreProducts = [];
-            prodSnap.forEach(doc => firestoreProducts.push({ id: doc.id, ...doc.data() }));
-            const allLocalProducts = [...oralPeptidesData, ...additionalProducts];
-            const mergedProducts = [...firestoreProducts];
-            for (const localProd of allLocalProducts) {
-                if (!mergedProducts.some(p => p.id === localProd.id)) {
-                    mergedProducts.push(localProd);
+            var prodSnap = await getDocs(collection(db, "products"));
+            var firestoreProducts = [];
+            prodSnap.forEach(function(doc) { firestoreProducts.push({ id: doc.id, data: doc.data() }); });
+            var allLocalProducts = oralPeptidesData.concat(additionalProducts);
+            var mergedProducts = [];
+            for (var i = 0; i < firestoreProducts.length; i++) {
+                mergedProducts.push(firestoreProducts[i].data);
+            }
+            for (var j = 0; j < allLocalProducts.length; j++) {
+                var localProd = allLocalProducts[j];
+                var exists = false;
+                for (var k = 0; k < mergedProducts.length; k++) {
+                    if (mergedProducts[k].id === localProd.id) { exists = true; break; }
                 }
+                if (!exists) mergedProducts.push(localProd);
             }
             productsData = mergedProducts;
 
-            const invSnap = await getDocs(collection(db, "inventory"));
+            var invSnap = await getDocs(collection(db, "inventory"));
             inventoryData.clear();
-            invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
+            invSnap.forEach(function(doc) { inventoryData.set(doc.id, doc.data()); });
 
             stockChanges.clear();
             readyStockChanges.clear();
             preorderChanges.clear();
 
-            for (const product of productsData) {
+            for (var p = 0; p < productsData.length; p++) {
+                var product = productsData[p];
                 if (product.variations) {
-                    for (const v of product.variations) {
-                        const key = getVariationKey(product.id, v.size, v.type);
-                        const existing = inventoryData.get(key);
-                        const currentStock = existing?.stock ?? 1000;
-                        const currentReady = existing?.readyStock ?? 0;
-                        const currentAllowPreorder = existing?.allowPreorder ?? true;
+                    for (var v = 0; v < product.variations.length; v++) {
+                        var varItem = product.variations[v];
+                        var key = getVariationKey(product.id, varItem.size, varItem.type);
+                        var existing = inventoryData.get(key);
+                        var currentStock = existing ? existing.stock : 1000;
+                        var currentReady = existing ? existing.readyStock : 0;
+                        var currentAllowPreorder = existing ? existing.allowPreorder : true;
 
                         stockChanges.set(key, currentStock);
                         readyStockChanges.set(key, currentReady);
@@ -1182,9 +1196,9 @@ const additionalProducts = [
                             }
                             inventoryData.set(key, {
                                 initialStock: existing.initialStock,
-                                stock: existing.stock ?? 1000,
-                                readyStock: existing.readyStock ?? 0,
-                                allowPreorder: existing.allowPreorder ?? true
+                                stock: existing.stock || 1000,
+                                readyStock: existing.readyStock || 0,
+                                allowPreorder: existing.allowPreorder || true
                             });
                         }
                     }
@@ -1198,22 +1212,24 @@ const additionalProducts = [
     }
 
     function renderStockTable() {
-        const tbody = document.getElementById('stockTableBody');
+        var tbody = document.getElementById('stockTableBody');
         tbody.innerHTML = '';
-        for (const product of productsData) {
+        for (var p = 0; p < productsData.length; p++) {
+            var product = productsData[p];
             if (!product.variations || product.variations.length === 0) continue;
-            for (const v of product.variations) {
-                const key = getVariationKey(product.id, v.size, v.type);
-                const currentStock = stockChanges.get(key) ?? 1000;
-                const currentReady = readyStockChanges.get(key) ?? 0;
-                const currentAllowPreorder = preorderChanges.get(key) ?? true;
-                const invData = inventoryData.get(key) || {};
-                const initialStock = invData.initialStock ?? 1000;
-                const row = document.createElement('tr');
+            for (var v = 0; v < product.variations.length; v++) {
+                var varItem = product.variations[v];
+                var key = getVariationKey(product.id, varItem.size, varItem.type);
+                var currentStock = stockChanges.get(key) || 1000;
+                var currentReady = readyStockChanges.get(key) || 0;
+                var currentAllowPreorder = preorderChanges.get(key) || true;
+                var invData = inventoryData.get(key) || {};
+                var initialStock = invData.initialStock || 1000;
+                var row = document.createElement('tr');
                 row.innerHTML = `
                     <td class="product-name-normal">${escapeHtml(product.name)}</td>
-                    <td>${escapeHtml(v.size)}</td>
-                    <td>${escapeHtml(v.type)}</td>
+                    <td>${escapeHtml(varItem.size)}</td>
+                    <td>${escapeHtml(varItem.type)}</td>
                     <td>${initialStock}</td>
                     <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0"></td>
                     <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0"></td>
@@ -1229,68 +1245,80 @@ const additionalProducts = [
                 tbody.appendChild(row);
 
                 // Toggle Ready
-                const toggleReady = row.querySelector('[data-field="toggleReady"]');
-                const readyInput = row.querySelector('[data-field="ready"]');
-                const statusSpanReady = row.querySelector('td:nth-child(7) span.ms-1');
+                var toggleReady = row.querySelector('[data-field="toggleReady"]');
+                var readyInput = row.querySelector('[data-field="ready"]');
+                var statusSpanReady = row.querySelector('td:nth-child(7) span.ms-1');
                 if (toggleReady) {
-                    toggleReady.addEventListener('click', () => {
-                        let val = parseInt(readyInput.value) || 0;
-                        val = val > 0 ? 0 : 1;
-                        readyInput.value = val;
-                        readyStockChanges.set(key, val);
-                        toggleReady.classList.toggle('active', val > 0);
-                        statusSpanReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
-                    });
+                    toggleReady.addEventListener('click', function(key, readyInput, statusSpanReady) {
+                        return function() {
+                            var val = parseInt(readyInput.value) || 0;
+                            val = val > 0 ? 0 : 1;
+                            readyInput.value = val;
+                            readyStockChanges.set(key, val);
+                            this.classList.toggle('active', val > 0);
+                            statusSpanReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
+                        };
+                    }(key, readyInput, statusSpanReady));
                 }
                 // Toggle Preorder
-                const togglePreorder = row.querySelector('[data-field="togglePreorder"]');
-                const statusSpanPreorder = row.querySelector('td:nth-child(8) span.ms-1');
+                var togglePreorder = row.querySelector('[data-field="togglePreorder"]');
+                var statusSpanPreorder = row.querySelector('td:nth-child(8) span.ms-1');
                 if (togglePreorder) {
-                    togglePreorder.addEventListener('click', () => {
-                        const current = preorderChanges.get(key) ?? true;
-                        const newVal = !current;
-                        preorderChanges.set(key, newVal);
-                        togglePreorder.classList.toggle('active', newVal);
-                        statusSpanPreorder.innerText = newVal ? '✔ Boleh Pre-order' : '✖ Tutup';
-                    });
+                    togglePreorder.addEventListener('click', function(key, statusSpanPreorder) {
+                        return function() {
+                            var current = preorderChanges.get(key) || true;
+                            var newVal = !current;
+                            preorderChanges.set(key, newVal);
+                            this.classList.toggle('active', newVal);
+                            statusSpanPreorder.innerText = newVal ? '✔ Boleh Pre-order' : '✖ Tutup';
+                        };
+                    }(key, statusSpanPreorder));
                 }
             }
         }
 
-        document.querySelectorAll('.stock-input').forEach(inp => {
-            inp.addEventListener('change', () => {
-                const key = inp.dataset.key;
-                const field = inp.dataset.field;
-                let val = parseInt(inp.value);
-                if (isNaN(val)) val = 0;
-                if (field === 'stock') stockChanges.set(key, val);
-                else if (field === 'ready') {
-                    readyStockChanges.set(key, val);
-                    const row = inp.closest('tr');
-                    const toggle = row.querySelector('[data-field="toggleReady"]');
-                    const span = row.querySelector('td:nth-child(7) span.ms-1');
-                    if (toggle) { toggle.classList.toggle('active', val > 0); span.innerText = val > 0 ? 'Ready Stock' : 'Pre-order'; }
-                }
-            });
-        });
+        var stockInputs = document.querySelectorAll('.stock-input');
+        for (var i = 0; i < stockInputs.length; i++) {
+            (function(inp) {
+                inp.addEventListener('change', function() {
+                    var key = this.dataset.key;
+                    var field = this.dataset.field;
+                    var val = parseInt(this.value);
+                    if (isNaN(val)) val = 0;
+                    if (field === 'stock') stockChanges.set(key, val);
+                    else if (field === 'ready') {
+                        readyStockChanges.set(key, val);
+                        var row = this.closest('tr');
+                        var toggle = row.querySelector('[data-field="toggleReady"]');
+                        var span = row.querySelector('td:nth-child(7) span.ms-1');
+                        if (toggle) { toggle.classList.toggle('active', val > 0); span.innerText = val > 0 ? 'Ready Stock' : 'Pre-order'; }
+                    }
+                });
+            })(stockInputs[i]);
+        }
 
         document.getElementById('stockLoading').style.display = 'none';
         document.getElementById('stockContent').style.display = 'block';
     }
 
-    document.getElementById('saveAllStockBtn').addEventListener('click', async () => {
-        const saveBtn = document.getElementById('saveAllStockBtn');
+    document.getElementById('saveAllStockBtn').addEventListener('click', async function() {
+        var saveBtn = this;
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse me-1"></i> Menyimpan...';
-        let success = 0, errors = 0;
-        const allKeys = new Set([...stockChanges.keys(), ...readyStockChanges.keys(), ...preorderChanges.keys()]);
-        for (const key of allKeys) {
-            const newStock = stockChanges.get(key) ?? 1000;
-            const newReady = readyStockChanges.get(key) ?? 0;
-            const newAllowPreorder = preorderChanges.get(key) ?? true;
-            const docRef = doc(db, "inventory", key);
+        var success = 0, errors = 0;
+        var allKeys = new Set();
+        stockChanges.forEach(function(value, key) { allKeys.add(key); });
+        readyStockChanges.forEach(function(value, key) { allKeys.add(key); });
+        preorderChanges.forEach(function(value, key) { allKeys.add(key); });
+        var keysArray = Array.from(allKeys);
+        for (var idx = 0; idx < keysArray.length; idx++) {
+            var key = keysArray[idx];
+            var newStock = stockChanges.get(key) || 1000;
+            var newReady = readyStockChanges.get(key) || 0;
+            var newAllowPreorder = preorderChanges.get(key) || true;
+            var docRef = doc(db, "inventory", key);
             try {
-                const docSnap = await getDoc(docRef);
+                var docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     await updateDoc(docRef, { stock: newStock, readyStock: newReady, allowPreorder: newAllowPreorder });
                 } else {
@@ -1304,172 +1332,197 @@ const additionalProducts = [
             }
         }
         // Refresh
-        const invSnap = await getDocs(collection(db, "inventory"));
+        var invSnap = await getDocs(collection(db, "inventory"));
         inventoryData.clear();
-        invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
-        for (const product of productsData) {
+        invSnap.forEach(function(doc) { inventoryData.set(doc.id, doc.data()); });
+        for (var p = 0; p < productsData.length; p++) {
+            var product = productsData[p];
             if (product.variations) {
-                for (const v of product.variations) {
-                    const key = getVariationKey(product.id, v.size, v.type);
-                    const data = inventoryData.get(key) || {};
-                    stockChanges.set(key, data.stock ?? 1000);
-                    readyStockChanges.set(key, data.readyStock ?? 0);
-                    preorderChanges.set(key, data.allowPreorder ?? true);
+                for (var v = 0; v < product.variations.length; v++) {
+                    var varItem = product.variations[v];
+                    var key = getVariationKey(product.id, varItem.size, varItem.type);
+                    var data = inventoryData.get(key) || {};
+                    stockChanges.set(key, data.stock || 1000);
+                    readyStockChanges.set(key, data.readyStock || 0);
+                    preorderChanges.set(key, data.allowPreorder || true);
                 }
             }
         }
         renderStockTable();
-        showToast(`${success} item dikemas kini${errors ? `, ${errors} gagal` : ''}`, errors > 0);
+        showToast(success + ' item dikemas kini' + (errors ? ', ' + errors + ' gagal' : ''), errors > 0);
         saveBtn.disabled = false;
         saveBtn.innerHTML = '<i class="fa-solid fa-save me-1"></i> Simpan Semua';
     });
 
     // ==================== REPORT ====================
-    let reportType = 'weekly';
+    var reportType = 'weekly';
     function updateReport() {
-        const completedOrders = ordersData.filter(o => o.status === 'completed');
+        var completedOrders = ordersData.filter(function(o) { return o.status === 'completed'; });
         if (reportType === 'weekly') generateWeeklyReport(completedOrders);
         else generateMonthlyReport(completedOrders);
     }
 
     function generateWeeklyReport(completedOrders) {
-        const weeksMap = new Map();
-        completedOrders.forEach(order => {
-            const date = new Date(order.completedAt || order.createdAt);
-            const year = date.getFullYear();
-            const week = getWeekNumber(date);
-            const key = `${year}-W${week}`;
-            if (!weeksMap.has(key)) weeksMap.set(key, { week, year, orders: [], totalSales: 0, totalItems: 0 });
-            const data = weeksMap.get(key);
+        var weeksMap = new Map();
+        for (var i = 0; i < completedOrders.length; i++) {
+            var order = completedOrders[i];
+            var date = new Date(order.completedAt || order.createdAt);
+            var year = date.getFullYear();
+            var week = getWeekNumber(date);
+            var key = year + '-W' + week;
+            if (!weeksMap.has(key)) weeksMap.set(key, { week: week, year: year, orders: [], totalSales: 0, totalItems: 0 });
+            var data = weeksMap.get(key);
             data.orders.push(order);
             data.totalSales += order.totalAmount;
-            data.totalItems += order.items.reduce((sum, it) => sum + it.qty, 0);
-        });
-        const sorted = Array.from(weeksMap.keys()).sort().reverse();
-        const statsDiv = document.getElementById('reportStats');
-        const detailsDiv = document.getElementById('reportDetails');
+            var totalItems = 0;
+            for (var j = 0; j < order.items.length; j++) {
+                totalItems += order.items[j].qty;
+            }
+            data.totalItems += totalItems;
+        }
+        var sorted = Array.from(weeksMap.keys()).sort().reverse();
+        var statsDiv = document.getElementById('reportStats');
+        var detailsDiv = document.getElementById('reportDetails');
         if (sorted.length === 0) {
             statsDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan selesai</div>';
             detailsDiv.innerHTML = '';
             return;
         }
-        const latest = weeksMap.get(sorted[0]);
+        var latest = weeksMap.get(sorted[0]);
         statsDiv.innerHTML = `
             <div class="report-card"><strong>Minggu Terkini</strong><span>${latest.week} / ${latest.year}</span><span>${latest.orders.length} pesanan<br>RM ${latest.totalSales.toFixed(2)}</span></div>
             <div class="report-card"><strong>Jumlah Item</strong><span>${latest.totalItems} unit</span></div>
             <div class="report-card"><strong>Purata / Pesanan</strong><span>RM ${(latest.totalSales/latest.orders.length).toFixed(2)}</span></div>
         `;
-        let html = '<h6 class="mt-3">📋 Senarai Mingguan (terbaru ke lama)</h6><div class="list-group">';
-        for (let key of sorted) {
-            const data = weeksMap.get(key);
-            html += `<div class="list-group-item"><strong>Minggu ${data.week} / ${data.year}</strong> – ${data.orders.length} pesanan, RM ${data.totalSales.toFixed(2)}, ${data.totalItems} item</div>`;
+        var html = '<h6 class="mt-3">📋 Senarai Mingguan (terbaru ke lama)</h6><div class="list-group">';
+        for (var k = 0; k < sorted.length; k++) {
+            var key2 = sorted[k];
+            var data2 = weeksMap.get(key2);
+            html += '<div class="list-group-item"><strong>Minggu ' + data2.week + ' / ' + data2.year + '</strong> – ' + data2.orders.length + ' pesanan, RM ' + data2.totalSales.toFixed(2) + ', ' + data2.totalItems + ' item</div>';
         }
         html += '</div>';
         detailsDiv.innerHTML = html;
     }
 
     function generateMonthlyReport(completedOrders) {
-        const monthsMap = new Map();
-        completedOrders.forEach(order => {
-            const date = new Date(order.completedAt || order.createdAt);
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            const key = `${year}-${month}`;
-            if (!monthsMap.has(key)) monthsMap.set(key, { year, month, orders: [], totalSales: 0, totalItems: 0 });
-            const data = monthsMap.get(key);
+        var monthsMap = new Map();
+        for (var i = 0; i < completedOrders.length; i++) {
+            var order = completedOrders[i];
+            var date = new Date(order.completedAt || order.createdAt);
+            var year = date.getFullYear();
+            var month = date.getMonth() + 1;
+            var key = year + '-' + month;
+            if (!monthsMap.has(key)) monthsMap.set(key, { year: year, month: month, orders: [], totalSales: 0, totalItems: 0 });
+            var data = monthsMap.get(key);
             data.orders.push(order);
             data.totalSales += order.totalAmount;
-            data.totalItems += order.items.reduce((sum, it) => sum + it.qty, 0);
-        });
-        const sorted = Array.from(monthsMap.keys()).sort().reverse();
-        const statsDiv = document.getElementById('reportStats');
-        const detailsDiv = document.getElementById('reportDetails');
+            var totalItems = 0;
+            for (var j = 0; j < order.items.length; j++) {
+                totalItems += order.items[j].qty;
+            }
+            data.totalItems += totalItems;
+        }
+        var sorted = Array.from(monthsMap.keys()).sort().reverse();
+        var statsDiv = document.getElementById('reportStats');
+        var detailsDiv = document.getElementById('reportDetails');
         if (sorted.length === 0) {
             statsDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan selesai</div>';
             detailsDiv.innerHTML = '';
             return;
         }
-        const latest = monthsMap.get(sorted[0]);
+        var latest = monthsMap.get(sorted[0]);
         statsDiv.innerHTML = `
             <div class="report-card"><strong>Bulan Terkini</strong><span>${latest.month} / ${latest.year}</span><span>${latest.orders.length} pesanan<br>RM ${latest.totalSales.toFixed(2)}</span></div>
             <div class="report-card"><strong>Jumlah Item</strong><span>${latest.totalItems} unit</span></div>
             <div class="report-card"><strong>Purata / Pesanan</strong><span>RM ${(latest.totalSales/latest.orders.length).toFixed(2)}</span></div>
         `;
-        let html = '<h6 class="mt-3">📋 Senarai Bulanan (terbaru ke lama)</h6><div class="list-group">';
-        for (let key of sorted) {
-            const data = monthsMap.get(key);
-            html += `<div class="list-group-item"><strong>Bulan ${data.month} / ${data.year}</strong> – ${data.orders.length} pesanan, RM ${data.totalSales.toFixed(2)}, ${data.totalItems} item</div>`;
+        var html = '<h6 class="mt-3">📋 Senarai Bulanan (terbaru ke lama)</h6><div class="list-group">';
+        for (var k = 0; k < sorted.length; k++) {
+            var key2 = sorted[k];
+            var data2 = monthsMap.get(key2);
+            html += '<div class="list-group-item"><strong>Bulan ' + data2.month + ' / ' + data2.year + '</strong> – ' + data2.orders.length + ' pesanan, RM ' + data2.totalSales.toFixed(2) + ', ' + data2.totalItems + ' item</div>';
         }
         html += '</div>';
         detailsDiv.innerHTML = html;
     }
 
     function getWeekNumber(date) {
-        const d = new Date(date);
+        var d = new Date(date);
         d.setHours(0,0,0,0);
         d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
-        const week1 = new Date(d.getFullYear(), 0, 4);
+        var week1 = new Date(d.getFullYear(), 0, 4);
         return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
     }
 
     document.getElementById('weeklyReportBtn').addEventListener('click', function() {
-        document.querySelectorAll('.report-filter button').forEach(b => b.classList.remove('active'));
+        var btns = document.querySelectorAll('.report-filter button');
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].classList.remove('active');
+        }
         this.classList.add('active');
         reportType = 'weekly';
         updateReport();
     });
     document.getElementById('monthlyReportBtn').addEventListener('click', function() {
-        document.querySelectorAll('.report-filter button').forEach(b => b.classList.remove('active'));
+        var btns = document.querySelectorAll('.report-filter button');
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].classList.remove('active');
+        }
         this.classList.add('active');
         reportType = 'monthly';
         updateReport();
     });
 
     // ==================== PRODUCT REPORT ====================
-    function generateProductReport(filter = 'all') {
-        const now = new Date();
-        let startDate = null;
+    function generateProductReport(filter) {
+        filter = filter || 'all';
+        var now = new Date();
+        var startDate = null;
         if (filter === 'weekly') {
-            const day = now.getDay();
-            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            var day = now.getDay();
+            var diff = now.getDate() - day + (day === 0 ? -6 : 1);
             startDate = new Date(now);
             startDate.setDate(diff);
             startDate.setHours(0,0,0,0);
         } else if (filter === 'monthly') {
             startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         }
-        const allOrders = ordersData.filter(o => o.status === 'completed' || o.status === 'pending');
-        const productMap = new Map();
-        allOrders.forEach(order => {
+        var allOrders = ordersData.filter(function(o) { return o.status === 'completed' || o.status === 'pending'; });
+        var productMap = new Map();
+        for (var i = 0; i < allOrders.length; i++) {
+            var order = allOrders[i];
             if (startDate) {
-                const orderDate = new Date(order.createdAt);
-                if (orderDate < startDate) return;
+                var orderDate = new Date(order.createdAt);
+                if (orderDate < startDate) continue;
             }
-            order.items.forEach(item => {
-                const key = `${item.prodName}_${item.size}_${item.type}`;
+            var items = order.items || [];
+            for (var j = 0; j < items.length; j++) {
+                var item = items[j];
+                var key = item.prodName + '_' + item.size + '_' + item.type;
                 if (!productMap.has(key)) {
                     productMap.set(key, { name: item.prodName, size: item.size, type: item.type, totalQty: 0, totalRevenue: 0 });
                 }
-                const data = productMap.get(key);
+                var data = productMap.get(key);
                 data.totalQty += item.qty;
                 data.totalRevenue += item.price * item.qty;
-            });
-        });
-        const tbody = document.getElementById('productReportBody');
-        const statsDiv = document.getElementById('productReportStats');
-        const sorted = Array.from(productMap.values()).sort((a, b) => b.totalQty - a.totalQty);
+            }
+        }
+        var tbody = document.getElementById('productReportBody');
+        var statsDiv = document.getElementById('productReportStats');
+        var sorted = Array.from(productMap.values()).sort(function(a, b) { return b.totalQty - a.totalQty; });
         if (sorted.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Tiada data</td></tr>';
             statsDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan dalam tempoh ini</div>';
             return;
         }
-        let html = '';
-        let totalQty = 0, totalRevenue = 0;
-        sorted.forEach(p => {
-            html += `<tr><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.size)}</td><td>${escapeHtml(p.type)}</td><td class="fw-bold">${p.totalQty}</td><td>RM ${p.totalRevenue.toFixed(2)}</td></tr>`;
+        var html = '';
+        var totalQty = 0, totalRevenue = 0;
+        for (var k = 0; k < sorted.length; k++) {
+            var p = sorted[k];
+            html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(p.size) + '</td><td>' + escapeHtml(p.type) + '</td><td class="fw-bold">' + p.totalQty + '</td><td>RM ' + p.totalRevenue.toFixed(2) + '</td></tr>';
             totalQty += p.totalQty;
             totalRevenue += p.totalRevenue;
-        });
+        }
         tbody.innerHTML = html;
         statsDiv.innerHTML = `
             <div class="report-card"><strong>Jumlah Produk</strong><span>${sorted.length}</span></div>
@@ -1478,15 +1531,15 @@ const additionalProducts = [
         `;
     }
 
-    document.getElementById('productReportAll').addEventListener('click', () => generateProductReport('all'));
-    document.getElementById('productReportWeekly').addEventListener('click', () => generateProductReport('weekly'));
-    document.getElementById('productReportMonthly').addEventListener('click', () => generateProductReport('monthly'));
+    document.getElementById('productReportAll').addEventListener('click', function() { generateProductReport('all'); });
+    document.getElementById('productReportWeekly').addEventListener('click', function() { generateProductReport('weekly'); });
+    document.getElementById('productReportMonthly').addEventListener('click', function() { generateProductReport('monthly'); });
 
     // ==================== SECTION TOGGLING ====================
-    const ordersSection = document.getElementById('ordersSection');
-    const stockSection = document.getElementById('stockSection');
-    const reportSection = document.getElementById('reportSection');
-    const productReportSection = document.getElementById('productReportSection');
+    var ordersSection = document.getElementById('ordersSection');
+    var stockSection = document.getElementById('stockSection');
+    var reportSection = document.getElementById('reportSection');
+    var productReportSection = document.getElementById('productReportSection');
 
     function showOrders() {
         ordersSection.style.display = 'block';
@@ -1495,21 +1548,21 @@ const additionalProducts = [
         productReportSection.style.display = 'none';
     }
 
-    document.getElementById('toggleStockBtn').addEventListener('click', () => {
+    document.getElementById('toggleStockBtn').addEventListener('click', function() {
         ordersSection.style.display = 'none';
         stockSection.style.display = 'block';
         reportSection.style.display = 'none';
         productReportSection.style.display = 'none';
         loadStockData();
     });
-    document.getElementById('toggleReportBtn').addEventListener('click', () => {
+    document.getElementById('toggleReportBtn').addEventListener('click', function() {
         ordersSection.style.display = 'none';
         stockSection.style.display = 'none';
         reportSection.style.display = 'block';
         productReportSection.style.display = 'none';
         updateReport();
     });
-    document.getElementById('toggleProductReportBtn').addEventListener('click', () => {
+    document.getElementById('toggleProductReportBtn').addEventListener('click', function() {
         ordersSection.style.display = 'none';
         stockSection.style.display = 'none';
         reportSection.style.display = 'none';
@@ -1521,7 +1574,7 @@ const additionalProducts = [
     document.getElementById('backToOrdersFromProductReportBtn').addEventListener('click', showOrders);
 
     // Auto-refresh report every 10s if visible
-    setInterval(() => {
+    setInterval(function() {
         if (reportSection.style.display === 'block') updateReport();
         if (productReportSection.style.display === 'block') generateProductReport('all');
     }, 10000);
@@ -1529,10 +1582,10 @@ const additionalProducts = [
 
 <script>
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
+        window.addEventListener('load', function() {
             navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('✅ Service Worker registered:', reg.scope))
-                .catch(err => console.warn('Service Worker registration failed:', err));
+                .then(function(reg) { console.log('✅ Service Worker registered:', reg.scope); })
+                .catch(function(err) { console.warn('Service Worker registration failed:', err); });
         });
     }
 </script>
