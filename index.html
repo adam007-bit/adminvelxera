@@ -1245,35 +1245,33 @@ var additionalProducts = [
                 tbody.appendChild(row);
 
                 // Toggle Ready
-                var toggleReady = row.querySelector('[data-field="toggleReady"]');
-                var readyInput = row.querySelector('[data-field="ready"]');
-                var statusSpanReady = row.querySelector('td:nth-child(7) span.ms-1');
-                if (toggleReady) {
-                    toggleReady.addEventListener('click', function(key, readyInput, statusSpanReady) {
-                        return function() {
-                            var val = parseInt(readyInput.value) || 0;
-                            val = val > 0 ? 0 : 1;
-                            readyInput.value = val;
-                            readyStockChanges.set(key, val);
-                            this.classList.toggle('active', val > 0);
-                            statusSpanReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
-                        };
-                    }(key, readyInput, statusSpanReady));
-                }
+               var toggleReady = row.querySelector('[data-field="toggleReady"]');
+var readyInput = row.querySelector('[data-field="ready"]');
+var statusSpanReady = row.querySelector('td:nth-child(7) span.ms-1');
+if (toggleReady) {
+    toggleReady.addEventListener('click', function(e) {
+        var key = this.dataset.key; // Ambil key dari elemen togol
+        var val = parseInt(readyInput.value) || 0;
+        val = val > 0 ? 0 : 1;
+        readyInput.value = val;
+        readyStockChanges.set(key, val);
+        this.classList.toggle('active', val > 0);
+        statusSpanReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
+    });
+}
                 // Toggle Preorder
-                var togglePreorder = row.querySelector('[data-field="togglePreorder"]');
-                var statusSpanPreorder = row.querySelector('td:nth-child(8) span.ms-1');
-                if (togglePreorder) {
-                    togglePreorder.addEventListener('click', function(key, statusSpanPreorder) {
-                        return function() {
-                            var current = preorderChanges.get(key) || true;
-                            var newVal = !current;
-                            preorderChanges.set(key, newVal);
-                            this.classList.toggle('active', newVal);
-                            statusSpanPreorder.innerText = newVal ? '✔ Boleh Pre-order' : '✖ Tutup';
-                        };
-                    }(key, statusSpanPreorder));
-                }
+var togglePreorder = row.querySelector('[data-field="togglePreorder"]');
+var statusSpanPreorder = row.querySelector('td:nth-child(8) span.ms-1');
+if (togglePreorder) {
+    togglePreorder.addEventListener('click', function(e) {
+        var key = this.dataset.key;
+        var current = preorderChanges.get(key) || true;
+        var newVal = !current;
+        preorderChanges.set(key, newVal);
+        this.classList.toggle('active', newVal);
+        statusSpanPreorder.innerText = newVal ? '✔ Boleh Pre-order' : '✖ Tutup';
+    });
+}
             }
         }
 
