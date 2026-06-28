@@ -1166,12 +1166,12 @@ var additionalProducts = [
             readyStockChanges.clear();
             preorderChanges.clear();
 
-            for (var p = 0; p < productsData.length; p++) {
+            for (let p = 0; p < productsData.length; p++) {
                 var product = productsData[p];
                 if (product.variations) {
-                    for (var v = 0; v < product.variations.length; v++) {
+                   for (let v = 0; v < product.variations.length; v++) {
                         var varItem = product.variations[v];
-                        var key = getVariationKey(product.id, varItem.size, varItem.type);
+                        let key = getVariationKey(product.id, varItem.size, varItem.type);
                         var existing = inventoryData.get(key);
                         var currentStock = existing ? existing.stock : 1000;
                         var currentReady = existing ? existing.readyStock : 0;
@@ -1214,12 +1214,12 @@ var additionalProducts = [
 function renderStockTable() {
     var tbody = document.getElementById('stockTableBody');
     tbody.innerHTML = '';
-    for (var p = 0; p < productsData.length; p++) {
+    for (let p = 0; p < productsData.length; p++) {
         var product = productsData[p];
         if (!product.variations || product.variations.length === 0) continue;
-        for (var v = 0; v < product.variations.length; v++) {
+        for (let v = 0; v < product.variations.length; v++) {
             var varItem = product.variations[v];
-            var key = getVariationKey(product.id, varItem.size, varItem.type);
+            let key = getVariationKey(product.id, varItem.size, varItem.type);
             var currentStock = stockChanges.get(key) || 1000;
             var currentReady = readyStockChanges.get(key) || 0;
             var currentAllowPreorder = preorderChanges.get(key) || true;
@@ -1278,7 +1278,7 @@ function renderStockTable() {
 
     // Event untuk input stock & ready
     var stockInputs = document.querySelectorAll('.stock-input');
-    for (var i = 0; i < stockInputs.length; i++) {
+    for (let i = 0; i < stockInputs.length; i++) {
         (function(inp) {
             inp.addEventListener('change', function() {
                 var key = this.dataset.key;
@@ -1305,59 +1305,63 @@ function renderStockTable() {
     document.getElementById('stockContent').style.display = 'block';
 }
 
-    document.getElementById('saveAllStockBtn').addEventListener('click', async function() {
-        var saveBtn = this;
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse me-1"></i> Menyimpan...';
-        var success = 0, errors = 0;
-        var allKeys = new Set();
-        stockChanges.forEach(function(value, key) { allKeys.add(key); });
-        readyStockChanges.forEach(function(value, key) { allKeys.add(key); });
-        preorderChanges.forEach(function(value, key) { allKeys.add(key); });
-        var keysArray = Array.from(allKeys);
-        for (var idx = 0; idx < keysArray.length; idx++) {
-            var key = keysArray[idx];
-            var newStock = stockChanges.get(key) || 1000;
-            var newReady = readyStockChanges.get(key) || 0;
-            var newAllowPreorder = preorderChanges.get(key) || true;
-            var docRef = doc(db, "inventory", key);
-            try {
-                var docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    await updateDoc(docRef, { stock: newStock, readyStock: newReady, allowPreorder: newAllowPreorder });
-                } else {
-                    await setDoc(docRef, { initialStock: 1000, stock: newStock, readyStock: newReady, allowPreorder: newAllowPreorder });
-                }
-                success++;
-                inventoryData.set(key, { initialStock: docSnap.exists() ? docSnap.data().initialStock : 1000, stock: newStock, readyStock: newReady, allowPreorder: newAllowPreorder });
-            } catch (err) {
-                console.error(err);
-                errors++;
-            }
-        }
-        // Refresh
-        var invSnap = await getDocs(collection(db, "inventory"));
-        inventoryData.clear();
-        invSnap.forEach(function(doc) { inventoryData.set(doc.id, doc.data()); });
-        for (var p = 0; p < productsData.length; p++) {
-            var product = productsData[p];
-            if (product.variations) {
-                for (var v = 0; v < product.variations.length; v++) {
-                    var varItem = product.variations[v];
-                    var key = getVariationKey(product.id, varItem.size, varItem.type);
-                    var data = inventoryData.get(key) || {};
-                    stockChanges.set(key, data.stock || 1000);
-                    readyStockChanges.set(key, data.readyStock || 0);
-                    preorderChanges.set(key, data.allowPreorder || true);
-                }
-            }
-        }
-        renderStockTable();
-        showToast(success + ' item dikemas kini' + (errors ? ', ' + errors + ' gagal' : ''), errors > 0);
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="fa-solid fa-save me-1"></i> Simpan Semua';
-    });
+document.getElementById('saveAllStockBtn').addEventListener('click', async function() {
+    var saveBtn = this;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse me-1"></i> Menyimpan...';
+    var success = 0, errors = 0;
 
+    // Kumpulkan semua key unik
+    var allKeys = new Set();
+    stockChanges.forEach(function(value, key) { allKeys.add(key); });
+    readyStockChanges.forEach(function(value, key) { allKeys.add(key); });
+    preorderChanges.forEach(function(value, key) { allKeys.add(key); });
+
+    var keysArray = Array.from(allKeys);
+    for (var idx = 0; idx < keysArray.length; idx++) {
+        var key = keysArray[idx];
+        var newStock = stockChanges.get(key) !== undefined ? stockChanges.get(key) : 1000;
+        var newReady = readyStockChanges.get(key) !== undefined ? readyStockChanges.get(key) : 0;
+        var newAllowPreorder = preorderChanges.has(key) ? preorderChanges.get(key) : true;
+
+        console.log('Menyimpan key:', key, 'allowPreorder:', newAllowPreorder);
+
+        var docRef = doc(db, "inventory", key);
+        try {
+            var docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                await updateDoc(docRef, {
+                    stock: newStock,
+                    readyStock: newReady,
+                    allowPreorder: newAllowPreorder
+                });
+            } else {
+                await setDoc(docRef, {
+                    initialStock: 1000,
+                    stock: newStock,
+                    readyStock: newReady,
+                    allowPreorder: newAllowPreorder
+                });
+            }
+            success++;
+            console.log('✅ Berjaya simpan:', key);
+            inventoryData.set(key, {
+                initialStock: docSnap.exists() ? docSnap.data().initialStock : 1000,
+                stock: newStock,
+                readyStock: newReady,
+                allowPreorder: newAllowPreorder
+            });
+        } catch (err) {
+            console.error('❌ Gagal simpan key', key, err);
+            errors++;
+        }
+    }
+
+    renderStockTable();
+    showToast(success + ' item dikemas kini' + (errors ? ', ' + errors + ' gagal' : ''), errors > 0);
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '<i class="fa-solid fa-save me-1"></i> Simpan Semua';
+});
     // ==================== REPORT ====================
     var reportType = 'weekly';
     function updateReport() {
