@@ -1211,93 +1211,99 @@ var additionalProducts = [
         }
     }
 
-    function renderStockTable() {
-        var tbody = document.getElementById('stockTableBody');
-        tbody.innerHTML = '';
-        for (var p = 0; p < productsData.length; p++) {
-            var product = productsData[p];
-            if (!product.variations || product.variations.length === 0) continue;
-            for (var v = 0; v < product.variations.length; v++) {
-                var varItem = product.variations[v];
-                var key = getVariationKey(product.id, varItem.size, varItem.type);
-                var currentStock = stockChanges.get(key) || 1000;
-                var currentReady = readyStockChanges.get(key) || 0;
-                var currentAllowPreorder = preorderChanges.get(key) || true;
-                var invData = inventoryData.get(key) || {};
-                var initialStock = invData.initialStock || 1000;
-                var row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="product-name-normal">${escapeHtml(product.name)}</td>
-                    <td>${escapeHtml(varItem.size)}</td>
-                    <td>${escapeHtml(varItem.type)}</td>
-                    <td>${initialStock}</td>
-                    <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0"></td>
-                    <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0"></td>
-                    <td>
-                        <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady"><span></span></div>
-                        <span class="ms-1 small">${currentReady > 0 ? 'Ready Stock' : 'Pre-order'}</span>
-                    </td>
-                    <td>
-                        <div class="toggle-switch ${currentAllowPreorder ? 'active' : ''}" data-key="${key}" data-field="togglePreorder"><span></span></div>
-                        <span class="ms-1 small">${currentAllowPreorder ? '✔ Boleh Pre-order' : '✖ Tutup'}</span>
-                    </td>
-                `;
-                tbody.appendChild(row);
+function renderStockTable() {
+    var tbody = document.getElementById('stockTableBody');
+    tbody.innerHTML = '';
+    for (var p = 0; p < productsData.length; p++) {
+        var product = productsData[p];
+        if (!product.variations || product.variations.length === 0) continue;
+        for (var v = 0; v < product.variations.length; v++) {
+            var varItem = product.variations[v];
+            var key = getVariationKey(product.id, varItem.size, varItem.type);
+            var currentStock = stockChanges.get(key) || 1000;
+            var currentReady = readyStockChanges.get(key) || 0;
+            var currentAllowPreorder = preorderChanges.get(key) || true;
+            var invData = inventoryData.get(key) || {};
+            var initialStock = invData.initialStock || 1000;
+            var row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="product-name-normal">${escapeHtml(product.name)}</td>
+                <td>${escapeHtml(varItem.size)}</td>
+                <td>${escapeHtml(varItem.type)}</td>
+                <td>${initialStock}</td>
+                <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0"></td>
+                <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0"></td>
+                <td>
+                    <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady"><span></span></div>
+                    <span class="ms-1 small">${currentReady > 0 ? 'Ready Stock' : 'Pre-order'}</span>
+                </td>
+                <td>
+                    <div class="toggle-switch ${currentAllowPreorder ? 'active' : ''}" data-key="${key}" data-field="togglePreorder"><span></span></div>
+                    <span class="ms-1 small">${currentAllowPreorder ? '✔ Boleh Pre-order' : '✖ Tutup'}</span>
+                </td>
+            `;
+            tbody.appendChild(row);
 
-                // Toggle Ready
-               var toggleReady = row.querySelector('[data-field="toggleReady"]');
-var readyInput = row.querySelector('[data-field="ready"]');
-var statusSpanReady = row.querySelector('td:nth-child(7) span.ms-1');
-if (toggleReady) {
-    toggleReady.addEventListener('click', function(e) {
-        var key = this.dataset.key; // Ambil key dari elemen togol
-        var val = parseInt(readyInput.value) || 0;
-        val = val > 0 ? 0 : 1;
-        readyInput.value = val;
-        readyStockChanges.set(key, val);
-        this.classList.toggle('active', val > 0);
-        statusSpanReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
-    });
-}
-                // Toggle Preorder
-var togglePreorder = row.querySelector('[data-field="togglePreorder"]');
-var statusSpanPreorder = row.querySelector('td:nth-child(8) span.ms-1');
-if (togglePreorder) {
-    togglePreorder.addEventListener('click', function(e) {
-        var key = this.dataset.key;
-        var current = preorderChanges.get(key) || true;
-        var newVal = !current;
-        preorderChanges.set(key, newVal);
-        this.classList.toggle('active', newVal);
-        statusSpanPreorder.innerText = newVal ? '✔ Boleh Pre-order' : '✖ Tutup';
-    });
-}
+            // ===== PERBAIKAN UNTUK TOGGLE READY =====
+            var toggleReady = row.querySelector('[data-field="toggleReady"]');
+            var readyInput = row.querySelector('[data-field="ready"]');
+            var statusSpanReady = row.querySelector('td:nth-child(7) span.ms-1');
+            if (toggleReady) {
+                toggleReady.addEventListener('click', function(e) {
+                    var key = this.dataset.key;
+                    var val = parseInt(readyInput.value) || 0;
+                    val = val > 0 ? 0 : 1;
+                    readyInput.value = val;
+                    readyStockChanges.set(key, val);
+                    this.classList.toggle('active', val > 0);
+                    statusSpanReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
+                });
+            }
+
+            // ===== PERBAIKAN UNTUK TOGGLE PREORDER =====
+            var togglePreorder = row.querySelector('[data-field="togglePreorder"]');
+            var statusSpanPreorder = row.querySelector('td:nth-child(8) span.ms-1');
+            if (togglePreorder) {
+                togglePreorder.addEventListener('click', function(e) {
+                    var key = this.dataset.key;
+                    var current = preorderChanges.get(key) || true;
+                    var newVal = !current;
+                    preorderChanges.set(key, newVal);
+                    this.classList.toggle('active', newVal);
+                    statusSpanPreorder.innerText = newVal ? '✔ Boleh Pre-order' : '✖ Tutup';
+                });
             }
         }
-
-        var stockInputs = document.querySelectorAll('.stock-input');
-        for (var i = 0; i < stockInputs.length; i++) {
-            (function(inp) {
-                inp.addEventListener('change', function() {
-                    var key = this.dataset.key;
-                    var field = this.dataset.field;
-                    var val = parseInt(this.value);
-                    if (isNaN(val)) val = 0;
-                    if (field === 'stock') stockChanges.set(key, val);
-                    else if (field === 'ready') {
-                        readyStockChanges.set(key, val);
-                        var row = this.closest('tr');
-                        var toggle = row.querySelector('[data-field="toggleReady"]');
-                        var span = row.querySelector('td:nth-child(7) span.ms-1');
-                        if (toggle) { toggle.classList.toggle('active', val > 0); span.innerText = val > 0 ? 'Ready Stock' : 'Pre-order'; }
-                    }
-                });
-            })(stockInputs[i]);
-        }
-
-        document.getElementById('stockLoading').style.display = 'none';
-        document.getElementById('stockContent').style.display = 'block';
     }
+
+    // Event untuk input stock & ready
+    var stockInputs = document.querySelectorAll('.stock-input');
+    for (var i = 0; i < stockInputs.length; i++) {
+        (function(inp) {
+            inp.addEventListener('change', function() {
+                var key = this.dataset.key;
+                var field = this.dataset.field;
+                var val = parseInt(this.value);
+                if (isNaN(val)) val = 0;
+                if (field === 'stock') {
+                    stockChanges.set(key, val);
+                } else if (field === 'ready') {
+                    readyStockChanges.set(key, val);
+                    var row = this.closest('tr');
+                    var toggle = row.querySelector('[data-field="toggleReady"]');
+                    var span = row.querySelector('td:nth-child(7) span.ms-1');
+                    if (toggle) {
+                        toggle.classList.toggle('active', val > 0);
+                        span.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
+                    }
+                }
+            });
+        })(stockInputs[i]);
+    }
+
+    document.getElementById('stockLoading').style.display = 'none';
+    document.getElementById('stockContent').style.display = 'block';
+}
 
     document.getElementById('saveAllStockBtn').addEventListener('click', async function() {
         var saveBtn = this;
