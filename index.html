@@ -1211,7 +1211,7 @@ async function adminPrintInvoice(orderId) {
 
             stockChanges.clear();
             readyStockChanges.clear();
-            preorderChanges.clear();
+         
 
             for (let p = 0; p < productsData.length; p++) {
                 var product = productsData[p];
@@ -1226,7 +1226,9 @@ async function adminPrintInvoice(orderId) {
 
                         stockChanges.set(key, currentStock);
                         readyStockChanges.set(key, currentReady);
-                        preorderChanges.set(key, currentAllowPreorder);
+                        if (!preorderChanges.has(key)) {
+    preorderChanges.set(key, currentAllowPreorder);
+}
 
                         if (!existing) {
                             await setDoc(doc(db, "inventory", key), {
