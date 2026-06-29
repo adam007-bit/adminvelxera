@@ -18,6 +18,7 @@
     <!-- jsPDF & html2canvas untuk PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { 
@@ -540,40 +541,66 @@
             </div>
         </div>
 
-        <!-- SECTION: PRODUCT REPORT -->
-        <div id="productReportSection" style="display:none;">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk</h5>
-                <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersFromProductReportBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
-            </div>
-            <div class="report-container">
-                <div class="mb-3">
-                    <button class="btn btn-sm btn-outline-primary me-1" id="productReportAll">Semua Masa</button>
-                    <button class="btn btn-sm btn-outline-primary me-1" id="productReportWeekly">Minggu Ini</button>
-                    <button class="btn btn-sm btn-outline-primary" id="productReportMonthly">Bulan Ini</button>
+     <!-- SECTION: PRODUCT REPORT -->
+<div id="productReportSection" style="display:none;">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk</h5>
+        <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersFromProductReportBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
+    </div>
+    <div class="report-container">
+        <div class="mb-3 d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-outline-primary" id="productReportAll">Semua Masa</button>
+            <button class="btn btn-sm btn-outline-primary" id="productReportWeekly">Minggu Ini</button>
+            <button class="btn btn-sm btn-outline-primary" id="productReportMonthly">Bulan Ini</button>
+        </div>
+
+        <!-- Statistik ringkasan -->
+        <div id="productReportStats" class="report-stats"></div>
+
+        <!-- Graf -->
+        <div class="row mt-4">
+            <div class="col-md-8">
+                <div class="card p-3">
+                    <h6 class="fw-bold"><i class="fa-solid fa-chart-bar text-success me-2"></i> Jualan Mengikut Produk (Top 10)</h6>
+                    <canvas id="productChart" height="250"></canvas>
                 </div>
-                <div id="productReportStats" class="report-stats"></div>
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>Produk</th>
-                                <th>Saiz</th>
-                                <th>Jenis</th>
-                                <th>Kuantiti Terjual</th>
-                                <th>Pendapatan (RM)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productReportBody">
-                            <tr><td colspan="5" class="text-center text-muted">Tiada data</td></tr>
-                        </tbody>
-                    </table>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-3">
+                    <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan</h6>
+                    <canvas id="statusChart" height="200"></canvas>
+                </div>
+                <div class="card p-3 mt-3">
+                    <h6 class="fw-bold"><i class="fa-solid fa-tag text-success me-2"></i> Pre‑order vs Ready Stock</h6>
+                    <canvas id="typeChart" height="200"></canvas>
                 </div>
             </div>
         </div>
 
-    </div><!-- end main-container -->
-</div><!-- end adminContent -->
+        <!-- Analisis tambahan -->
+        <div id="productReportAnalysis" class="row mt-3 text-center"></div>
+
+        <!-- Jadual terperinci -->
+        <div class="table-responsive mt-4">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Produk</th>
+                        <th>Saiz</th>
+                        <th>Jenis</th>
+                        <th>Kuantiti Pre‑order</th>
+                        <th>Kuantiti Ready Stock</th>
+                        <th>Jumlah Terjual</th>
+                        <th>Pendapatan (RM)</th>
+                    </tr>
+                </thead>
+                <tbody id="productReportBody">
+                    <tr><td colspan="7" class="text-center text-muted">Tiada data</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 <!-- Toast -->
 <div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
@@ -1665,67 +1692,211 @@ document.getElementById('saveAllStockBtn').addEventListener('click', async funct
         updateReport();
     });
 
-    // ==================== PRODUCT REPORT ====================
-    function generateProductReport(filter) {
-        filter = filter || 'all';
-        var now = new Date();
-        var startDate = null;
-        if (filter === 'weekly') {
-            var day = now.getDay();
-            var diff = now.getDate() - day + (day === 0 ? -6 : 1);
-            startDate = new Date(now);
-            startDate.setDate(diff);
-            startDate.setHours(0,0,0,0);
-        } else if (filter === 'monthly') {
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        }
-        var allOrders = ordersData.filter(function(o) { return o.status === 'completed' || o.status === 'pending'; });
-        var productMap = new Map();
-        for (var i = 0; i < allOrders.length; i++) {
-            var order = allOrders[i];
-            if (startDate) {
-                var orderDate = new Date(order.createdAt);
-                if (orderDate < startDate) continue;
+ // ==================== PRODUCT REPORT (PREMIUM) ====================
+let productChartInstance = null;
+let statusChartInstance = null;
+let typeChartInstance = null;
+
+function generateProductReport(filter) {
+    filter = filter || 'all';
+    var now = new Date();
+    var startDate = null;
+    if (filter === 'weekly') {
+        var day = now.getDay();
+        var diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        startDate = new Date(now);
+        startDate.setDate(diff);
+        startDate.setHours(0,0,0,0);
+    } else if (filter === 'monthly') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    // Ambil order completed sahaja (untuk laporan jualan)
+    var completedOrders = ordersData.filter(function(o) { return o.status === 'completed'; });
+    var filteredOrders = startDate ? completedOrders.filter(function(o) { return new Date(o.createdAt) >= startDate; }) : completedOrders;
+
+    var productMap = new Map();
+    var totalPreorderQty = 0, totalReadyQty = 0, totalRevenue = 0;
+    var statusCount = { completed: 0, pending: 0, cancelled: 0 };
+
+    filteredOrders.forEach(function(order) {
+        statusCount[order.status] = (statusCount[order.status] || 0) + 1;
+        var items = order.items || [];
+        items.forEach(function(item) {
+            var key = item.prodName + '_' + item.size + '_' + item.type;
+            if (!productMap.has(key)) {
+                productMap.set(key, {
+                    name: item.prodName,
+                    size: item.size,
+                    type: item.type,
+                    preorderQty: 0,
+                    readyQty: 0,
+                    totalQty: 0,
+                    revenue: 0
+                });
             }
-            var items = order.items || [];
-            for (var j = 0; j < items.length; j++) {
-                var item = items[j];
-                var key = item.prodName + '_' + item.size + '_' + item.type;
-                if (!productMap.has(key)) {
-                    productMap.set(key, { name: item.prodName, size: item.size, type: item.type, totalQty: 0, totalRevenue: 0 });
-                }
-                var data = productMap.get(key);
-                data.totalQty += item.qty;
-                data.totalRevenue += item.price * item.qty;
+            var data = productMap.get(key);
+            // Tentukan pre-order atau ready stock (logik ini boleh disesuaikan)
+            var isReady = item.type && (item.type.toLowerCase().includes('ready') || item.type.toLowerCase().includes('kit') || item.type.toLowerCase().includes('set'));
+            if (isReady) {
+                data.readyQty += item.qty;
+                totalReadyQty += item.qty;
+            } else {
+                data.preorderQty += item.qty;
+                totalPreorderQty += item.qty;
             }
-        }
-        var tbody = document.getElementById('productReportBody');
-        var statsDiv = document.getElementById('productReportStats');
-        var sorted = Array.from(productMap.values()).sort(function(a, b) { return b.totalQty - a.totalQty; });
-        if (sorted.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Tiada data</td></tr>';
-            statsDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan dalam tempoh ini</div>';
-            return;
-        }
-        var html = '';
-        var totalQty = 0, totalRevenue = 0;
-        for (var k = 0; k < sorted.length; k++) {
-            var p = sorted[k];
-            html += '<tr><td>' + escapeHtml(p.name) + '</td><td>' + escapeHtml(p.size) + '</td><td>' + escapeHtml(p.type) + '</td><td class="fw-bold">' + p.totalQty + '</td><td>RM ' + p.totalRevenue.toFixed(2) + '</td></tr>';
-            totalQty += p.totalQty;
-            totalRevenue += p.totalRevenue;
-        }
-        tbody.innerHTML = html;
-        statsDiv.innerHTML = `
-            <div class="report-card"><strong>Jumlah Produk</strong><span>${sorted.length}</span></div>
-            <div class="report-card"><strong>Total Unit Terjual</strong><span>${totalQty}</span></div>
-            <div class="report-card"><strong>Total Pendapatan</strong><span>RM ${totalRevenue.toFixed(2)}</span></div>
+            data.totalQty += item.qty;
+            data.revenue += item.price * item.qty;
+            totalRevenue += item.price * item.qty;
+        });
+    });
+
+    var sorted = Array.from(productMap.values()).sort(function(a, b) { return b.totalQty - a.totalQty; });
+
+    // ===== STATISTIK RINGKASAN =====
+    var statsDiv = document.getElementById('productReportStats');
+    statsDiv.innerHTML = `
+        <div class="report-card"><strong>Jumlah Produk Terjual</strong><span>${sorted.length}</span></div>
+        <div class="report-card"><strong>Total Unit</strong><span>${sorted.reduce(function(s, p) { return s + p.totalQty; }, 0)}</span></div>
+        <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
+        <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
+        <div class="report-card"><strong>Pendapatan (RM)</strong><span>RM ${totalRevenue.toFixed(2)}</span></div>
+    `;
+
+    // ===== ANALISIS TAMBAHAN =====
+    var analysisDiv = document.getElementById('productReportAnalysis');
+    if (analysisDiv) {
+        var totalUnits = sorted.reduce(function(s, p) { return s + p.totalQty; }, 0);
+        var avgPrice = totalUnits ? totalRevenue / totalUnits : 0;
+        var poPercent = (totalPreorderQty + totalReadyQty) ? ((totalPreorderQty / (totalPreorderQty + totalReadyQty)) * 100).toFixed(1) : 0;
+        var topProduct = sorted.length ? sorted[0].name : '-';
+        analysisDiv.innerHTML = `
+            <div class="col-6 col-md-3"><strong>Purata Harga/Unit:</strong> RM ${avgPrice.toFixed(2)}</div>
+            <div class="col-6 col-md-3"><strong>Nisbah Pre‑order:</strong> ${poPercent}%</div>
+            <div class="col-6 col-md-3"><strong>Top Produk:</strong> ${topProduct}</div>
+            <div class="col-6 col-md-3"><strong>Jumlah Order:</strong> ${filteredOrders.length}</div>
         `;
     }
 
-    document.getElementById('productReportAll').addEventListener('click', function() { generateProductReport('all'); });
-    document.getElementById('productReportWeekly').addEventListener('click', function() { generateProductReport('weekly'); });
-    document.getElementById('productReportMonthly').addEventListener('click', function() { generateProductReport('monthly'); });
+    // ===== JADUAL TERPERINCI =====
+    var tbody = document.getElementById('productReportBody');
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Tiada data</td></tr>';
+    } else {
+        var html = '';
+        sorted.forEach(function(p) {
+            html += '<tr>' +
+                '<td>' + escapeHtml(p.name) + '</td>' +
+                '<td>' + escapeHtml(p.size) + '</td>' +
+                '<td>' + escapeHtml(p.type) + '</td>' +
+                '<td>' + p.preorderQty + '</td>' +
+                '<td>' + p.readyQty + '</td>' +
+                '<td class="fw-bold">' + p.totalQty + '</td>' +
+                '<td>RM ' + p.revenue.toFixed(2) + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+    }
+
+    // ===== GRAF =====
+    renderProductCharts(sorted.slice(0, 10), statusCount, totalPreorderQty, totalReadyQty);
+}
+
+function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady) {
+    // --- Graf Bar (Top 10 produk) ---
+    var ctx1 = document.getElementById('productChart')?.getContext('2d');
+    if (ctx1) {
+        if (productChartInstance) productChartInstance.destroy();
+        productChartInstance = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: topProducts.map(function(p) { return p.name + ' (' + p.size + ')'; }),
+                datasets: [
+                    {
+                        label: 'Pre‑order',
+                        data: topProducts.map(function(p) { return p.preorderQty; }),
+                        backgroundColor: 'rgba(251, 191, 36, 0.7)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Ready Stock',
+                        data: topProducts.map(function(p) { return p.readyQty; }),
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderColor: '#10b981',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Kuantiti' } }
+                }
+            }
+        });
+    }
+
+    // --- Graf Status (Pie) ---
+    var ctx2 = document.getElementById('statusChart')?.getContext('2d');
+    if (ctx2) {
+        if (statusChartInstance) statusChartInstance.destroy();
+        var statusLabels = Object.keys(statusCount);
+        var statusData = Object.values(statusCount);
+        var colors = ['#10b981', '#f59e0b', '#ef4444'];
+        statusChartInstance = new Chart(ctx2, {
+            type: 'pie',
+            data: {
+                labels: statusLabels.map(function(s) { return s.charAt(0).toUpperCase() + s.slice(1); }),
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: colors.slice(0, statusLabels.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    // --- Graf Pre‑order vs Ready Stock (Pie) ---
+    var ctx3 = document.getElementById('typeChart')?.getContext('2d');
+    if (ctx3) {
+        if (typeChartInstance) typeChartInstance.destroy();
+        typeChartInstance = new Chart(ctx3, {
+            type: 'pie',
+            data: {
+                labels: ['Pre‑order', 'Ready Stock'],
+                datasets: [{
+                    data: [totalPreorder, totalReady],
+                    backgroundColor: ['rgba(251, 191, 36, 0.7)', 'rgba(16, 185, 129, 0.7)'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+}
+
+// ===== EVENT LISTENER UNTUK BUTANG FILTER =====
+document.getElementById('productReportAll').addEventListener('click', function() { generateProductReport('all'); });
+document.getElementById('productReportWeekly').addEventListener('click', function() { generateProductReport('weekly'); });
+document.getElementById('productReportMonthly').addEventListener('click', function() { generateProductReport('monthly'); });
 
     // ==================== SECTION TOGGLING ====================
     var ordersSection = document.getElementById('ordersSection');
