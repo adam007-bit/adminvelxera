@@ -1203,7 +1203,7 @@ async function adminPrintInvoice(orderId) {
         showToast('Gagal menjana PDF: ' + err.message, true);
     }
 }
-
+window.adminPrintInvoice = adminPrintInvoice;
     // ==================== STOCK MANAGEMENT ====================
     async function loadStockData() {
         try {
