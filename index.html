@@ -1079,7 +1079,8 @@ async function adminPrintInvoice(orderId) {
         return;
     }
 
-
+    // ===== MULAI TRY UNTUK PEMBINAAN PDF =====
+    try {
         // Semak data
         if (!order.items || order.items.length === 0) {
             showToast('Pesanan ini tiada item', true);
@@ -1192,7 +1193,6 @@ async function adminPrintInvoice(orderId) {
 
         pdf.save('Invoice_' + orderIdDisplay + '_Admin.pdf');
         showToast('📄 Invois admin dimuat turun');
-
     } catch (err) {
         console.error('PDF generation error:', err);
         showToast('Gagal menjana PDF: ' + err.message, true);
