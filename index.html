@@ -1156,7 +1156,7 @@ async function adminPrintInvoice(orderId) {
         await new Promise(resolve => setTimeout(resolve, 150));
 
         // Pastikan jsPDF wujud
-        const jsPDF = window.jspdf || window.jsPDF || window.jspdf?.jsPDF;
+       const jsPDF = window.jspdf?.jsPDF || window.jsPDF || window.jspdf;
         if (!jsPDF) {
             showToast('Library PDF tidak dimuat. Sila muat semula halaman.', true);
             document.body.removeChild(tempDiv);
