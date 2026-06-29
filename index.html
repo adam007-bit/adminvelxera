@@ -1056,12 +1056,25 @@ var additionalProducts = [
     }
 
     // ==================== PRINT INVOIS ADMIN ====================
-    async function adminPrintInvoice(orderId) {
+    // ==================== PRINT INVOIS ADMIN (DIPERBAIKI) ====================
+async function adminPrintInvoice(orderId) {
+    try {
         var order = ordersData.find(function(o) { return o.id === orderId; });
-        if (!order) { showToast('Pesanan tidak dijumpai', true); return; }
+        if (!order) {
+            showToast('Pesanan tidak dijumpai', true);
+            return;
+        }
+
+        // Semak data
+        if (!order.items || order.items.length === 0) {
+            showToast('Pesanan ini tiada item', true);
+            return;
+        }
 
         var previewDiv = document.getElementById('adminInvoicePreview');
         var contentDiv = document.getElementById('adminInvoiceContent');
+
+        // Sediakan data
         var customer = order.customer || {};
         var items = order.items || [];
         var totalAmount = order.totalAmount || 0;
@@ -1072,36 +1085,32 @@ var additionalProducts = [
         var orderIdDisplay = order.orderId || order.id;
         var createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : 'Tarikh tidak tersedia';
         var stickerValue = order.sticker || 'Yes';
-        var subtotal = 0;
-        for (var i = 0; i < items.length; i++) {
-            subtotal += items[i].price * items[i].qty;
-        }
+        var subtotal = items.reduce(function(sum, i) { return sum + (i.price * i.qty); }, 0);
 
-        var itemsHtml = '';
-        for (var i2 = 0; i2 < items.length; i2++) {
-            var item = items[i2];
-            itemsHtml += '<tr><td>' + escapeHtml(item.prodName) + ' (' + escapeHtml(item.size) + ' - ' + escapeHtml(item.type) + ')</td><td style="text-align:center;">' + item.qty + '</td><td style="text-align:right;">RM ' + item.price.toFixed(2) + '</td><td style="text-align:right;">RM ' + (item.price * item.qty).toFixed(2) + '</td></tr>';
-        }
+        // Bina HTML invois
+        var itemsHtml = items.map(function(i) {
+            return '<tr><td>' + escapeHtml(i.prodName) + ' (' + escapeHtml(i.size) + ' - ' + escapeHtml(i.type) + ')</td><td style="text-align:center;">' + i.qty + '</td><td style="text-align:right;">RM ' + i.price.toFixed(2) + '</td><td style="text-align:right;">RM ' + (i.price * i.qty).toFixed(2) + '</td></tr>';
+        }).join('');
 
         contentDiv.innerHTML = `
             <h3 style="text-align:center; font-size:20px; margin:0 0 4px 0;">INVOIS PESANAN</h3>
             <p style="text-align:center; font-size:13px; color:#475569;"><strong>ID Pesanan:</strong> ${escapeHtml(orderIdDisplay)} &nbsp;|&nbsp; <strong>Tarikh:</strong> ${escapeHtml(createdAt)}</p>
-            <div class="customer-detail">
+            <div style="margin-bottom:20px;">
                 <strong>Kepada:</strong><br>
                 ${escapeHtml(customer.name || '')}<br>
                 ${escapeHtml(customer.phone || '')}<br>
                 ${escapeHtml(customer.address_line1 || '')}, ${escapeHtml(customer.postcode || '')} ${escapeHtml(customer.state || '')}
             </div>
-            <table>
-                <thead><tr><th>Produk</th><th style="text-align:center;">Kuantiti</th><th style="text-align:right;">Harga Unit (RM)</th><th style="text-align:right;">Jumlah (RM)</th></tr></thead>
+            <table style="width:100%; border-collapse:collapse; margin:16px 0; font-size:13px;">
+                <thead><tr><th style="text-align:left; border-bottom:2px solid #10b981; padding:8px;">Produk</th><th style="text-align:center; border-bottom:2px solid #10b981; padding:8px;">Kuantiti</th><th style="text-align:right; border-bottom:2px solid #10b981; padding:8px;">Harga Unit (RM)</th><th style="text-align:right; border-bottom:2px solid #10b981; padding:8px;">Jumlah (RM)</th></tr></thead>
                 <tbody>${itemsHtml}</tbody>
                 <tfoot>
-                    <tr><td colspan="3" style="text-align:right; padding-top:10px;"><strong>Subtotal:</strong></td><td style="text-align:right;">RM ${subtotal.toFixed(2)}</td></tr>
+                    <tr><td colspan="3" style="text-align:right; padding-top:10px;"><strong>Subtotal:</strong></td><td style="text-align:right; padding-top:10px;">RM ${subtotal.toFixed(2)}</td></tr>
                     <tr><td colspan="3" style="text-align:right;"><strong>Penghantaran (${escapeHtml(shippingRegion)}):</strong></td><td style="text-align:right;">RM ${shippingCost.toFixed(2)}</td></tr>
-                    <tr class="total-row"><td colspan="3" style="text-align:right;"><strong>TOTAL:</strong></td><td style="text-align:right;"><strong>RM ${totalAmount.toFixed(2)}</strong></td></tr>
+                    <tr style="border-top:2px solid #10b981;"><td colspan="3" style="text-align:right; padding-top:10px;"><strong>TOTAL:</strong></td><td style="text-align:right; padding-top:10px;"><strong>RM ${totalAmount.toFixed(2)}</strong></td></tr>
                 </tfoot>
             </table>
-            <div class="info-grid">
+            <div style="display:flex; gap:30px; flex-wrap:wrap; margin:12px 0;">
                 <div><strong>Kaedah Bayaran:</strong> ${escapeHtml(paymentMethod)}</div>
                 ${bankName && bankName !== "Tiada" ? '<div><strong>Bank Pengirim:</strong> ' + escapeHtml(bankName) + '</div>' : ''}
                 <div><strong>Sticker on vials?</strong> ${escapeHtml(stickerValue)}</div>
@@ -1111,31 +1120,69 @@ var additionalProducts = [
             ${order.trackingNumber ? '<div><strong>Tracking:</strong> ' + escapeHtml(order.trackingNumber) + '</div>' : ''}
         `;
 
-        var jsPDF = window.jspdf;
-        try {
-            var canvas = await html2canvas(previewDiv, { scale: 3, backgroundColor: '#ffffff', useCORS: true, allowTaint: false });
-            var imgData = canvas.toDataURL('image/png');
-            var pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-            var imgWidth = 210;
-            var pageHeight = 297;
-            var imgHeight = (canvas.height * imgWidth) / canvas.width;
-            var heightLeft = imgHeight;
-            var position = 0;
+        // ===== PERBAIKAN 1: Pastikan jsPDF wujud =====
+        var jsPDF = window.jspdf || window.jsPDF || window.jspdf?.jsPDF;
+        if (!jsPDF) {
+            showToast('Library PDF tidak dimuat. Sila muat semula halaman.', true);
+            return;
+        }
+
+        // ===== PERBAIKAN 2: Jadikan preview kelihatan sementara =====
+        previewDiv.style.position = 'fixed';
+        previewDiv.style.left = '0';
+        previewDiv.style.top = '0';
+        previewDiv.style.zIndex = '-1';
+        previewDiv.style.opacity = '0';
+        previewDiv.style.width = '800px';
+        previewDiv.style.background = 'white';
+        previewDiv.style.overflow = 'visible';
+
+        // Tunggu sebentar untuk render
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // ===== PERBAIKAN 3: html2canvas dengan pilihan =====
+        var canvas = await html2canvas(previewDiv, {
+            scale: 2,
+            backgroundColor: '#ffffff',
+            useCORS: true,
+            allowTaint: false,
+            logging: false,
+            width: 800,
+            height: previewDiv.scrollHeight
+        });
+
+        // Kembalikan preview ke posisi tersembunyi
+        previewDiv.style.position = 'fixed';
+        previewDiv.style.left = '-9999px';
+        previewDiv.style.top = '-9999px';
+        previewDiv.style.zIndex = '-1';
+        previewDiv.style.opacity = '1';
+
+        var imgData = canvas.toDataURL('image/png');
+        var pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+        var imgWidth = 210;
+        var pageHeight = 297;
+        var imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        var heightLeft = imgHeight;
+        var position = 0;
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
             pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
             heightLeft -= pageHeight;
-            while (heightLeft > 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-            pdf.save('Invoice_' + orderIdDisplay + '_Admin.pdf');
-            showToast('📄 Invois admin dimuat turun');
-        } catch (err) {
-            console.error(err);
-            showToast('Gagal menjana PDF', true);
         }
+
+        pdf.save('Invoice_' + orderIdDisplay + '_Admin.pdf');
+        showToast('📄 Invois admin dimuat turun');
+
+    } catch (err) {
+        console.error('PDF generation error:', err);
+        showToast('Gagal menjana PDF: ' + err.message, true);
     }
+}
 
     // ==================== STOCK MANAGEMENT ====================
     async function loadStockData() {
