@@ -947,9 +947,19 @@ var additionalProducts = [
         filtered.forEach(function(order) {
             var items = order.items || [];
             var itemsHtml = '';
-            for (var i = 0; i < items.length; i++) {
-                var it = items[i];
-                itemsHtml += '<li><i class="fa-solid fa-rectangle-list text-success me-2"></i>' + escapeHtml(it.prodName) + ' (' + escapeHtml(it.size) + ' - ' + escapeHtml(it.type) + ') x' + it.qty + ' = RM' + (it.price*it.qty).toFixed(2) + '</li>';
+for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var itemIndex = i;
+    // Hanya tunjuk butang cancel jika order masih pending
+    var cancelBtn = (order.status === 'pending') 
+        ? `<button class="btn btn-sm btn-outline-danger cancel-item-btn ms-2" data-orderid="${order.id}" data-itemindex="${itemIndex}" style="font-size:0.6rem; padding:0.1rem 0.4rem;" title="Batal item ini & pulangkan stok">✖</button>`
+        : '';
+    itemsHtml += `<li>
+        <i class="fa-solid fa-rectangle-list text-success me-2"></i>
+        ${escapeHtml(it.prodName)} (${escapeHtml(it.size)} - ${escapeHtml(it.type)}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}
+        ${cancelBtn}
+    </li>`;
+}
             }
             var statusClass = order.status === 'pending' ? 'status-pending' : (order.status === 'completed' ? 'status-completed' : 'status-cancelled');
             var statusText = order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan');
@@ -1005,7 +1015,17 @@ var additionalProducts = [
             `;
         });
         container.innerHTML = html;
-
+// ===== EVENT LISTENER UNTUK BUTANG BATAL ITEM =====
+document.querySelectorAll('.cancel-item-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const orderId = this.dataset.orderid;
+        const itemIndex = parseInt(this.dataset.itemindex);
+        if (confirm('Batalkan item ini? Stok akan dipulangkan.')) {
+            cancelOrderItem(orderId, itemIndex);
+        }
+    });
+});
         // Event listeners
         var actionBtns = document.querySelectorAll('.btn-action:not(.btn-outline-print)');
 for (var i = 0; i < actionBtns.length; i++) {
@@ -1220,6 +1240,80 @@ async function adminPrintInvoice(orderId) {
     } catch (err) {
         console.error('PDF generation error:', err);
         showToast('Gagal menjana PDF: ' + err.message, true);
+    }
+}
+
+    // ===== FUNGSI BATALKAN ITEM TERTENTU DALAM ORDER =====
+async function cancelOrderItem(orderId, itemIndex) {
+    try {
+        // 1. Dapatkan order
+        const orderRef = doc(db, "orders", orderId);
+        const orderSnap = await getDoc(orderRef);
+        if (!orderSnap.exists()) {
+            showToast('Pesanan tidak dijumpai', true);
+            return;
+        }
+        const orderData = orderSnap.data();
+
+        // 2. Semak status
+        if (orderData.status !== 'pending') {
+            showToast('Hanya pesanan pending boleh diubah', true);
+            return;
+        }
+
+        // 3. Dapatkan item yang hendak dibatalkan
+        const items = orderData.items || [];
+        if (itemIndex < 0 || itemIndex >= items.length) {
+            showToast('Item tidak sah', true);
+            return;
+        }
+        const cancelledItem = items[itemIndex];
+
+        // 4. Gunakan transaction untuk kemas kini order dan stok
+        await runTransaction(db, async (transaction) => {
+            // Baca semula order dan inventory dalam transaction
+            const orderSnapTx = await transaction.get(orderRef);
+            if (!orderSnapTx.exists()) {
+                throw new Error('Pesanan tidak dijumpai dalam transaction');
+            }
+            const orderDataTx = orderSnapTx.data();
+            const itemsTx = orderDataTx.items || [];
+            if (itemIndex >= itemsTx.length) {
+                throw new Error('Item sudah tidak wujud');
+            }
+            const removedItem = itemsTx[itemIndex];
+
+            // --- Pulangkan stok ---
+            const varKey = removedItem.variationKey || getVariationKey(removedItem.prodName, removedItem.size, removedItem.type);
+            const invRef = doc(db, "inventory", varKey);
+            const invSnap = await transaction.get(invRef);
+            const currentStock = invSnap.exists() ? invSnap.data().stock : 0;
+            transaction.set(invRef, {
+                stock: currentStock + removedItem.qty
+            }, { merge: true });
+
+            // --- Padam item dari array ---
+            const newItems = [...itemsTx];
+            newItems.splice(itemIndex, 1);
+
+            // Kira semula total
+            const newTotal = newItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+            // Update order
+            transaction.update(orderRef, {
+                items: newItems,
+                totalAmount: newTotal,
+                updatedAt: new Date().toISOString()
+            });
+        });
+
+        showToast(`✅ Item dibatalkan. Stok dipulangkan.`);
+        // Refresh order list
+        renderOrders(); // atau loadOrdersRealtime() akan automatik refresh
+
+    } catch (err) {
+        console.error('Error cancel item:', err);
+        showToast('Gagal batalkan item: ' + err.message, true);
     }
 }
 window.adminPrintInvoice = adminPrintInvoice;
