@@ -1060,10 +1060,15 @@ var additionalProducts = [
 async function adminPrintInvoice(orderId) {
     try {
         var order = ordersData.find(function(o) { return o.id === orderId; });
-        if (!order) {
-            showToast('Pesanan tidak dijumpai', true);
-            return;
-        }
+if (!order) {
+    order = ordersData.find(function(o) { return o.orderId === orderId; });
+}
+if (!order) {
+    console.log('ID dicari:', orderId);
+    console.log('Senarai pesanan:', ordersData);
+    showToast('Pesanan tidak dijumpai (ID: ' + orderId + ')', true);
+    return;
+}
 
         // Semak data
         if (!order.items || order.items.length === 0) {
