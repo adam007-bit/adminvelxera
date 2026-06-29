@@ -998,7 +998,7 @@ var additionalProducts = [
                             ${order.status !== 'completed' && order.status !== 'cancelled' ? '<button class="btn-action btn-outline-complete" data-id="' + order.id + '" data-status="complete_action">✔ Selesai</button>' : ''}
                             ${order.status !== 'cancelled' ? '<button class="btn-action btn-outline-cancel" data-id="' + order.id + '" data-status="cancelled">✖ Batal</button>' : ''}
                             ${order.status !== 'pending' ? '<button class="btn-action btn-outline-pending" data-id="' + order.id + '" data-status="pending">↩ Pending</button>' : ''}
-                            <button class="btn-action btn-outline-print" data-id="' + order.id + '">🖨️ Print Invois</button>
+                            <button class="btn-action btn-outline-print" onclick="adminPrintInvoice('${order.id}')">🖨️ Print Invois</button>
                         </div>
                     </div>
                 </div>
@@ -1028,15 +1028,7 @@ var additionalProducts = [
             })(actionBtns[i]);
         }
 
-        var printBtns = document.querySelectorAll('.btn-outline-print');
-        for (var j = 0; j < printBtns.length; j++) {
-            (function(btn) {
-                btn.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    adminPrintInvoice(this.dataset.id);
-                });
-            })(printBtns[j]);
-        }
+        
     }
 
     // Filter pills
@@ -1058,17 +1050,35 @@ var additionalProducts = [
     // ==================== PRINT INVOIS ADMIN ====================
     // ==================== PRINT INVOIS ADMIN (DIPERBAIKI) ====================
 async function adminPrintInvoice(orderId) {
-    try {
-        var order = ordersData.find(function(o) { return o.id === orderId; });
-if (!order) {
-    order = ordersData.find(function(o) { return o.orderId === orderId; });
-}
-if (!order) {
-    console.log('ID dicari:', orderId);
-    console.log('Senarai pesanan:', ordersData);
-    showToast('Pesanan tidak dijumpai (ID: ' + orderId + ')', true);
-    return;
-}
+    console.log('🖨️ Print clicked with ID:', orderId);
+    console.log('📋 All orders:', ordersData.map(o => ({ id: o.id, orderId: o.orderId })));
+
+    // 1. Cari dalam cache (ordersData)
+    let order = ordersData.find(o => String(o.id) === String(orderId) || String(o.orderId) === String(orderId));
+
+    // 2. Jika tidak jumpa, ambil terus dari Firestore
+    if (!order) {
+        console.warn('⚠️ Order not found in cache, fetching from Firestore...');
+        try {
+            const docSnap = await getDoc(doc(db, "orders", orderId));
+            if (docSnap.exists()) {
+                order = { id: docSnap.id, ...docSnap.data() };
+                // Tambah ke cache untuk kegunaan akan datang
+                ordersData.push(order);
+                console.log('✅ Order fetched from Firestore:', order);
+            } else {
+                console.warn('❌ Order not found in Firestore either.');
+            }
+        } catch (err) {
+            console.error('Error fetching order from Firestore:', err);
+        }
+    }
+
+    if (!order) {
+        showToast('Pesanan tidak dijumpai (ID: ' + orderId + ')', true);
+        return;
+    }
+
 
         // Semak data
         if (!order.items || order.items.length === 0) {
