@@ -936,140 +936,142 @@ var additionalProducts = [
         pendingOrderForComplete = null;
     };
 
-    function renderOrders() {
-        var filtered = currentFilter === 'all' ? ordersData : ordersData.filter(function(o) { return o.status === currentFilter; });
-        var container = document.getElementById('ordersList');
-        if (filtered.length === 0) {
-            container.innerHTML = '<div class="text-center py-4 text-muted">Tiada pesanan</div>';
-            return;
+  function renderOrders() {
+    var filtered = currentFilter === 'all' ? ordersData : ordersData.filter(function(o) { return o.status === currentFilter; });
+    var container = document.getElementById('ordersList');
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-muted">Tiada pesanan</div>';
+        return;
+    }
+    var html = '';
+    filtered.forEach(function(order) {
+        var items = order.items || [];
+        var itemsHtml = '';
+        for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var itemIndex = i;
+            var cancelBtn = (order.status === 'pending') 
+                ? `<button class="btn btn-sm btn-outline-danger cancel-item-btn ms-2" data-orderid="${order.id}" data-itemindex="${itemIndex}" style="font-size:0.6rem; padding:0.1rem 0.4rem;" title="Batal item ini & pulangkan stok">✖</button>`
+                : '';
+            itemsHtml += `<li>
+                <i class="fa-solid fa-rectangle-list text-success me-2"></i>
+                ${escapeHtml(it.prodName)} (${escapeHtml(it.size)} - ${escapeHtml(it.type)}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}
+                ${cancelBtn}
+            </li>`;
         }
-        var html = '';
-        filtered.forEach(function(order) {
-            var items = order.items || [];
-            var itemsHtml = '';
-for (var i = 0; i < items.length; i++) {
-    var it = items[i];
-    var itemIndex = i;
-    // Hanya tunjuk butang cancel jika order masih pending
-    var cancelBtn = (order.status === 'pending') 
-        ? `<button class="btn btn-sm btn-outline-danger cancel-item-btn ms-2" data-orderid="${order.id}" data-itemindex="${itemIndex}" style="font-size:0.6rem; padding:0.1rem 0.4rem;" title="Batal item ini & pulangkan stok">✖</button>`
-        : '';
-    itemsHtml += `<li>
-        <i class="fa-solid fa-rectangle-list text-success me-2"></i>
-        ${escapeHtml(it.prodName)} (${escapeHtml(it.size)} - ${escapeHtml(it.type)}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}
-        ${cancelBtn}
-    </li>`;
-}
-            }
-            var statusClass = order.status === 'pending' ? 'status-pending' : (order.status === 'completed' ? 'status-completed' : 'status-cancelled');
-            var statusText = order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan');
-            var trackingHtml = order.trackingNumber ? '<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">' + escapeHtml(order.trackingNumber) + '</span></div>' : '';
+        var statusClass = order.status === 'pending' ? 'status-pending' : (order.status === 'completed' ? 'status-completed' : 'status-cancelled');
+        var statusText = order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan');
+        var trackingHtml = order.trackingNumber ? '<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">' + escapeHtml(order.trackingNumber) + '</span></div>' : '';
 
-            var createdAt = new Date(order.createdAt).toISOString();
-            var updatedAt = order.updatedAt ? new Date(order.updatedAt).toISOString() : null;
-            var updatedBadge = '';
-            if (updatedAt && updatedAt !== createdAt) {
-                updatedBadge = '<span class="updated-badge"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini</span>';
-            }
+        var createdAt = new Date(order.createdAt).toISOString();
+        var updatedAt = order.updatedAt ? new Date(order.updatedAt).toISOString() : null;
+        var updatedBadge = '';
+        if (updatedAt && updatedAt !== createdAt) {
+            updatedBadge = '<span class="updated-badge"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini</span>';
+        }
 
-            html += `
-                <div class="order-card">
-                    <div class="order-header">
-                        <span class="order-id"><i class="fa-regular fa-receipt"></i> ${escapeHtml(order.orderId || order.id)} ${updatedBadge}</span>
-                        <span class="status-badge-premium ${statusClass}">${statusText}</span>
+        html += `
+            <div class="order-card">
+                <div class="order-header">
+                    <span class="order-id"><i class="fa-regular fa-receipt"></i> ${escapeHtml(order.orderId || order.id)} ${updatedBadge}</span>
+                    <span class="status-badge-premium ${statusClass}">${statusText}</span>
+                </div>
+                <div class="order-body">
+                    <div class="customer-detail">
+                        <span><i class="fa-regular fa-user"></i> ${escapeHtml(order.customer ? order.customer.name : '')}</span>
+                        <span><i class="fa-brands fa-whatsapp"></i> ${escapeHtml(order.customer ? order.customer.phone : '')}</span>
+                        <span><i class="fa-regular fa-location-dot"></i> ${escapeHtml(order.customer ? order.customer.address_line1 : '')}, ${escapeHtml(order.customer ? order.customer.postcode : '')} ${escapeHtml(order.customer ? order.customer.state : '')}</span>
                     </div>
-                    <div class="order-body">
-                        <div class="customer-detail">
-                            <span><i class="fa-regular fa-user"></i> ${escapeHtml(order.customer ? order.customer.name : '')}</span>
-                            <span><i class="fa-brands fa-whatsapp"></i> ${escapeHtml(order.customer ? order.customer.phone : '')}</span>
-                            <span><i class="fa-regular fa-location-dot"></i> ${escapeHtml(order.customer ? order.customer.address_line1 : '')}, ${escapeHtml(order.customer ? order.customer.postcode : '')} ${escapeHtml(order.customer ? order.customer.state : '')}</span>
-                        </div>
-                        <div class="items-list"><ul class="small mb-0">${itemsHtml}</ul></div>
-                        <div class="d-flex justify-content-between flex-wrap">
-                            <div><small class="text-muted">Bank: ${escapeHtml(order.bankName || 'Tiada')} | ${escapeHtml(order.paymentMethod)}</small></div>
-                            <div class="total-amount fw-bold">RM ${order.totalAmount ? order.totalAmount.toFixed(2) : '0.00'}</div>
-                        </div>
-                        <div class="mt-2">
-                            ${order.receiptUrl ? (function() {
-                                var url = order.receiptUrl;
-                                var isPdf = url.toLowerCase().endsWith('.pdf');
-                                var isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url);
-                                if (isPdf) {
-                                    return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file-pdf text-danger me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Resit Bayaran (PDF)</a></div>';
-                                } else if (isImage) {
-                                    return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-image text-success me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📸 Resit Bayaran</a><br><img src="' + url + '" style="max-width:60px; border-radius:8px;" onerror="this.style.display=\'none\'"></div>';
-                                } else {
-                                    return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Lihat Resit</a></div>';
-                                }
-                            })() : '<span class="text-muted small"><i class="fa-regular fa-receipt"></i> Tiada resit bayaran</span>'}
-                        </div>
-                        ${trackingHtml}
-                        <div class="order-footer">
-                            ${order.status !== 'completed' && order.status !== 'cancelled' ? '<button class="btn-action btn-outline-complete" data-id="' + order.id + '" data-status="complete_action">✔ Selesai</button>' : ''}
-                            ${order.status !== 'cancelled' ? '<button class="btn-action btn-outline-cancel" data-id="' + order.id + '" data-status="cancelled">✖ Batal</button>' : ''}
-                            ${order.status !== 'pending' ? '<button class="btn-action btn-outline-pending" data-id="' + order.id + '" data-status="pending">↩ Pending</button>' : ''}
-                            <button class="btn-action btn-outline-print" onclick="adminPrintInvoice('${order.id}')">🖨️ Print Invois</button>
-                        </div>
+                    <div class="items-list"><ul class="small mb-0">${itemsHtml}</ul></div>
+                    <div class="d-flex justify-content-between flex-wrap">
+                        <div><small class="text-muted">Bank: ${escapeHtml(order.bankName || 'Tiada')} | ${escapeHtml(order.paymentMethod)}</small></div>
+                        <div class="total-amount fw-bold">RM ${order.totalAmount ? order.totalAmount.toFixed(2) : '0.00'}</div>
+                    </div>
+                    <div class="mt-2">
+                        ${order.receiptUrl ? (function() {
+                            var url = order.receiptUrl;
+                            var isPdf = url.toLowerCase().endsWith('.pdf');
+                            var isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url);
+                            if (isPdf) {
+                                return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file-pdf text-danger me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Resit Bayaran (PDF)</a></div>';
+                            } else if (isImage) {
+                                return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-image text-success me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📸 Resit Bayaran</a><br><img src="' + url + '" style="max-width:60px; border-radius:8px;" onerror="this.style.display=\'none\'"></div>';
+                            } else {
+                                return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Lihat Resit</a></div>';
+                            }
+                        })() : '<span class="text-muted small"><i class="fa-regular fa-receipt"></i> Tiada resit bayaran</span>'}
+                    </div>
+                    ${trackingHtml}
+                    <div class="order-footer">
+                        ${order.status !== 'completed' && order.status !== 'cancelled' ? '<button class="btn-action btn-outline-complete" data-id="' + order.id + '" data-status="complete_action">✔ Selesai</button>' : ''}
+                        ${order.status !== 'cancelled' ? '<button class="btn-action btn-outline-cancel" data-id="' + order.id + '" data-status="cancelled">✖ Batal</button>' : ''}
+                        ${order.status !== 'pending' ? '<button class="btn-action btn-outline-pending" data-id="' + order.id + '" data-status="pending">↩ Pending</button>' : ''}
+                        <button class="btn-action btn-outline-print" onclick="adminPrintInvoice('${order.id}')">🖨️ Print Invois</button>
                     </div>
                 </div>
-            `;
-        });
-        container.innerHTML = html;
-// ===== EVENT LISTENER UNTUK BUTANG BATAL ITEM =====
-document.querySelectorAll('.cancel-item-btn').forEach(function(btn) {
-    btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const orderId = this.dataset.orderid;
-        const itemIndex = parseInt(this.dataset.itemindex);
-        if (confirm('Batalkan item ini? Stok akan dipulangkan.')) {
-            cancelOrderItem(orderId, itemIndex);
-        }
+            </div>
+        `;
     });
-});
-        // Event listeners
-        var actionBtns = document.querySelectorAll('.btn-action:not(.btn-outline-print)');
-for (var i = 0; i < actionBtns.length; i++) {
-    (function(btn) {
-        btn.addEventListener('click', async function(e) {
-            e.stopPropagation();
-            var id = this.dataset.id;
-            var status = this.dataset.status;
-            if (status === 'complete_action') {
-                var order = ordersData.find(function(o) { return o.id === id; });
-                if (order) { pendingOrderForComplete = { id: id, data: order }; modal.classList.add('show'); }
-                else showToast('Data tidak ditemui', true);
-            } else {
-                try {
-                    // ===== PULANGKAN STOK JIKA BATAL =====
-                    if (status === 'cancelled') {
-                        const orderRef = doc(db, "orders", id);
-                        const orderSnap = await getDoc(orderRef);
-                        if (orderSnap.exists()) {
-                            const orderData = orderSnap.data();
-                            const items = orderData.items || [];
-                            for (const item of items) {
-                                const varKey = item.variationKey || getVariationKey(item.prodName, item.size, item.type);
-                                const invRef = doc(db, "inventory", varKey);
-                                const invSnap = await getDoc(invRef);
-                                const currentStock = invSnap.exists() ? invSnap.data().stock : 0;
-                                await setDoc(invRef, {
-                                    stock: currentStock + item.qty
-                                }, { merge: true });
-                            }
-                        }
-                    }
+    container.innerHTML = html;
 
-                    await updateDoc(doc(db, "orders", id), { status: status });
-                    showToast('Status -> ' + status.toUpperCase());
-                } catch(err) { showToast(err.message, true); }
+    // Event listener untuk butang batal item
+    document.querySelectorAll('.cancel-item-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            var orderId = this.dataset.orderid;
+            var itemIndex = parseInt(this.dataset.itemindex);
+            if (confirm('Batalkan item ini? Stok akan dipulangkan.')) {
+                cancelOrderItem(orderId, itemIndex);
             }
         });
-    })(actionBtns[i]);
-}
+    });
 
-        
+    // Event listener untuk butang action (Selesai, Batal, Pending)
+    var actionBtns = document.querySelectorAll('.btn-action:not(.btn-outline-print)');
+    for (var i = 0; i < actionBtns.length; i++) {
+        (function(btn) {
+            btn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                var id = this.dataset.id;
+                var status = this.dataset.status;
+                if (status === 'complete_action') {
+                    var order = ordersData.find(function(o) { return o.id === id; });
+                    if (order) {
+                        pendingOrderForComplete = { id: id, data: order };
+                        modal.classList.add('show');
+                    } else {
+                        showToast('Data tidak ditemui', true);
+                    }
+                } else {
+                    try {
+                        if (status === 'cancelled') {
+                            var orderRef = doc(db, "orders", id);
+                            var orderSnap = await getDoc(orderRef);
+                            if (orderSnap.exists()) {
+                                var orderData = orderSnap.data();
+                                var items = orderData.items || [];
+                                for (var j = 0; j < items.length; j++) {
+                                    var item = items[j];
+                                    var varKey = item.variationKey || getVariationKey(item.prodName, item.size, item.type);
+                                    var invRef = doc(db, "inventory", varKey);
+                                    var invSnap = await getDoc(invRef);
+                                    var currentStock = invSnap.exists() ? invSnap.data().stock : 0;
+                                    await setDoc(invRef, {
+                                        stock: currentStock + item.qty
+                                    }, { merge: true });
+                                }
+                            }
+                        }
+                        await updateDoc(doc(db, "orders", id), { status: status });
+                        showToast('Status -> ' + status.toUpperCase());
+                    } catch (err) {
+                        showToast(err.message, true);
+                    }
+                }
+            });
+        })(actionBtns[i]);
     }
-
+}
     // Filter pills
     var filterPills = document.querySelectorAll('.filter-pill');
     for (var k = 0; k < filterPills.length; k++) {
