@@ -1904,6 +1904,28 @@ function generateProductReport(filter) {
         statusCount[order.status] = (statusCount[order.status] || 0) + 1;
         var items = order.items || [];
         items.forEach(function(item) {
+            // ===== 1. DAPATKAN VARIATION KEY DARI ITEM =====
+            var varKey = item.variationKey;
+            if (!varKey) {
+                // Jika tiada variationKey, bina sendiri
+                varKey = getVariationKey(item.prodName, item.size, item.type);
+            }
+
+            // ===== 2. DAPATKAN DATA INVENTORY MENGGUNAKAN KEY =====
+            var inv = inventoryData.get(varKey);
+            var readyStock = inv ? inv.readyStock : 0;
+
+            // ===== 3. TENTUKAN SAMA ADA READY STOCK ATAU PRE-ORDER =====
+            var isReady = (readyStock > 0);
+            // Jika tiada inventory, fallback ke perkataan
+            if (!inv) {
+                var typeLower = (item.type || '').toLowerCase();
+                if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
+                    isReady = true;
+                }
+            }
+
+            // ===== 4. KUMPULKAN DATA UNTUK LAPORAN =====
             var key = item.prodName + '_' + item.size + '_' + item.type;
             if (!productMap.has(key)) {
                 productMap.set(key, {
@@ -1917,15 +1939,6 @@ function generateProductReport(filter) {
                 });
             }
             var data = productMap.get(key);
-            
-            var readyStock = getReadyStockFromInventory(item.prodName, item.size, item.type);
-            var isReady = (readyStock > 0);
-            if (readyStock === 0 && typeof readyStock === 'undefined') {
-                var typeLower = (item.type || '').toLowerCase();
-                if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
-                    isReady = true;
-                }
-            }
 
             if (isReady) {
                 data.readyQty += item.qty;
@@ -1955,21 +1968,6 @@ function generateProductReport(filter) {
         <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
         <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
         <div class="report-card"><strong>Pendapatan (RM)</strong><span>RM ${totalRevenue.toFixed(2)}</span></div>
-    `;
-
-    // ===== SEMAKAN TALLY (guna filteredOrders yang sama) =====
-    var totalOrderRevenue = filteredOrders.reduce(function(sum, o) {
-        return sum + (o.totalAmount || 0);
-    }, 0);
-    var diff = Math.abs(totalOrderRevenue - totalRevenue);
-    var tallyStatus = (diff < 0.01) ? '✅ Selaras' : '❌ Tidak Selaras (beza RM ' + diff.toFixed(2) + ')';
-    statsDiv.innerHTML += `
-        <div class="report-card" style="background:#f0fdf4; border-color:#10b981;">
-            <strong>Semakan Tally</strong>
-            <span>Pesanan: RM ${totalOrderRevenue.toFixed(2)}</span>
-            <span>Laporan: RM ${totalRevenue.toFixed(2)}</span>
-            <span class="fw-bold">${tallyStatus}</span>
-        </div>
     `;
 
     // ===== ANALISIS TAMBAHAN =====
