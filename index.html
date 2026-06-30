@@ -1729,7 +1729,7 @@ function generateProductReport(filter) {
         var diff = now.getDate() - day + (day === 0 ? -6 : 1);
         startDate = new Date(now);
         startDate.setDate(diff);
-        startDate.setHours(0,0,0,0);
+        startDate.setHours(0, 0, 0, 0);
     } else if (filter === 'monthly') {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
@@ -1767,13 +1767,11 @@ function generateProductReport(filter) {
             var data = productMap.get(key);
             
             // ===== LOGIK PRE-ORDER VS READY STOCK =====
-            // Anda boleh ubah syarat di bawah mengikut data anda
             var isReady = false;
             var typeLower = (item.type || '').toLowerCase();
             if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
                 isReady = true;
             }
-            // Jika tiada perkataan di atas, anggap sebagai pre-order
             if (isReady) {
                 data.readyQty += item.qty;
                 totalReadyQty += item.qty;
@@ -1793,55 +1791,6 @@ function generateProductReport(filter) {
 
     console.log('📊 Total products:', sorted.length);
     console.log('📊 Total preorder:', totalPreorderQty, 'ready:', totalReadyQty, 'revenue:', totalRevenue);
-
-    // ===== STATISTIK =====
-    var statsDiv = document.getElementById('productReportStats');
-    statsDiv.innerHTML = `
-        <div class="report-card"><strong>Jumlah Produk Terjual</strong><span>${sorted.length}</span></div>
-        <div class="report-card"><strong>Total Unit</strong><span>${sorted.reduce(function(s, p) { return s + p.totalQty; }, 0)}</span></div>
-        <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
-        <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
-        <div class="report-card"><strong>Pendapatan (RM)</strong><span>RM ${totalRevenue.toFixed(2)}</span></div>
-    `;
-
-    // ===== ANALISIS =====
-    var analysisDiv = document.getElementById('productReportAnalysis');
-    if (analysisDiv) {
-        var totalUnits = sorted.reduce(function(s, p) { return s + p.totalQty; }, 0);
-        var avgPrice = totalUnits ? totalRevenue / totalUnits : 0;
-        var poPercent = (totalPreorderQty + totalReadyQty) ? ((totalPreorderQty / (totalPreorderQty + totalReadyQty)) * 100).toFixed(1) : 0;
-        var topProduct = sorted.length ? sorted[0].name : '-';
-        analysisDiv.innerHTML = `
-            <div class="col-6 col-md-3"><strong>Purata Harga/Unit:</strong> RM ${avgPrice.toFixed(2)}</div>
-            <div class="col-6 col-md-3"><strong>Nisbah Pre‑order:</strong> ${poPercent}%</div>
-            <div class="col-6 col-md-3"><strong>Top Produk:</strong> ${topProduct}</div>
-            <div class="col-6 col-md-3"><strong>Jumlah Order:</strong> ${filteredOrders.length}</div>
-        `;
-    }
-
-    // ===== JADUAL =====
-    var tbody = document.getElementById('productReportBody');
-    if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Tiada data</td></tr>';
-    } else {
-        var html = '';
-        sorted.forEach(function(p) {
-            html += '<tr>' +
-                '<td>' + escapeHtml(p.name) + '</td>' +
-                '<td>' + escapeHtml(p.size) + '</td>' +
-                '<td>' + escapeHtml(p.type) + '</td>' +
-                '<td>' + p.preorderQty + '</td>' +
-                '<td>' + p.readyQty + '</td>' +
-                '<td class="fw-bold">' + p.totalQty + '</td>' +
-                '<td>RM ' + p.revenue.toFixed(2) + '</td>' +
-            '</tr>';
-        });
-        tbody.innerHTML = html;
-    }
-
-    // ===== GRAF =====
-    renderProductCharts(sorted.slice(0, 10), statusCount, totalPreorderQty, totalReadyQty);
-}
 
     // ===== STATISTIK RINGKASAN =====
     var statsDiv = document.getElementById('productReportStats');
@@ -1900,7 +1849,6 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
             productChartInstance.destroy();
             productChartInstance = null;
         }
-        // Jika tiada produk, tunjuk mesej kosong
         if (topProducts.length === 0) {
             productChartInstance = new Chart(ctx1, {
                 type: 'bar',
@@ -1953,7 +1901,6 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
         }
         var statusLabels = Object.keys(statusCount);
         var statusData = Object.values(statusCount);
-        // Jika tiada data, tunjuk kosong
         if (statusData.every(function(v) { return v === 0; })) {
             statusChartInstance = new Chart(ctx2, {
                 type: 'pie',
