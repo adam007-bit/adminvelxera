@@ -1886,7 +1886,7 @@ function generateProductReport(filter) {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // Ambil SEMUA order (pending & completed) untuk laporan
+    // ===== AMBIL SEMUA ORDER (COMPLETED + PENDING) =====
     var allOrders = ordersData.filter(function(o) {
         return o.status === 'completed' || o.status === 'pending';
     });
@@ -1918,11 +1918,8 @@ function generateProductReport(filter) {
             }
             var data = productMap.get(key);
             
-            // ===== LOGIK PRE-ORDER VS READY STOCK (UTAMAKAN STOK) =====
             var readyStock = getReadyStockFromInventory(item.prodName, item.size, item.type);
-            var isReady = (readyStock > 0); // jika readyStock > 0, anggap ready stock
-
-            // Jika tiada data stok, gunakan logik perkataan (fallback)
+            var isReady = (readyStock > 0);
             if (readyStock === 0 && typeof readyStock === 'undefined') {
                 var typeLower = (item.type || '').toLowerCase();
                 if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
@@ -1958,6 +1955,21 @@ function generateProductReport(filter) {
         <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
         <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
         <div class="report-card"><strong>Pendapatan (RM)</strong><span>RM ${totalRevenue.toFixed(2)}</span></div>
+    `;
+
+    // ===== SEMAKAN TALLY (guna filteredOrders yang sama) =====
+    var totalOrderRevenue = filteredOrders.reduce(function(sum, o) {
+        return sum + (o.totalAmount || 0);
+    }, 0);
+    var diff = Math.abs(totalOrderRevenue - totalRevenue);
+    var tallyStatus = (diff < 0.01) ? '✅ Selaras' : '❌ Tidak Selaras (beza RM ' + diff.toFixed(2) + ')';
+    statsDiv.innerHTML += `
+        <div class="report-card" style="background:#f0fdf4; border-color:#10b981;">
+            <strong>Semakan Tally</strong>
+            <span>Pesanan: RM ${totalOrderRevenue.toFixed(2)}</span>
+            <span>Laporan: RM ${totalRevenue.toFixed(2)}</span>
+            <span class="fw-bold">${tallyStatus}</span>
+        </div>
     `;
 
     // ===== ANALISIS TAMBAHAN =====
