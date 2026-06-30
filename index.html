@@ -456,6 +456,7 @@
             <button class="section-toggle" id="toggleReportBtn"><i class="fa-solid fa-chart-line"></i> Laporan</button>
             <button class="section-toggle" id="toggleProductReportBtn"><i class="fa-solid fa-box"></i> Laporan Produk</button>
             <button class="btn-logout" id="logoutBtn"><i class="fa-regular fa-circle-left me-1"></i> Keluar</button>
+            <button class="section-toggle" id="toggleProductManagementBtn"><i class="fa-solid fa-plus-circle"></i> Urus Produk</button>
         </div>
     </nav>
 
@@ -605,15 +606,109 @@
         </div>
     </div>
 </div>
-
+<!-- SECTION: PRODUCT MANAGEMENT -->
+<div id="productManagementSection" style="display:none;">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h5 class="fw-bold"><i class="fa-solid fa-plus-circle text-success me-2"></i> Urus Produk & Ready Stock</h5>
+        <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersFromProductMgmtBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
+    </div>
+    <div class="report-container">
+        <!-- Tabs dalam section produk -->
+        <ul class="nav nav-tabs mb-3" id="productMgmtTabs">
+            <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabAddProduct">Tambah Produk</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabListProducts">Senarai Produk</a></li>
+            <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabReadyStock">Urus Ready Stock</a></li>
+        </ul>
+        <div class="tab-content">
+            <!-- Tab 1: Tambah Produk -->
+            <div class="tab-pane fade show active" id="tabAddProduct">
+                <form id="addProductForm" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Nama Produk</label>
+                        <input type="text" id="newProductName" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Kategori</label>
+                        <select id="newProductCategory" class="form-select">
+                            <option value="peptides">Peptides</option>
+                            <option value="beauty">Beauty Peptides</option>
+                            <option value="solvent">Solvent</option>
+                            <option value="oral">Oral Peptides</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small">Penerangan</label>
+                        <textarea id="newProductDescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small">Variasi (Saiz, Jenis, Harga)</label>
+                        <div id="variationsContainer">
+                            <div class="row g-2 mb-2 variation-row">
+                                <div class="col-4"><input type="text" class="form-control form-control-sm var-size" placeholder="Saiz (cth: 10mg)"></div>
+                                <div class="col-4"><input type="text" class="form-control form-control-sm var-type" placeholder="Jenis (cth: Vial)"></div>
+                                <div class="col-3"><input type="number" class="form-control form-control-sm var-price" placeholder="Harga (RM)" step="0.01"></div>
+                                <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-variation-btn" style="display:none;"><i class="fa-regular fa-trash-can"></i></button></div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addVariationBtn"><i class="fa-solid fa-plus"></i> Tambah Variasi</button>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small">Stok Awal</label>
+                        <input type="number" id="newProductStock" class="form-control" value="100" min="0">
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success w-100" id="submitProductBtn"><i class="fa-solid fa-save"></i> Simpan Produk</button>
+                    </div>
+                </form>
+            </div>
+            <!-- Tab 2: Senarai Produk -->
+            <div class="tab-pane fade" id="tabListProducts">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead><tr><th>Nama</th><th>Kategori</th><th>Variasi</th><th>Tindakan</th></tr></thead>
+                        <tbody id="existingProductsBody"><tr><td colspan="4" class="text-center text-muted">Memuatkan...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- Tab 3: Urus Ready Stock -->
+            <div class="tab-pane fade" id="tabReadyStock">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Pilih Produk</label>
+                        <select id="readyStockProductSelect" class="form-select">
+                            <option value="">-- Pilih --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Variasi</label>
+                        <select id="readyStockVariationSelect" class="form-select">
+                            <option value="">-- Pilih variasi --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">Kuantiti Ready Stock</label>
+                        <input type="number" id="readyStockQty" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small">Harga Ready Stock (RM)</label>
+                        <input type="number" id="readyStockPrice" class="form-control" step="0.01" placeholder="Kosongkan untuk gunakan harga asal">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button id="updateReadyStockBtn" class="btn btn-success w-100"><i class="fa-solid fa-save"></i> Set Ready Stock</button>
+                    </div>
+                    <div id="readyStockProgress" style="display:none;" class="text-success small mt-2">⏳ Menyimpan...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Toast -->
 <div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-    import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, getDoc, runTransaction } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-
+import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, getDoc, runTransaction, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
     var firebaseConfig = {
         apiKey: "AIzaSyAdUZs-P5SPcivHHP9lRmdyOC355Op8bOU",
         authDomain: "spmn-af4f9.firebaseapp.com",
@@ -2077,6 +2172,278 @@ document.getElementById('productReportMonthly').addEventListener('click', functi
    setInterval(function() {
     if (reportSection.style.display === 'block') updateReport();
 }, 10000);
+    // ==================== PRODUCT MANAGEMENT ====================
+// Toggling section
+document.getElementById('toggleProductManagementBtn').addEventListener('click', function() {
+    ordersSection.style.display = 'none';
+    stockSection.style.display = 'none';
+    reportSection.style.display = 'none';
+    productReportSection.style.display = 'none';
+    document.getElementById('productManagementSection').style.display = 'block';
+    loadExistingProducts();
+    populateReadyStockProductSelect();
+});
+document.getElementById('backToOrdersFromProductMgmtBtn').addEventListener('click', showOrders);
+
+// --- Variasi dinamik ---
+document.getElementById('addVariationBtn').addEventListener('click', function() {
+    const container = document.getElementById('variationsContainer');
+    const row = document.createElement('div');
+    row.className = 'row g-2 mb-2 variation-row';
+    row.innerHTML = `
+        <div class="col-4"><input type="text" class="form-control form-control-sm var-size" placeholder="Saiz"></div>
+        <div class="col-4"><input type="text" class="form-control form-control-sm var-type" placeholder="Jenis"></div>
+        <div class="col-3"><input type="number" class="form-control form-control-sm var-price" placeholder="Harga" step="0.01"></div>
+        <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-variation-btn"><i class="fa-regular fa-trash-can"></i></button></div>
+    `;
+    container.appendChild(row);
+    row.querySelector('.remove-variation-btn').addEventListener('click', function() {
+        if (document.querySelectorAll('.variation-row').length > 1) {
+            row.remove();
+        } else {
+            showToast('Perlu sekurang-kurangnya satu variasi', true);
+        }
+    });
+    document.querySelectorAll('.remove-variation-btn').forEach(btn => btn.style.display = 'inline-block');
+});
+
+// --- Muat senarai produk sedia ada ---
+async function loadExistingProducts() {
+    const tbody = document.getElementById('existingProductsBody');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Memuatkan...</td></tr>';
+    try {
+        const snap = await getDocs(collection(db, "products"));
+        if (snap.empty) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Tiada produk</td></tr>';
+            return;
+        }
+        let html = '';
+        snap.forEach(doc => {
+            const data = doc.data();
+            const varStr = data.variations ? data.variations.map(v => `${v.size} ${v.type} RM${v.price}`).join(', ') : '-';
+            html += `<tr>
+                <td>${escapeHtml(data.name)}</td>
+                <td>${escapeHtml(data.category)}</td>
+                <td><small>${escapeHtml(varStr)}</small></td>
+                <td><button class="btn btn-sm btn-outline-danger delete-product-btn" data-id="${doc.id}"><i class="fa-regular fa-trash-can"></i></button></td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        // Event delete
+        document.querySelectorAll('.delete-product-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                if (confirm('Padam produk ini? Tindakan ini tidak boleh dibatalkan.')) {
+                    try {
+                        // Padam produk
+                        await deleteDoc(doc(db, "products", this.dataset.id));
+                        // Padam semua inventory untuk produk ini (cari semua key yang bermula dengan product id)
+                        const invSnap = await getDocs(collection(db, "inventory"));
+                        const batch = [];
+                        invSnap.forEach(d => {
+                            if (d.id.startsWith(this.dataset.id + '_')) {
+                                batch.push(deleteDoc(doc(db, "inventory", d.id)));
+                            }
+                        });
+                        await Promise.all(batch);
+                        showToast('Produk dan inventory dipadam');
+                        loadExistingProducts();
+                        populateReadyStockProductSelect();
+                    } catch (err) {
+                        showToast('Gagal padam: ' + err.message, true);
+                    }
+                }
+            });
+        });
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Ralat: ${err.message}</td></tr>`;
+    }
+}
+
+// --- Tambah produk baru ---
+document.getElementById('addProductForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitProductBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-pulse"></i> Menyimpan...';
+
+    try {
+        const name = document.getElementById('newProductName').value.trim();
+        const category = document.getElementById('newProductCategory').value;
+        const description = document.getElementById('newProductDescription').value.trim();
+        const stock = parseInt(document.getElementById('newProductStock').value) || 100;
+
+        const rows = document.querySelectorAll('.variation-row');
+        const variations = [];
+        let hasError = false;
+        rows.forEach(row => {
+            const size = row.querySelector('.var-size').value.trim();
+            const type = row.querySelector('.var-type').value.trim();
+            const price = parseFloat(row.querySelector('.var-price').value);
+            if (!size || !type || isNaN(price) || price <= 0) {
+                hasError = true;
+                return;
+            }
+            variations.push({ size, type, price });
+        });
+
+        if (hasError || variations.length === 0) {
+            showToast('Sila lengkapkan semua variasi dengan harga yang sah', true);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Produk';
+            return;
+        }
+
+        const id = name.toLowerCase().replace(/[^a-z0-9]/g, '_') + '_' + Date.now();
+        const newProduct = {
+            id: id,
+            name: name,
+            category: category,
+            description: description,
+            variations: variations,
+            stock: stock,
+            createdAt: new Date().toISOString()
+        };
+
+        await setDoc(doc(db, "products", id), newProduct);
+
+        // Buat inventory untuk setiap variasi
+        for (const v of variations) {
+            const key = getVariationKey(id, v.size, v.type);
+            await setDoc(doc(db, "inventory", key), {
+                initialStock: stock,
+                stock: stock,
+                readyStock: 0,
+                allowPreorder: true
+            });
+        }
+
+        showToast(`✅ Produk "${name}" berjaya ditambah!`);
+        // Reset form
+        document.getElementById('addProductForm').reset();
+        document.getElementById('variationsContainer').innerHTML = `
+            <div class="row g-2 mb-2 variation-row">
+                <div class="col-4"><input type="text" class="form-control form-control-sm var-size" placeholder="Saiz (cth: 10mg)"></div>
+                <div class="col-4"><input type="text" class="form-control form-control-sm var-type" placeholder="Jenis (cth: Vial)"></div>
+                <div class="col-3"><input type="number" class="form-control form-control-sm var-price" placeholder="Harga (RM)" step="0.01"></div>
+                <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-variation-btn" style="display:none;"><i class="fa-regular fa-trash-can"></i></button></div>
+            </div>
+        `;
+        loadExistingProducts();
+        populateReadyStockProductSelect();
+    } catch (err) {
+        showToast('Ralat: ' + err.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Produk';
+    }
+});
+
+// ===== READY STOCK MANAGEMENT =====
+async function populateReadyStockProductSelect() {
+    const select = document.getElementById('readyStockProductSelect');
+    select.innerHTML = '<option value="">-- Pilih --</option>';
+    try {
+        const snap = await getDocs(collection(db, "products"));
+        snap.forEach(doc => {
+            const data = doc.data();
+            const opt = document.createElement('option');
+            opt.value = doc.id;
+            opt.textContent = `${data.name} (${data.category})`;
+            select.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Gagal muat produk:', err);
+    }
+}
+
+document.getElementById('readyStockProductSelect').addEventListener('change', async function() {
+    const prodId = this.value;
+    const varSelect = document.getElementById('readyStockVariationSelect');
+    varSelect.innerHTML = '<option value="">-- Pilih variasi --</option>';
+    if (!prodId) return;
+
+    try {
+        const docSnap = await getDoc(doc(db, "products", prodId));
+        if (!docSnap.exists()) return;
+        const product = docSnap.data();
+        if (!product.variations) return;
+
+        product.variations.forEach(v => {
+            const key = getVariationKey(prodId, v.size, v.type);
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.dataset.size = v.size;
+            opt.dataset.type = v.type;
+            opt.dataset.price = v.price;
+            const invData = inventoryData.get(key) || {};
+            const readyStock = invData.readyStock || 0;
+            opt.textContent = `${v.size} - ${v.type} (RM${v.price}) | Ready: ${readyStock}`;
+            varSelect.appendChild(opt);
+        });
+        document.getElementById('readyStockPrice').value = '';
+    } catch (err) {
+        showToast('Ralat memuat variasi: ' + err.message, true);
+    }
+});
+
+document.getElementById('updateReadyStockBtn').addEventListener('click', async function() {
+    if (this.disabled) return;
+    const prodSelect = document.getElementById('readyStockProductSelect');
+    const varSelect = document.getElementById('readyStockVariationSelect');
+    const qtyInput = document.getElementById('readyStockQty');
+    const priceInput = document.getElementById('readyStockPrice');
+
+    const prodId = prodSelect.value;
+    const varKey = varSelect.value;
+    const qty = parseInt(qtyInput.value);
+    const price = parseFloat(priceInput.value);
+
+    if (!prodId || !varKey || isNaN(qty) || qty < 0) {
+        showToast('Sila pilih produk, variasi dan kuantiti yang sah', true);
+        return;
+    }
+
+    const progress = document.getElementById('readyStockProgress');
+    progress.style.display = 'block';
+    progress.innerHTML = '⏳ Menyimpan...';
+    this.disabled = true;
+
+    try {
+        const invRef = doc(db, "inventory", varKey);
+        const invSnap = await getDoc(invRef);
+        const existingData = invSnap.exists() ? invSnap.data() : {};
+
+        const updateData = {
+            readyStock: qty,
+            stock: existingData.stock ?? 100,
+            initialStock: existingData.initialStock ?? 100,
+            allowPreorder: existingData.allowPreorder ?? true
+        };
+
+        if (!isNaN(price) && price > 0) {
+            updateData.customReadyPrice = price;
+        } else {
+            updateData.customReadyPrice = null;
+        }
+
+        await setDoc(invRef, updateData, { merge: true });
+
+        // Kemas kini inventoryData tempatan
+        inventoryData.set(varKey, { ...existingData, ...updateData });
+
+        progress.innerHTML = '✅ Berjaya!';
+        showToast('Ready Stock dikemas kini');
+
+        // Refresh senarai variasi
+        document.getElementById('readyStockProductSelect').dispatchEvent(new Event('change'));
+    } catch (err) {
+        progress.innerHTML = '❌ Gagal: ' + err.message;
+        showToast('Ralat: ' + err.message, true);
+    } finally {
+        this.disabled = false;
+        setTimeout(() => { progress.style.display = 'none'; }, 2000);
+    }
+});
 </script>
 
 <script>
