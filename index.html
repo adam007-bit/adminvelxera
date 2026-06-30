@@ -390,6 +390,10 @@
             color: #94a3b8;
             font-weight: 500;
         }
+        .card canvas {
+    max-height: 250px;
+    width: 100% !important;
+}
         .loading-placeholder i { font-size: 2rem; margin-right: 1rem; color: #10b981; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -990,12 +994,31 @@ var additionalProducts = [
         var statusText = order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan');
         var trackingHtml = order.trackingNumber ? '<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">' + escapeHtml(order.trackingNumber) + '</span></div>' : '';
 
-        var createdAt = new Date(order.createdAt).toISOString();
-        var updatedAt = order.updatedAt ? new Date(order.updatedAt).toISOString() : null;
-        var updatedBadge = '';
-        if (updatedAt && updatedAt !== createdAt) {
-            updatedBadge = '<span class="updated-badge"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini</span>';
+        // ===== PERBAIKAN TARIKH =====
+var createdAt = 'Tarikh tidak tersedia';
+try {
+    if (order.createdAt) {
+        var d = new Date(order.createdAt);
+        if (!isNaN(d.getTime())) {
+            createdAt = d.toISOString();
         }
+    }
+} catch(e) {}
+
+var updatedAt = null;
+try {
+    if (order.updatedAt) {
+        var u = new Date(order.updatedAt);
+        if (!isNaN(u.getTime())) {
+            updatedAt = u.toISOString();
+        }
+    }
+} catch(e) {}
+
+var updatedBadge = '';
+if (updatedAt && updatedAt !== createdAt) {
+    updatedBadge = '<span class="updated-badge"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini';
+}
 
         html += `
             <div class="order-card">
@@ -1806,7 +1829,10 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
     // --- Graf Bar (Top 10 produk) ---
     var ctx1 = document.getElementById('productChart')?.getContext('2d');
     if (ctx1) {
-        if (productChartInstance) productChartInstance.destroy();
+        if (productChartInstance) {
+            productChartInstance.destroy();
+            productChartInstance = null;
+        }
         productChartInstance = new Chart(ctx1, {
             type: 'bar',
             data: {
@@ -1844,7 +1870,10 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
     // --- Graf Status (Pie) ---
     var ctx2 = document.getElementById('statusChart')?.getContext('2d');
     if (ctx2) {
-        if (statusChartInstance) statusChartInstance.destroy();
+        if (statusChartInstance) {
+            statusChartInstance.destroy();
+            statusChartInstance = null;   // <-- penting
+        }
         var statusLabels = Object.keys(statusCount);
         var statusData = Object.values(statusCount);
         var colors = ['#10b981', '#f59e0b', '#ef4444'];
@@ -1871,7 +1900,10 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
     // --- Graf Pre‑order vs Ready Stock (Pie) ---
     var ctx3 = document.getElementById('typeChart')?.getContext('2d');
     if (ctx3) {
-        if (typeChartInstance) typeChartInstance.destroy();
+        if (typeChartInstance) {
+            typeChartInstance.destroy();
+            typeChartInstance = null;   // <-- penting
+        }
         typeChartInstance = new Chart(ctx3, {
             type: 'pie',
             data: {
@@ -1937,10 +1969,9 @@ document.getElementById('productReportMonthly').addEventListener('click', functi
     document.getElementById('backToOrdersFromProductReportBtn').addEventListener('click', showOrders);
 
     // Auto-refresh report every 10s if visible
-    setInterval(function() {
-        if (reportSection.style.display === 'block') updateReport();
-        if (productReportSection.style.display === 'block') generateProductReport('all');
-    }, 10000);
+   setInterval(function() {
+    if (reportSection.style.display === 'block') updateReport();
+}, 10000);
 </script>
 
 <script>
