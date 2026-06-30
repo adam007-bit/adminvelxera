@@ -1734,9 +1734,15 @@ function generateProductReport(filter) {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // Ambil order completed sahaja (untuk laporan jualan)
-    var completedOrders = ordersData.filter(function(o) { return o.status === 'completed'; });
-    var filteredOrders = startDate ? completedOrders.filter(function(o) { return new Date(o.createdAt) >= startDate; }) : completedOrders;
+    // Ambil SEMUA order (pending & completed) untuk laporan
+    var allOrders = ordersData.filter(function(o) {
+        return o.status === 'completed' || o.status === 'pending';
+    });
+    var filteredOrders = startDate ? allOrders.filter(function(o) {
+        return new Date(o.createdAt) >= startDate;
+    }) : allOrders;
+
+    console.log('📊 Generating product report. Orders:', filteredOrders.length);
 
     var productMap = new Map();
     var totalPreorderQty = 0, totalReadyQty = 0, totalRevenue = 0;
@@ -1759,8 +1765,15 @@ function generateProductReport(filter) {
                 });
             }
             var data = productMap.get(key);
-            // Tentukan pre-order atau ready stock (logik ini boleh disesuaikan)
-            var isReady = item.type && (item.type.toLowerCase().includes('ready') || item.type.toLowerCase().includes('kit') || item.type.toLowerCase().includes('set'));
+            
+            // ===== LOGIK PRE-ORDER VS READY STOCK =====
+            // Anda boleh ubah syarat di bawah mengikut data anda
+            var isReady = false;
+            var typeLower = (item.type || '').toLowerCase();
+            if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
+                isReady = true;
+            }
+            // Jika tiada perkataan di atas, anggap sebagai pre-order
             if (isReady) {
                 data.readyQty += item.qty;
                 totalReadyQty += item.qty;
@@ -1774,7 +1787,61 @@ function generateProductReport(filter) {
         });
     });
 
-    var sorted = Array.from(productMap.values()).sort(function(a, b) { return b.totalQty - a.totalQty; });
+    var sorted = Array.from(productMap.values()).sort(function(a, b) {
+        return b.totalQty - a.totalQty;
+    });
+
+    console.log('📊 Total products:', sorted.length);
+    console.log('📊 Total preorder:', totalPreorderQty, 'ready:', totalReadyQty, 'revenue:', totalRevenue);
+
+    // ===== STATISTIK =====
+    var statsDiv = document.getElementById('productReportStats');
+    statsDiv.innerHTML = `
+        <div class="report-card"><strong>Jumlah Produk Terjual</strong><span>${sorted.length}</span></div>
+        <div class="report-card"><strong>Total Unit</strong><span>${sorted.reduce(function(s, p) { return s + p.totalQty; }, 0)}</span></div>
+        <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
+        <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
+        <div class="report-card"><strong>Pendapatan (RM)</strong><span>RM ${totalRevenue.toFixed(2)}</span></div>
+    `;
+
+    // ===== ANALISIS =====
+    var analysisDiv = document.getElementById('productReportAnalysis');
+    if (analysisDiv) {
+        var totalUnits = sorted.reduce(function(s, p) { return s + p.totalQty; }, 0);
+        var avgPrice = totalUnits ? totalRevenue / totalUnits : 0;
+        var poPercent = (totalPreorderQty + totalReadyQty) ? ((totalPreorderQty / (totalPreorderQty + totalReadyQty)) * 100).toFixed(1) : 0;
+        var topProduct = sorted.length ? sorted[0].name : '-';
+        analysisDiv.innerHTML = `
+            <div class="col-6 col-md-3"><strong>Purata Harga/Unit:</strong> RM ${avgPrice.toFixed(2)}</div>
+            <div class="col-6 col-md-3"><strong>Nisbah Pre‑order:</strong> ${poPercent}%</div>
+            <div class="col-6 col-md-3"><strong>Top Produk:</strong> ${topProduct}</div>
+            <div class="col-6 col-md-3"><strong>Jumlah Order:</strong> ${filteredOrders.length}</div>
+        `;
+    }
+
+    // ===== JADUAL =====
+    var tbody = document.getElementById('productReportBody');
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Tiada data</td></tr>';
+    } else {
+        var html = '';
+        sorted.forEach(function(p) {
+            html += '<tr>' +
+                '<td>' + escapeHtml(p.name) + '</td>' +
+                '<td>' + escapeHtml(p.size) + '</td>' +
+                '<td>' + escapeHtml(p.type) + '</td>' +
+                '<td>' + p.preorderQty + '</td>' +
+                '<td>' + p.readyQty + '</td>' +
+                '<td class="fw-bold">' + p.totalQty + '</td>' +
+                '<td>RM ' + p.revenue.toFixed(2) + '</td>' +
+            '</tr>';
+        });
+        tbody.innerHTML = html;
+    }
+
+    // ===== GRAF =====
+    renderProductCharts(sorted.slice(0, 10), statusCount, totalPreorderQty, totalReadyQty);
+}
 
     // ===== STATISTIK RINGKASAN =====
     var statsDiv = document.getElementById('productReportStats');
@@ -1826,12 +1893,24 @@ function generateProductReport(filter) {
 }
 
 function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady) {
-    // --- Graf Bar (Top 10 produk) ---
+    // --- Graf Bar ---
     var ctx1 = document.getElementById('productChart')?.getContext('2d');
     if (ctx1) {
         if (productChartInstance) {
             productChartInstance.destroy();
             productChartInstance = null;
+        }
+        // Jika tiada produk, tunjuk mesej kosong
+        if (topProducts.length === 0) {
+            productChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['Tiada Data'],
+                    datasets: [{ label: 'Tiada', data: [0], backgroundColor: '#ccc' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            return;
         }
         productChartInstance = new Chart(ctx1, {
             type: 'bar',
@@ -1857,9 +1936,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'top' }
-                },
+                plugins: { legend: { position: 'top' } },
                 scales: {
                     y: { beginAtZero: true, title: { display: true, text: 'Kuantiti' } }
                 }
@@ -1872,29 +1949,36 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
     if (ctx2) {
         if (statusChartInstance) {
             statusChartInstance.destroy();
-            statusChartInstance = null;   // <-- penting
+            statusChartInstance = null;
         }
         var statusLabels = Object.keys(statusCount);
         var statusData = Object.values(statusCount);
-        var colors = ['#10b981', '#f59e0b', '#ef4444'];
-        statusChartInstance = new Chart(ctx2, {
-            type: 'pie',
-            data: {
-                labels: statusLabels.map(function(s) { return s.charAt(0).toUpperCase() + s.slice(1); }),
-                datasets: [{
-                    data: statusData,
-                    backgroundColor: colors.slice(0, statusLabels.length),
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' }
+        // Jika tiada data, tunjuk kosong
+        if (statusData.every(function(v) { return v === 0; })) {
+            statusChartInstance = new Chart(ctx2, {
+                type: 'pie',
+                data: { labels: ['Tiada'], datasets: [{ data: [1], backgroundColor: ['#e5e7eb'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        } else {
+            var colors = ['#10b981', '#f59e0b', '#ef4444'];
+            statusChartInstance = new Chart(ctx2, {
+                type: 'pie',
+                data: {
+                    labels: statusLabels.map(function(s) { return s.charAt(0).toUpperCase() + s.slice(1); }),
+                    datasets: [{
+                        data: statusData,
+                        backgroundColor: colors.slice(0, statusLabels.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
                 }
-            }
-        });
+            });
+        }
     }
 
     // --- Graf Pre‑order vs Ready Stock (Pie) ---
@@ -1902,26 +1986,32 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
     if (ctx3) {
         if (typeChartInstance) {
             typeChartInstance.destroy();
-            typeChartInstance = null;   // <-- penting
+            typeChartInstance = null;
         }
-        typeChartInstance = new Chart(ctx3, {
-            type: 'pie',
-            data: {
-                labels: ['Pre‑order', 'Ready Stock'],
-                datasets: [{
-                    data: [totalPreorder, totalReady],
-                    backgroundColor: ['rgba(251, 191, 36, 0.7)', 'rgba(16, 185, 129, 0.7)'],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' }
+        if (totalPreorder === 0 && totalReady === 0) {
+            typeChartInstance = new Chart(ctx3, {
+                type: 'pie',
+                data: { labels: ['Tiada'], datasets: [{ data: [1], backgroundColor: ['#e5e7eb'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        } else {
+            typeChartInstance = new Chart(ctx3, {
+                type: 'pie',
+                data: {
+                    labels: ['Pre‑order', 'Ready Stock'],
+                    datasets: [{
+                        data: [totalPreorder, totalReady],
+                        backgroundColor: ['rgba(251, 191, 36, 0.7)', 'rgba(16, 185, 129, 0.7)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
                 }
-            }
-        });
+            });
+        }
     }
 }
 
