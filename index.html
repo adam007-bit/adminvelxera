@@ -492,7 +492,18 @@
                 <div class="filter-pill" data-filter="completed">Selesai</div>
                 <div class="filter-pill" data-filter="cancelled">Batal</div>
             </div>
-
+            <!-- Search Bar -->
+<div class="search-order mb-3">
+    <div class="input-group">
+        <span class="input-group-text bg-white border-end-0">
+            <i class="fa-solid fa-search text-muted"></i>
+        </span>
+        <input type="text" id="orderSearchInput" class="form-control border-start-0" placeholder="🔍 Cari ID pesanan, nama atau telefon...">
+        <button class="btn btn-outline-secondary border-start-0" type="button" id="clearOrderSearchBtn">
+            <i class="fa-solid fa-times"></i>
+        </button>
+    </div>
+</div>
             <!-- Orders list -->
             <div id="ordersList">
                 <div class="loading-placeholder"><i class="fa-solid fa-circle-notch"></i> Memuatkan pesanan...</div>
@@ -928,6 +939,7 @@ var additionalProducts = [
 
     // ==================== STATE ====================
     var currentFilter = 'all';
+    var searchOrderTerm = '';
     var ordersData = [];
     var pendingOrderForComplete = null;
     var productsData = [];
@@ -941,7 +953,20 @@ var additionalProducts = [
         loadOrdersRealtime();
         loadStockData();
     });
+   // ===== CARIAN PESANAN =====
+var orderSearchInput = document.getElementById('orderSearchInput');
+var clearOrderSearchBtn = document.getElementById('clearOrderSearchBtn');
 
+orderSearchInput.addEventListener('input', function() {
+    searchOrderTerm = this.value;
+    renderOrders();
+});
+
+clearOrderSearchBtn.addEventListener('click', function() {
+    orderSearchInput.value = '';
+    searchOrderTerm = '';
+    renderOrders();
+});
     document.getElementById('logoutBtn').addEventListener('click', function() { location.reload(); });
 
     // ==================== ORDER FUNCTIONS ====================
@@ -1064,6 +1089,15 @@ var additionalProducts = [
 
   function renderOrders() {
     var filtered = currentFilter === 'all' ? ordersData : ordersData.filter(function(o) { return o.status === currentFilter; });
+      if (searchOrderTerm.trim() !== '') {
+        var term = searchOrderTerm.trim().toLowerCase();
+        filtered = filtered.filter(function(order) {
+            var orderId = (order.orderId || order.id || '').toLowerCase();
+            var customerName = (order.customer && order.customer.name || '').toLowerCase();
+            var customerPhone = (order.customer && order.customer.phone || '').toLowerCase();
+            return orderId.includes(term) || customerName.includes(term) || customerPhone.includes(term);
+        });
+    }
     var container = document.getElementById('ordersList');
     if (filtered.length === 0) {
         container.innerHTML = '<div class="text-center py-4 text-muted">Tiada pesanan</div>';
@@ -1229,6 +1263,9 @@ if (updatedAt && updatedAt !== createdAt) {
                 this.classList.add('active');
                 currentFilter = this.dataset.filter;
                 renderOrders();
+                 searchOrderTerm = '';
+    document.getElementById('orderSearchInput').value = '';
+    renderOrders();
             });
         })(filterPills[k]);
     }
