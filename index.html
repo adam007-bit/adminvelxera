@@ -1720,6 +1720,26 @@ let productChartInstance = null;
 let statusChartInstance = null;
 let typeChartInstance = null;
 
+// Fungsi bantuan: dapatkan readyStock dari inventory berdasarkan variationKey
+function getReadyStockFromInventory(prodName, size, type) {
+    // Cari produk dalam productsData
+    for (let p of productsData) {
+        if (p.variations) {
+            for (let v of p.variations) {
+                if (v.size === size && v.type === type && p.name === prodName) {
+                    let key = getVariationKey(p.id, size, type);
+                    let inv = inventoryData.get(key);
+                    if (inv && inv.readyStock !== undefined) {
+                        return inv.readyStock;
+                    }
+                    return 0; // default
+                }
+            }
+        }
+    }
+    return 0; // tidak jumpa
+}
+
 function generateProductReport(filter) {
     filter = filter || 'all';
     var now = new Date();
@@ -1766,12 +1786,18 @@ function generateProductReport(filter) {
             }
             var data = productMap.get(key);
             
-            // ===== LOGIK PRE-ORDER VS READY STOCK =====
-            var isReady = false;
-            var typeLower = (item.type || '').toLowerCase();
-            if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
-                isReady = true;
+            // ===== LOGIK PRE-ORDER VS READY STOCK (UTAMAKAN STOK) =====
+            var readyStock = getReadyStockFromInventory(item.prodName, item.size, item.type);
+            var isReady = (readyStock > 0); // jika readyStock > 0, anggap ready stock
+
+            // Jika tiada data stok, gunakan logik perkataan (fallback)
+            if (readyStock === 0 && typeof readyStock === 'undefined') {
+                var typeLower = (item.type || '').toLowerCase();
+                if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
+                    isReady = true;
+                }
             }
+
             if (isReady) {
                 data.readyQty += item.qty;
                 totalReadyQty += item.qty;
@@ -1828,9 +1854,9 @@ function generateProductReport(filter) {
                 '<td>' + escapeHtml(p.name) + '</td>' +
                 '<td>' + escapeHtml(p.size) + '</td>' +
                 '<td>' + escapeHtml(p.type) + '</td>' +
-                '<td>' + p.preorderQty + '</td>' +
-                '<td>' + p.readyQty + '</td>' +
-                '<td class="fw-bold">' + p.totalQty + '</td>' +
+                '<td class="text-center">' + p.preorderQty + '</td>' +
+                '<td class="text-center">' + p.readyQty + '</td>' +
+                '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
                 '<td>RM ' + p.revenue.toFixed(2) + '</td>' +
             '</tr>';
         });
@@ -1842,7 +1868,7 @@ function generateProductReport(filter) {
 }
 
 function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady) {
-    // --- Graf Bar ---
+    // --- Graf Bar (Jualan Mengikut Produk) ---
     var ctx1 = document.getElementById('productChart')?.getContext('2d');
     if (ctx1) {
         if (productChartInstance) {
@@ -1868,14 +1894,14 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     {
                         label: 'Pre‑order',
                         data: topProducts.map(function(p) { return p.preorderQty; }),
-                        backgroundColor: 'rgba(251, 191, 36, 0.7)',
+                        backgroundColor: 'rgba(251, 191, 36, 0.8)',
                         borderColor: '#f59e0b',
                         borderWidth: 1
                     },
                     {
                         label: 'Ready Stock',
                         data: topProducts.map(function(p) { return p.readyQty; }),
-                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
                         borderColor: '#10b981',
                         borderWidth: 1
                     }
@@ -1884,9 +1910,30 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: 'top' } },
+                plugins: {
+                    legend: { 
+                        position: 'top',
+                        labels: {
+                            font: { weight: 'bold' },
+                            boxWidth: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                var label = context.dataset.label || '';
+                                var value = context.raw || 0;
+                                return label + ': ' + value + ' unit';
+                            }
+                        }
+                    }
+                },
                 scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Kuantiti' } }
+                    y: { 
+                        beginAtZero: true, 
+                        title: { display: true, text: 'Kuantiti Terjual' },
+                        ticks: { stepSize: 1 }
+                    }
                 }
             }
         });
@@ -1922,7 +1969,12 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } }
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom',
+                            labels: { boxWidth: 15 }
+                        }
+                    }
                 }
             });
         }
@@ -1948,14 +2000,30 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     labels: ['Pre‑order', 'Ready Stock'],
                     datasets: [{
                         data: [totalPreorder, totalReady],
-                        backgroundColor: ['rgba(251, 191, 36, 0.7)', 'rgba(16, 185, 129, 0.7)'],
+                        backgroundColor: ['rgba(251, 191, 36, 0.8)', 'rgba(16, 185, 129, 0.8)'],
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } }
+                    plugins: {
+                        legend: { 
+                            position: 'bottom',
+                            labels: { boxWidth: 15 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    var label = context.label || '';
+                                    var value = context.raw || 0;
+                                    var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                    var percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return label + ': ' + value + ' unit (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
