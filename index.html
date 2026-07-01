@@ -1886,7 +1886,7 @@ function generateProductReport(filter) {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // ===== AMBIL SEMUA ORDER (COMPLETED + PENDING) =====
+    // ===== HANYA PESANAN PENDING + COMPLETED (TIDAK TERMASUK CANCELLED) =====
     var allOrders = ordersData.filter(function(o) {
         return o.status === 'completed' || o.status === 'pending';
     });
@@ -1904,20 +1904,15 @@ function generateProductReport(filter) {
         statusCount[order.status] = (statusCount[order.status] || 0) + 1;
         var items = order.items || [];
         items.forEach(function(item) {
-            // ===== 1. DAPATKAN VARIATION KEY DARI ITEM =====
+            // ===== GUNAKAN VARIATION KEY UNTUK KETEPATAN =====
             var varKey = item.variationKey;
             if (!varKey) {
-                // Jika tiada variationKey, bina sendiri
                 varKey = getVariationKey(item.prodName, item.size, item.type);
             }
-
-            // ===== 2. DAPATKAN DATA INVENTORY MENGGUNAKAN KEY =====
             var inv = inventoryData.get(varKey);
             var readyStock = inv ? inv.readyStock : 0;
 
-            // ===== 3. TENTUKAN SAMA ADA READY STOCK ATAU PRE-ORDER =====
             var isReady = (readyStock > 0);
-            // Jika tiada inventory, fallback ke perkataan
             if (!inv) {
                 var typeLower = (item.type || '').toLowerCase();
                 if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
@@ -1925,7 +1920,6 @@ function generateProductReport(filter) {
                 }
             }
 
-            // ===== 4. KUMPULKAN DATA UNTUK LAPORAN =====
             var key = item.prodName + '_' + item.size + '_' + item.type;
             if (!productMap.has(key)) {
                 productMap.set(key, {
@@ -2008,7 +2002,6 @@ function generateProductReport(filter) {
     // ===== GRAF =====
     renderProductCharts(sorted.slice(0, 10), statusCount, totalPreorderQty, totalReadyQty);
 }
-
 function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady) {
     // --- Graf Bar (Jualan Mengikut Produk) ---
     var ctx1 = document.getElementById('productChart')?.getContext('2d');
