@@ -1886,7 +1886,7 @@ function generateProductReport(filter) {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // ===== HANYA PESANAN PENDING + COMPLETED (TIDAK TERMASUK CANCELLED) =====
+    // ===== PESANAN YANG ADA INVOIS: PENDING + COMPLETED (CANCELLED DIKECUALIKAN) =====
     var allOrders = ordersData.filter(function(o) {
         return o.status === 'completed' || o.status === 'pending';
     });
