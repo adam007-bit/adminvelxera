@@ -1580,8 +1580,12 @@ window.adminPrintInvoice = adminPrintInvoice;
 function renderStockTable() {
     var tbody = document.getElementById('stockTableBody');
     tbody.innerHTML = '';
-    for (let p = 0; p < productsData.length; p++) {
-        var product = productsData[p];
+    // Salin productsData dan susun mengikut abjad
+    var sortedProducts = [...productsData].sort(function(a, b) {
+        return a.name.localeCompare(b.name);
+    });
+    for (let p = 0; p < sortedProducts.length; p++) {
+        var product = sortedProducts[p];
         if (!product.variations || product.variations.length === 0) continue;
         for (let v = 0; v < product.variations.length; v++) {
             var varItem = product.variations[v];
@@ -1948,8 +1952,8 @@ function generateProductReport(filter) {
     });
 
     var sorted = Array.from(productMap.values()).sort(function(a, b) {
-        return b.totalQty - a.totalQty;
-    });
+    return a.name.localeCompare(b.name);
+});
 
     console.log('📊 Total products:', sorted.length);
     console.log('📊 Total preorder:', totalPreorderQty, 'ready:', totalReadyQty, 'revenue:', totalRevenue);
