@@ -2355,10 +2355,12 @@ document.getElementById('addVariationBtn').addEventListener('click', function() 
 
 // --- Muat senarai produk sedia ada ---
 async function loadExistingProducts() {
+    console.log('🔄 loadExistingProducts called');
     const tbody = document.getElementById('existingProductsBody');
     tbody.innerHTML = '<tr><td colspan="4" class="text-center">Memuatkan...</td></tr>';
     try {
         const snap = await getDocs(collection(db, "products"));
+        console.log('📦 Products fetched:', snap.size);
         if (snap.empty) {
             tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Tiada produk</td></tr>';
             return;
@@ -2378,6 +2380,7 @@ async function loadExistingProducts() {
 </tr>`;
         });
         tbody.innerHTML = html;
+        console.log('✅ Products rendered, edit buttons count:', document.querySelectorAll('.edit-product-btn').length);
         // Event delete
         document.querySelectorAll('.delete-product-btn').forEach(btn => {
             btn.addEventListener('click', async function() {
@@ -2403,17 +2406,24 @@ async function loadExistingProducts() {
                 }
             });
         });
+        // Event edit - GUNAKAN EVENT DELEGASI untuk pastikan ia berfungsi
+        document.querySelectorAll('.edit-product-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const productId = this.dataset.id;
+                console.log('🖱️ Edit button clicked! ID:', productId);
+                if (productId) {
+                    openEditProductModal(productId);
+                } else {
+                    showToast('ID produk tidak dijumpai', true);
+                }
+            });
+        });
     } catch (err) {
+        console.error('❌ Error loading products:', err);
         tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Ralat: ${err.message}</td></tr>`;
     }
 }
-// Event edit
-document.querySelectorAll('.edit-product-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const productId = this.dataset.id;
-        openEditProductModal(productId);
-    });
-});
 // ===== MUAT SEMULA SENARAI PRODUK APABILA TAB DIKLIK =====
 document.querySelector('[data-bs-toggle="tab"][href="#tabListProducts"]').addEventListener('click', function() {
     loadExistingProducts();
@@ -2504,16 +2514,24 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
 // ===== EDIT PRODUK =====
 // Buka modal edit dengan data produk
 async function openEditProductModal(productId) {
+    console.log('🔍 openEditProductModal called with ID:', productId);
+    if (!productId) {
+        showToast('ID produk tidak sah', true);
+        return;
+    }
     document.getElementById('editProductId').value = productId;
     document.getElementById('editProductProgress').style.display = 'none';
     
     try {
+        console.log('📦 Fetching product from Firestore...');
         const docSnap = await getDoc(doc(db, "products", productId));
         if (!docSnap.exists()) {
             showToast('Produk tidak dijumpai', true);
+            console.warn('Product not found:', productId);
             return;
         }
         const product = docSnap.data();
+        console.log('✅ Product loaded:', product);
         
         // Isi borang
         document.getElementById('editProductName').value = product.name || '';
@@ -2524,17 +2542,21 @@ async function openEditProductModal(productId) {
         const container = document.getElementById('editVariationsContainer');
         container.innerHTML = '';
         if (product.variations && product.variations.length > 0) {
-            product.variations.forEach((v, index) => {
+            product.variations.forEach((v) => {
                 addEditVariationRow(v.size, v.type, v.price);
             });
         } else {
-            // Tambah satu baris kosong jika tiada
             addEditVariationRow('', '', '');
         }
         
         // Tunjukkan modal
-        safeBootstrapModal(document.getElementById('editProductModal')).show();
+        console.log('🔄 Showing modal...');
+        const modalEl = document.getElementById('editProductModal');
+        const modalInstance = safeBootstrapModal(modalEl);
+        modalInstance.show();
+        console.log('✅ Modal shown');
     } catch (err) {
+        console.error('❌ Error in openEditProductModal:', err);
         showToast('Gagal memuat produk: ' + err.message, true);
     }
 }
