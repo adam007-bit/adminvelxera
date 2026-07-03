@@ -713,6 +713,59 @@
         </div>
     </div>
 </div>
+        <!-- SECTION: PRODUCT MANAGEMENT -->
+<div id="productManagementSection" style="display:none;">
+    ... (semua kandungan urus produk) ...
+</div>
+
+<!-- ====== TAMBAHKAN MODAL EDIT PRODUK DI SINI ====== -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square text-primary me-2"></i>Edit Produk</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editProductId">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Nama Produk</label>
+                        <input type="text" id="editProductName" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small">Kategori</label>
+                        <select id="editProductCategory" class="form-select">
+                            <option value="peptides">Peptides</option>
+                            <option value="beauty">Beauty Peptides</option>
+                            <option value="solvent">Solvent</option>
+                            <option value="oral">Oral Peptides</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small">Penerangan</label>
+                        <textarea id="editProductDescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold small">Variasi (Saiz, Jenis, Harga)</label>
+                        <div id="editVariationsContainer">
+                            <!-- akan diisi secara dinamik -->
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" id="editAddVariationBtn"><i class="fa-solid fa-plus"></i> Tambah Variasi</button>
+                    </div>
+                </div>
+                <div id="editProductProgress" style="display:none;" class="text-success small mt-2">⏳ Menyimpan...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button id="saveEditProductBtn" class="btn btn-success">Simpan Perubahan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
 <!-- Toast -->
 <div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
 
@@ -2265,12 +2318,15 @@ async function loadExistingProducts() {
         snap.forEach(doc => {
             const data = doc.data();
             const varStr = data.variations ? data.variations.map(v => `${v.size} ${v.type} RM${v.price}`).join(', ') : '-';
-            html += `<tr>
-                <td>${escapeHtml(data.name)}</td>
-                <td>${escapeHtml(data.category)}</td>
-                <td><small>${escapeHtml(varStr)}</small></td>
-                <td><button class="btn btn-sm btn-outline-danger delete-product-btn" data-id="${doc.id}"><i class="fa-regular fa-trash-can"></i></button></td>
-            </tr>`;
+           html += `<tr>
+    <td>${escapeHtml(data.name)}</td>
+    <td>${escapeHtml(data.category)}</td>
+    <td><small>${escapeHtml(varStr)}</small></td>
+    <td>
+        <button class="btn btn-sm btn-outline-primary edit-product-btn me-1" data-id="${doc.id}"><i class="fa-regular fa-pen-to-square"></i></button>
+        <button class="btn btn-sm btn-outline-danger delete-product-btn" data-id="${doc.id}"><i class="fa-regular fa-trash-can"></i></button>
+    </td>
+</tr>`;
         });
         tbody.innerHTML = html;
         // Event delete
@@ -2302,7 +2358,13 @@ async function loadExistingProducts() {
         tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Ralat: ${err.message}</td></tr>`;
     }
 }
-
+// Event edit
+document.querySelectorAll('.edit-product-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const productId = this.dataset.id;
+        openEditProductModal(productId);
+    });
+});
 // --- Tambah produk baru ---
 document.getElementById('addProductForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -2381,7 +2443,167 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
         btn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Produk';
     }
 });
+// ===== EDIT PRODUK =====
+// Buka modal edit dengan data produk
+async function openEditProductModal(productId) {
+    document.getElementById('editProductId').value = productId;
+    document.getElementById('editProductProgress').style.display = 'none';
+    
+    try {
+        const docSnap = await getDoc(doc(db, "products", productId));
+        if (!docSnap.exists()) {
+            showToast('Produk tidak dijumpai', true);
+            return;
+        }
+        const product = docSnap.data();
+        
+        // Isi borang
+        document.getElementById('editProductName').value = product.name || '';
+        document.getElementById('editProductCategory').value = product.category || 'peptides';
+        document.getElementById('editProductDescription').value = product.description || '';
+        
+        // Isi variasi
+        const container = document.getElementById('editVariationsContainer');
+        container.innerHTML = '';
+        if (product.variations && product.variations.length > 0) {
+            product.variations.forEach((v, index) => {
+                addEditVariationRow(v.size, v.type, v.price);
+            });
+        } else {
+            // Tambah satu baris kosong jika tiada
+            addEditVariationRow('', '', '');
+        }
+        
+        // Tunjukkan modal
+        safeBootstrapModal(document.getElementById('editProductModal')).show();
+    } catch (err) {
+        showToast('Gagal memuat produk: ' + err.message, true);
+    }
+}
 
+// Fungsi untuk menambah baris variasi dalam modal edit
+function addEditVariationRow(size = '', type = '', price = '') {
+    const container = document.getElementById('editVariationsContainer');
+    const row = document.createElement('div');
+    row.className = 'row g-2 mb-2 edit-variation-row';
+    row.innerHTML = `
+        <div class="col-4"><input type="text" class="form-control form-control-sm edit-var-size" value="${escapeHtml(size)}" placeholder="Saiz"></div>
+        <div class="col-4"><input type="text" class="form-control form-control-sm edit-var-type" value="${escapeHtml(type)}" placeholder="Jenis"></div>
+        <div class="col-3"><input type="number" class="form-control form-control-sm edit-var-price" value="${price}" placeholder="Harga" step="0.01"></div>
+        <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-edit-variation-btn"><i class="fa-regular fa-trash-can"></i></button></div>
+    `;
+    container.appendChild(row);
+    
+    // Event untuk padam baris
+    row.querySelector('.remove-edit-variation-btn').addEventListener('click', function() {
+        if (document.querySelectorAll('.edit-variation-row').length > 1) {
+            row.remove();
+        } else {
+            showToast('Perlu sekurang-kurangnya satu variasi', true);
+        }
+    });
+}
+
+// Event untuk tambah variasi dalam modal edit
+document.getElementById('editAddVariationBtn').addEventListener('click', function() {
+    addEditVariationRow('', '', '');
+});
+
+// Simpan perubahan produk
+document.getElementById('saveEditProductBtn').addEventListener('click', async function() {
+    if (this.disabled) return;
+    this.disabled = true;
+    const progress = document.getElementById('editProductProgress');
+    progress.style.display = 'block';
+    progress.innerHTML = '⏳ Menyimpan...';
+    
+    try {
+        const productId = document.getElementById('editProductId').value;
+        const name = document.getElementById('editProductName').value.trim();
+        const category = document.getElementById('editProductCategory').value;
+        const description = document.getElementById('editProductDescription').value.trim();
+        
+        if (!name) {
+            showToast('Nama produk diperlukan', true);
+            this.disabled = false;
+            progress.style.display = 'none';
+            return;
+        }
+        
+        // Kumpul variasi
+        const rows = document.querySelectorAll('.edit-variation-row');
+        const variations = [];
+        let hasError = false;
+        rows.forEach(row => {
+            const size = row.querySelector('.edit-var-size').value.trim();
+            const type = row.querySelector('.edit-var-type').value.trim();
+            const price = parseFloat(row.querySelector('.edit-var-price').value);
+            if (!size || !type || isNaN(price) || price <= 0) {
+                hasError = true;
+                return;
+            }
+            variations.push({ size, type, price });
+        });
+        
+        if (hasError || variations.length === 0) {
+            showToast('Sila lengkapkan semua variasi dengan harga yang sah', true);
+            this.disabled = false;
+            progress.style.display = 'none';
+            return;
+        }
+        
+        // Kemas kini di Firestore
+        await updateDoc(doc(db, "products", productId), {
+            name: name,
+            category: category,
+            description: description,
+            variations: variations,
+            updatedAt: new Date().toISOString()
+        });
+        
+        // Kemas kini produk dalam memory (jika perlu)
+        const prodIndex = productsData.findIndex(p => p.id === productId);
+        if (prodIndex !== -1) {
+            productsData[prodIndex] = { ...productsData[prodIndex], name, category, description, variations };
+        }
+        
+        progress.innerHTML = '✅ Berjaya!';
+        showToast('Produk berjaya dikemas kini');
+        
+        // Tutup modal dan refresh senarai
+        if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+            window.bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
+        } else {
+            document.getElementById('editProductModal').style.display = 'none';
+        }
+        loadExistingProducts();
+        populateReadyStockProductSelect();
+        
+    } catch (err) {
+        progress.innerHTML = '❌ Gagal: ' + err.message;
+        showToast('Ralat: ' + err.message, true);
+    } finally {
+        this.disabled = false;
+        setTimeout(() => { progress.style.display = 'none'; }, 2000);
+    }
+});
+
+// ===== PELBAGAI: Guna semula fungsi safeBootstrapModal jika belum ada =====
+function safeBootstrapModal(element) {
+    if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+        return new window.bootstrap.Modal(element);
+    } else {
+        element.style.display = 'block';
+        element.classList.add('show');
+        return {
+            show: function() {},
+            hide: function() {
+                element.style.display = 'none';
+                element.classList.remove('show');
+            }
+        };
+    }
+}
 // ===== READY STOCK MANAGEMENT =====
 async function populateReadyStockProductSelect() {
     const select = document.getElementById('readyStockProductSelect');
