@@ -713,10 +713,7 @@
         </div>
     </div>
 </div>
-        <!-- SECTION: PRODUCT MANAGEMENT -->
-<div id="productManagementSection" style="display:none;">
-    ... (semua kandungan urus produk) ...
-</div>
+       
 
 <!-- ====== TAMBAHKAN MODAL EDIT PRODUK DI SINI ====== -->
 <div class="modal fade" id="editProductModal" tabindex="-1">
@@ -764,8 +761,6 @@
     </div>
 </div>
 
-<!-- Toast -->
-<div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
 <!-- Toast -->
 <div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
 
@@ -1048,9 +1043,17 @@ async function seedProductsIfNeeded() {
     var preorderChanges = new Map();
 
     // ==================== INIT ====================
+    // Hanya satu DOMContentLoaded dengan seedProductsIfNeeded
     document.addEventListener('DOMContentLoaded', function() {
         loadOrdersRealtime();
-        loadStockData();
+        seedProductsIfNeeded().then(() => {
+            loadStockData();
+            // Jika tab "Senarai Produk" sudah aktif, muatkan senarai
+            if (document.getElementById('tabListProducts').classList.contains('active')) {
+                loadExistingProducts();
+            }
+            populateReadyStockProductSelect();
+        });
     });
    // ===== CARIAN PESANAN =====
 var orderSearchInput = document.getElementById('orderSearchInput');
@@ -1600,16 +1603,6 @@ async function cancelOrderItem(orderId, itemIndex) {
     }
 }
 window.adminPrintInvoice = adminPrintInvoice;
-    document.addEventListener('DOMContentLoaded', function() {
-    loadOrdersRealtime();
-    seedProductsIfNeeded().then(() => {
-        loadStockData();
-        // Jika tab "Senarai Produk" sudah aktif, muatkan senarai
-        if (document.getElementById('tabListProducts').classList.contains('active')) {
-            loadExistingProducts();
-        }
-    });
-});
     // ==================== STOCK MANAGEMENT ====================
     async function loadStockData() {
         try {
@@ -2420,6 +2413,15 @@ document.querySelectorAll('.edit-product-btn').forEach(btn => {
         const productId = this.dataset.id;
         openEditProductModal(productId);
     });
+});
+// ===== MUAT SEMULA SENARAI PRODUK APABILA TAB DIKLIK =====
+document.querySelector('[data-bs-toggle="tab"][href="#tabListProducts"]').addEventListener('click', function() {
+    loadExistingProducts();
+});
+
+// ===== TAMBAH JUGA UNTUK TAB READY STOCK =====
+document.querySelector('[data-bs-toggle="tab"][href="#tabReadyStock"]').addEventListener('click', function() {
+    populateReadyStockProductSelect();
 });
 // --- Tambah produk baru ---
 document.getElementById('addProductForm').addEventListener('submit', async function(e) {
