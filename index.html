@@ -989,7 +989,53 @@ var additionalProducts = [
     { id: "peptide_elora_tirze", name: "Elora Tirze", category: "peptides", description: "Elora Tirze peptide for weight management and metabolic support.", variations: [{ size: "5mg", type: "Vial", price: 30 },{ size: "10mg", type: "Vial", price: 40 },{ size: "15mg", type: "Vial", price: 45 },{ size: "20mg", type: "Vial", price: 60 },{ size: "30mg", type: "Vial", price: 65 },{ size: "40mg", type: "Vial", price: 85 }], stock: 100 },
     { id: "peptide_reta_elora", name: "Reta Elora", category: "peptides", description: "Reta Elora peptide for weight management and metabolic support.", variations: [{ size: "15mg", type: "Vial", price: 45 },{ size: "30mg", type: "Vial", price: 70 }], stock: 100 }
 ];
-
+// ==================== SEED PRODUK KE FIRESTORE ====================
+async function seedProductsIfNeeded() {
+    console.log('🌱 Seeding products if needed...');
+    const allHardcoded = [...oralPeptidesData, ...additionalProducts];
+    
+    for (const prod of allHardcoded) {
+        try {
+            // Semak jika produk sudah wujud di Firestore
+            const prodRef = doc(db, "products", prod.id);
+            const prodSnap = await getDoc(prodRef);
+            
+            if (!prodSnap.exists()) {
+                // Jika tiada, cipta dokumen produk
+                const productData = {
+                    id: prod.id,
+                    name: prod.name,
+                    category: prod.category,
+                    description: prod.description || '',
+                    variations: prod.variations,
+                    stock: prod.stock || 100,
+                    createdAt: new Date().toISOString()
+                };
+                await setDoc(prodRef, productData);
+                console.log(`✅ Seeded product: ${prod.name}`);
+                
+                // Cipta inventory untuk setiap variasi
+                for (const v of prod.variations) {
+                    const key = getVariationKey(prod.id, v.size, v.type);
+                    const invRef = doc(db, "inventory", key);
+                    const invSnap = await getDoc(invRef);
+                    if (!invSnap.exists()) {
+                        await setDoc(invRef, {
+                            initialStock: prod.stock || 100,
+                            stock: prod.stock || 100,
+                            readyStock: 0,
+                            allowPreorder: true
+                        });
+                        console.log(`   ✅ Seeded inventory: ${key}`);
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn(`⚠️ Error seeding product ${prod.id}:`, err);
+        }
+    }
+    console.log('🌱 Seeding complete.');
+}
     // ==================== STATE ====================
     var currentFilter = 'all';
     var searchOrderTerm = '';
@@ -1554,6 +1600,16 @@ async function cancelOrderItem(orderId, itemIndex) {
     }
 }
 window.adminPrintInvoice = adminPrintInvoice;
+    document.addEventListener('DOMContentLoaded', function() {
+    loadOrdersRealtime();
+    seedProductsIfNeeded().then(() => {
+        loadStockData();
+        // Jika tab "Senarai Produk" sudah aktif, muatkan senarai
+        if (document.getElementById('tabListProducts').classList.contains('active')) {
+            loadExistingProducts();
+        }
+    });
+});
     // ==================== STOCK MANAGEMENT ====================
     async function loadStockData() {
         try {
