@@ -516,12 +516,30 @@
                 <h5 class="fw-bold"><i class="fa-solid fa-boxes text-success me-2"></i> Pengurusan Stok Produk</h5>
                 <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
             </div>
+
+            <!-- Bulk Actions (hanya untuk stok) -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 bg-light rounded">
+                <button class="btn btn-sm btn-outline-secondary" id="selectAllStockBtn"><i class="fa-regular fa-square-check"></i> Pilih Semua</button>
+                <button class="btn btn-sm btn-outline-secondary" id="deselectAllStockBtn"><i class="fa-regular fa-square"></i> Nyahtanda</button>
+                <span class="text-muted mx-1">|</span>
+                <select id="bulkActionSelect" class="form-select form-select-sm" style="width:auto;">
+                    <option value="">-- Tindakan --</option>
+                    <option value="ready_on">Ready Stock ON</option>
+                    <option value="ready_off">Ready Stock OFF</option>
+                    <option value="preorder_on">Pre-order ON</option>
+                    <option value="preorder_off">Pre-order OFF</option>
+                </select>
+                <button class="btn btn-sm btn-primary" id="applyBulkActionBtn"><i class="fa-solid fa-play"></i> Guna ke Dipilih</button>
+                <span class="ms-2 text-muted small" id="selectedCount">0 dipilih</span>
+            </div>
+
             <div id="stockLoading" class="loading-placeholder"><i class="fa-solid fa-circle-notch"></i> Memuatkan data stok...</div>
             <div id="stockContent" style="display:none;">
                 <div class="stock-table">
                     <table class="table table-bordered align-middle">
                         <thead class="table-light">
                             <tr>
+                                <th style="width:30px;"><input type="checkbox" id="stockSelectAllCheckbox"></th>
                                 <th>Produk</th>
                                 <th>Saiz</th>
                                 <th>Jenis</th>
@@ -1678,7 +1696,113 @@ window.adminPrintInvoice = adminPrintInvoice;
             document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
         }
     }
+// ===== BULK ACTIONS UNTUK STOK =====
+let selectedStockKeys = new Set();
 
+function updateSelectedCount() {
+    const count = selectedStockKeys.size;
+    document.getElementById('selectedCount').textContent = count + ' dipilih';
+    // Tandakan checkbox sepadan
+    document.querySelectorAll('.stock-checkbox').forEach(cb => {
+        cb.checked = selectedStockKeys.has(cb.dataset.key);
+    });
+}
+
+// Event untuk checkbox (akan dipasang selepas render)
+function attachStockCheckboxEvents() {
+    document.querySelectorAll('.stock-checkbox').forEach(cb => {
+        cb.removeEventListener('change', handleStockCheckboxChange);
+        cb.addEventListener('change', handleStockCheckboxChange);
+    });
+}
+
+function handleStockCheckboxChange(e) {
+    const key = e.target.dataset.key;
+    if (e.target.checked) {
+        selectedStockKeys.add(key);
+    } else {
+        selectedStockKeys.delete(key);
+    }
+    updateSelectedCount();
+}
+
+// Pilih Semua
+document.getElementById('selectAllStockBtn').addEventListener('click', function() {
+    document.querySelectorAll('.stock-checkbox').forEach(cb => {
+        selectedStockKeys.add(cb.dataset.key);
+        cb.checked = true;
+    });
+    updateSelectedCount();
+});
+
+// Nyahtanda
+document.getElementById('deselectAllStockBtn').addEventListener('click', function() {
+    selectedStockKeys.clear();
+    document.querySelectorAll('.stock-checkbox').forEach(cb => cb.checked = false);
+    updateSelectedCount();
+});
+
+// Apply bulk action
+document.getElementById('applyBulkActionBtn').addEventListener('click', function() {
+    const action = document.getElementById('bulkActionSelect').value;
+    if (!action) {
+        showToast('Sila pilih tindakan', true);
+        return;
+    }
+    if (selectedStockKeys.size === 0) {
+        showToast('Tiada item dipilih', true);
+        return;
+    }
+
+    let field = '';
+    let value = false;
+    if (action === 'ready_on') { field = 'ready'; value = 1; }
+    else if (action === 'ready_off') { field = 'ready'; value = 0; }
+    else if (action === 'preorder_on') { field = 'preorder'; value = true; }
+    else if (action === 'preorder_off') { field = 'preorder'; value = false; }
+
+    // Kemaskini data tempatan
+    selectedStockKeys.forEach(key => {
+        if (field === 'ready') {
+            readyStockChanges.set(key, value);
+            // Kemaskini input dan toggle
+            const row = document.querySelector(`tr [data-key="${key}"]`)?.closest('tr');
+            if (row) {
+                const readyInput = row.querySelector('[data-field="ready"]');
+                if (readyInput) readyInput.value = value;
+                const toggle = row.querySelector('[data-field="toggleReady"]');
+                if (toggle) {
+                    toggle.classList.toggle('active', value > 0);
+                    const span = row.querySelector('td:nth-child(8) span.fw-bold');
+                    const label = row.querySelector('td:nth-child(8) span.text-muted');
+                    if (span) { span.innerText = value > 0 ? 'ON' : 'OFF'; span.style.color = value > 0 ? '#10b981' : '#94a3b8'; }
+                    if (label) label.innerText = value > 0 ? 'Ready Stock' : 'Pre-order';
+                }
+            }
+        } else if (field === 'preorder') {
+            preorderChanges.set(key, value);
+            const row = document.querySelector(`tr [data-key="${key}"]`)?.closest('tr');
+            if (row) {
+                const toggle = row.querySelector('[data-field="togglePreorder"]');
+                if (toggle) {
+                    toggle.classList.toggle('active', value);
+                    const span = row.querySelector('td:nth-child(9) span.fw-bold');
+                    const label = row.querySelector('td:nth-child(9) span.text-muted');
+                    if (span) { span.innerText = value ? 'ON' : 'OFF'; span.style.color = value ? '#f59e0b' : '#94a3b8'; }
+                    if (label) label.innerText = value ? 'Boleh Pre-order' : 'Tutup Pre-order';
+                }
+            }
+        }
+    });
+
+    showToast(`✅ ${selectedStockKeys.size} item dikemas kini. Jangan lupa klik "Simpan Semua".`);
+    // Reset pemilihan
+    selectedStockKeys.clear();
+    updateSelectedCount();
+    document.getElementById('bulkActionSelect').value = '';
+});
+
+// ==================== RENDER STOK (VERSI DIPERBAIKI) ====================
 function renderStockTable() {
     var tbody = document.getElementById('stockTableBody');
     tbody.innerHTML = '';
@@ -1699,27 +1823,35 @@ function renderStockTable() {
             var initialStock = invData.initialStock || 1000;
             var row = document.createElement('tr');
             row.innerHTML = `
-                <td class="product-name-normal">${escapeHtml(product.name)}</td>
-                <td>${escapeHtml(varItem.size)}</td>
-                <td>${escapeHtml(varItem.type)}</td>
-                <td>${initialStock}</td>
-                <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0"></td>
-                <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0"></td>
-                <td>
-                    <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady"><span></span></div>
-                    <span class="ms-1 small">${currentReady > 0 ? 'Ready Stock' : 'Pre-order'}</span>
-                </td>
-                <td>
-                    <div class="toggle-switch ${currentAllowPreorder ? 'active' : ''}" data-key="${key}" data-field="togglePreorder"><span></span></div>
-                    <span class="ms-1 small">${currentAllowPreorder ? '✔ Boleh Pre-order' : '✖ Tutup'}</span>
-                </td>
-            `;
+    <td><input type="checkbox" class="stock-checkbox" data-key="${key}"></td>
+    <td class="product-name-normal">${escapeHtml(product.name)}</td>
+    <td>${escapeHtml(varItem.size)}</td>
+    <td>${escapeHtml(varItem.type)}</td>
+    <td>${initialStock}</td>
+    <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0"></td>
+    <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0"></td>
+    <td>
+        <div class="d-flex align-items-center gap-2">
+            <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady"><span></span></div>
+            <span class="small fw-bold" style="color:${currentReady > 0 ? '#10b981' : '#94a3b8'};">${currentReady > 0 ? 'ON' : 'OFF'}</span>
+            <span class="small text-muted">${currentReady > 0 ? 'Ready Stock' : 'Pre-order'}</span>
+        </div>
+    </td>
+    <td>
+        <div class="d-flex align-items-center gap-2">
+            <div class="toggle-switch ${currentAllowPreorder ? 'active' : ''}" data-key="${key}" data-field="togglePreorder"><span></span></div>
+            <span class="small fw-bold" style="color:${currentAllowPreorder ? '#f59e0b' : '#94a3b8'};">${currentAllowPreorder ? 'ON' : 'OFF'}</span>
+            <span class="small text-muted">${currentAllowPreorder ? 'Boleh Pre-order' : 'Tutup Pre-order'}</span>
+        </div>
+    </td>
+`;
             tbody.appendChild(row);
 
-            // ===== PERBAIKAN UNTUK TOGGLE READY =====
+            // ===== TOGGLE READY =====
             var toggleReady = row.querySelector('[data-field="toggleReady"]');
             var readyInput = row.querySelector('[data-field="ready"]');
-            var statusSpanReady = row.querySelector('td:nth-child(7) span.ms-1');
+            var statusSpanReady = row.querySelector('td:nth-child(8) span.fw-bold');
+            var statusLabelReady = row.querySelector('td:nth-child(8) span.text-muted');
             if (toggleReady) {
                 toggleReady.addEventListener('click', function(e) {
                     var key = this.dataset.key;
@@ -1728,23 +1860,36 @@ function renderStockTable() {
                     readyInput.value = val;
                     readyStockChanges.set(key, val);
                     this.classList.toggle('active', val > 0);
-                    statusSpanReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
+                    if (statusSpanReady) {
+                        statusSpanReady.innerText = val > 0 ? 'ON' : 'OFF';
+                        statusSpanReady.style.color = val > 0 ? '#10b981' : '#94a3b8';
+                    }
+                    if (statusLabelReady) {
+                        statusLabelReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
+                    }
                 });
             }
 
-            // ===== PERBAIKAN UNTUK TOGGLE PREORDER =====
+            // ===== TOGGLE PREORDER =====
             var togglePreorder = row.querySelector('[data-field="togglePreorder"]');
-var statusSpanPreorder = row.querySelector('td:nth-child(8) span.ms-1');
-if (togglePreorder) {
-    togglePreorder.addEventListener('click', function(e) {
-        var key = this.dataset.key;
-        var current = preorderChanges.has(key) ? preorderChanges.get(key) : true;   // <-- pembetulan
-        var newVal = !current;
-        preorderChanges.set(key, newVal);
-        this.classList.toggle('active', newVal);
-        statusSpanPreorder.innerText = newVal ? '✔ Boleh Pre-order' : '✖ Tutup';
-    });
-}
+            var statusSpanPreorder = row.querySelector('td:nth-child(9) span.fw-bold');
+            var statusLabelPreorder = row.querySelector('td:nth-child(9) span.text-muted');
+            if (togglePreorder) {
+                togglePreorder.addEventListener('click', function(e) {
+                    var key = this.dataset.key;
+                    var current = preorderChanges.has(key) ? preorderChanges.get(key) : true;
+                    var newVal = !current;
+                    preorderChanges.set(key, newVal);
+                    this.classList.toggle('active', newVal);
+                    if (statusSpanPreorder) {
+                        statusSpanPreorder.innerText = newVal ? 'ON' : 'OFF';
+                        statusSpanPreorder.style.color = newVal ? '#f59e0b' : '#94a3b8';
+                    }
+                    if (statusLabelPreorder) {
+                        statusLabelPreorder.innerText = newVal ? 'Boleh Pre-order' : 'Tutup Pre-order';
+                    }
+                });
+            }
         }
     }
 
@@ -1763,10 +1908,17 @@ if (togglePreorder) {
                     readyStockChanges.set(key, val);
                     var row = this.closest('tr');
                     var toggle = row.querySelector('[data-field="toggleReady"]');
-                    var span = row.querySelector('td:nth-child(7) span.ms-1');
+                    var span = row.querySelector('td:nth-child(8) span.fw-bold');
+                    var label = row.querySelector('td:nth-child(8) span.text-muted');
                     if (toggle) {
                         toggle.classList.toggle('active', val > 0);
-                        span.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
+                        if (span) {
+                            span.innerText = val > 0 ? 'ON' : 'OFF';
+                            span.style.color = val > 0 ? '#10b981' : '#94a3b8';
+                        }
+                        if (label) {
+                            label.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
+                        }
                     }
                 }
             });
@@ -1775,6 +1927,10 @@ if (togglePreorder) {
 
     document.getElementById('stockLoading').style.display = 'none';
     document.getElementById('stockContent').style.display = 'block';
+
+    // Pasang event checkbox dan kemaskini kiraan
+    attachStockCheckboxEvents();
+    updateSelectedCount();
 }
 
 document.getElementById('saveAllStockBtn').addEventListener('click', async function() {
