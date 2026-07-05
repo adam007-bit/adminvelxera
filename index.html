@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VELXERA Admin • Premium Dashboard</title>
-   
+    
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#10b981">
-   
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,10 +21,10 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
-        body {
-            background: #f0f4f9;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: #0b1a2e;
+        body { 
+            background: #f0f4f9; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            color: #0b1a2e; 
             padding-top: 0;
         }
         ::-webkit-scrollbar { width: 6px; }
@@ -273,9 +273,9 @@
             padding: 0.2rem;
         }
         .stock-table table { margin-bottom: 0; }
-        .stock-table th {
-            background: #f8fafc;
-            font-weight: 600;
+        .stock-table th { 
+            background: #f8fafc; 
+            font-weight: 600; 
             font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 0.4px;
@@ -283,8 +283,8 @@
             border-bottom: 2px solid #e2e8f0;
             padding: 0.8rem 0.5rem;
         }
-        .stock-table td {
-            padding: 0.6rem 0.5rem;
+        .stock-table td { 
+            padding: 0.6rem 0.5rem; 
             vertical-align: middle;
             font-size: 0.8rem;
         }
@@ -517,7 +517,7 @@
                 <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
             </div>
 
-            <!-- Bulk Actions (hanya untuk stok) -->
+            <!-- Bulk Actions & Set Stok Awal -->
             <div class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 bg-light rounded">
                 <button class="btn btn-sm btn-outline-secondary" id="selectAllStockBtn"><i class="fa-regular fa-square-check"></i> Pilih Semua</button>
                 <button class="btn btn-sm btn-outline-secondary" id="deselectAllStockBtn"><i class="fa-regular fa-square"></i> Nyahtanda</button>
@@ -531,6 +531,9 @@
                 </select>
                 <button class="btn btn-sm btn-primary" id="applyBulkActionBtn"><i class="fa-solid fa-play"></i> Guna ke Dipilih</button>
                 <span class="ms-2 text-muted small" id="selectedCount">0 dipilih</span>
+                <span class="text-muted mx-1">|</span>
+                <button class="btn btn-sm btn-outline-secondary" id="setAllStockBtn"><i class="fa-solid fa-rotate"></i> Set Stok Awal (1000)</button>
+                <button class="btn btn-sm btn-success" id="setAllStockAndSaveBtn"><i class="fa-solid fa-bolt"></i> Set Semua Stok (1000) & Simpan</button>
             </div>
 
             <div id="stockLoading" class="loading-placeholder"><i class="fa-solid fa-circle-notch"></i> Memuatkan data stok...</div>
@@ -1006,13 +1009,13 @@ var additionalProducts = [
 async function seedProductsIfNeeded() {
     console.log('🌱 Seeding products if needed...');
     const allHardcoded = [...oralPeptidesData, ...additionalProducts];
-   
+    
     for (const prod of allHardcoded) {
         try {
             // Semak jika produk sudah wujud di Firestore
             const prodRef = doc(db, "products", prod.id);
             const prodSnap = await getDoc(prodRef);
-           
+            
             if (!prodSnap.exists()) {
                 // Jika tiada, cipta dokumen produk
                 const productData = {
@@ -1026,7 +1029,7 @@ async function seedProductsIfNeeded() {
                 };
                 await setDoc(prodRef, productData);
                 console.log(`✅ Seeded product: ${prod.name}`);
-               
+                
                 // Cipta inventory untuk setiap variasi
                 for (const v of prod.variations) {
                     const key = getVariationKey(prod.id, v.size, v.type);
@@ -1230,7 +1233,7 @@ clearOrderSearchBtn.addEventListener('click', function() {
         for (var i = 0; i < items.length; i++) {
             var it = items[i];
             var itemIndex = i;
-            var cancelBtn = (order.status === 'pending')
+            var cancelBtn = (order.status === 'pending') 
                 ? `<button class="btn btn-sm btn-outline-danger cancel-item-btn ms-2" data-orderid="${order.id}" data-itemindex="${itemIndex}" style="font-size:0.6rem; padding:0.1rem 0.4rem;" title="Batal item ini & pulangkan stok">✖</button>`
                 : '';
             itemsHtml += `<li>
@@ -1622,80 +1625,86 @@ async function cancelOrderItem(orderId, itemIndex) {
 }
 window.adminPrintInvoice = adminPrintInvoice;
     // ==================== STOCK MANAGEMENT ====================
-    async function loadStockData() {
-        try {
-            var prodSnap = await getDocs(collection(db, "products"));
-            var firestoreProducts = [];
-            prodSnap.forEach(function(doc) { firestoreProducts.push({ id: doc.id, data: doc.data() }); });
-            var allLocalProducts = oralPeptidesData.concat(additionalProducts);
-            var mergedProducts = [];
-            for (var i = 0; i < firestoreProducts.length; i++) {
-                mergedProducts.push(firestoreProducts[i].data);
+async function loadStockData() {
+    try {
+        var prodSnap = await getDocs(collection(db, "products"));
+        var firestoreProducts = [];
+        prodSnap.forEach(function(doc) { firestoreProducts.push({ id: doc.id, data: doc.data() }); });
+        var allLocalProducts = oralPeptidesData.concat(additionalProducts);
+        var mergedProducts = [];
+        // Tambah produk dari Firestore
+        for (var i = 0; i < firestoreProducts.length; i++) {
+            mergedProducts.push(firestoreProducts[i].data);
+        }
+        // Tambah produk hardcoded yang belum ada di Firestore
+        for (var j = 0; j < allLocalProducts.length; j++) {
+            var localProd = allLocalProducts[j];
+            var exists = false;
+            for (var k = 0; k < mergedProducts.length; k++) {
+                if (mergedProducts[k].id === localProd.id) { exists = true; break; }
             }
-            for (var j = 0; j < allLocalProducts.length; j++) {
-                var localProd = allLocalProducts[j];
-                var exists = false;
-                for (var k = 0; k < mergedProducts.length; k++) {
-                    if (mergedProducts[k].id === localProd.id) { exists = true; break; }
-                }
-                if (!exists) mergedProducts.push(localProd);
-            }
-            productsData = mergedProducts;
+            if (!exists) mergedProducts.push(localProd);
+        }
 
-            var invSnap = await getDocs(collection(db, "inventory"));
-            inventoryData.clear();
-            invSnap.forEach(function(doc) { inventoryData.set(doc.id, doc.data()); });
+        // ===== TAPIS PRODUK YANG TIADA NAMA =====
+        productsData = mergedProducts.filter(function(p) {
+            return p && p.name && typeof p.name === 'string' && p.name.trim() !== '';
+        });
 
-            stockChanges.clear();
-            readyStockChanges.clear();
-         
+        var invSnap = await getDocs(collection(db, "inventory"));
+        inventoryData.clear();
+        invSnap.forEach(function(doc) { inventoryData.set(doc.id, doc.data()); });
 
-            for (let p = 0; p < productsData.length; p++) {
-                var product = productsData[p];
-                if (product.variations) {
-                   for (let v = 0; v < product.variations.length; v++) {
-                        var varItem = product.variations[v];
-                        let key = getVariationKey(product.id, varItem.size, varItem.type);
-                        var existing = inventoryData.get(key);
-                        var currentStock = existing ? existing.stock : 1000;
-                        var currentReady = existing ? existing.readyStock : 0;
-                        var currentAllowPreorder = existing ? existing.allowPreorder : true;
+        stockChanges.clear();
+        readyStockChanges.clear();
+        preorderChanges.clear();  // <-- TAMBAH clear
 
-                        stockChanges.set(key, currentStock);
-                        readyStockChanges.set(key, currentReady);
-                        if (!preorderChanges.has(key)) {
-    preorderChanges.set(key, currentAllowPreorder);
-}
+        for (let p = 0; p < productsData.length; p++) {
+            var product = productsData[p];
+            if (product.variations) {
+                for (let v = 0; v < product.variations.length; v++) {
+                    var varItem = product.variations[v];
+                    let key = getVariationKey(product.id, varItem.size, varItem.type);
+                    var existing = inventoryData.get(key);
+                    var currentStock = existing ? existing.stock : 1000;
+                    var currentReady = existing ? existing.readyStock : 0;
+                    var currentAllowPreorder = existing ? existing.allowPreorder : true;
 
-                        if (!existing) {
-                            await setDoc(doc(db, "inventory", key), {
-                                initialStock: 1000,
-                                stock: currentStock,
-                                readyStock: currentReady,
-                                allowPreorder: currentAllowPreorder
-                            }, { merge: true });
-                            inventoryData.set(key, { initialStock: 1000, stock: currentStock, readyStock: currentReady, allowPreorder: currentAllowPreorder });
-                        } else {
-                            if (!existing.initialStock) {
-                                await setDoc(doc(db, "inventory", key), { initialStock: 1000 }, { merge: true });
-                                existing.initialStock = 1000;
-                            }
-                            inventoryData.set(key, {
-                                initialStock: existing.initialStock,
-                                stock: existing.stock || 1000,
-                                readyStock: existing.readyStock || 0,
-                                allowPreorder: existing.allowPreorder || true
-                            });
+                    stockChanges.set(key, currentStock);
+                    readyStockChanges.set(key, currentReady);
+                    if (!preorderChanges.has(key)) {
+                        preorderChanges.set(key, currentAllowPreorder);
+                    }
+
+                    if (!existing) {
+                        await setDoc(doc(db, "inventory", key), {
+                            initialStock: 1000,
+                            stock: currentStock,
+                            readyStock: currentReady,
+                            allowPreorder: currentAllowPreorder
+                        }, { merge: true });
+                        inventoryData.set(key, { initialStock: 1000, stock: currentStock, readyStock: currentReady, allowPreorder: currentAllowPreorder });
+                    } else {
+                        if (!existing.initialStock) {
+                            await setDoc(doc(db, "inventory", key), { initialStock: 1000 }, { merge: true });
+                            existing.initialStock = 1000;
                         }
+                        inventoryData.set(key, {
+                            initialStock: existing.initialStock,
+                            stock: existing.stock || 1000,
+                            readyStock: existing.readyStock || 0,
+                            allowPreorder: existing.allowPreorder || true
+                        });
                     }
                 }
             }
-            renderStockTable();
-        } catch (err) {
-            console.error(err);
-            document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
         }
+        renderStockTable();
+    } catch (err) {
+        console.error(err);
+        document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
     }
+}
 // ===== BULK ACTIONS UNTUK STOK =====
 let selectedStockKeys = new Set();
 
@@ -1800,6 +1809,35 @@ document.getElementById('applyBulkActionBtn').addEventListener('click', function
     selectedStockKeys.clear();
     updateSelectedCount();
     document.getElementById('bulkActionSelect').value = '';
+});
+
+// ===== BUTANG SET STOK AWAL (1000) =====
+document.getElementById('setAllStockBtn').addEventListener('click', function() {
+    document.querySelectorAll('.stock-input[data-field="stock"]').forEach(input => {
+        input.value = 1000;
+        const key = input.dataset.key;
+        stockChanges.set(key, 1000);
+    });
+    showToast('✅ Semua stok ditetapkan ke 1000');
+});
+
+// ===== BUTANG SET SEMUA STOK (1000) & SIMPAN =====
+document.getElementById('setAllStockAndSaveBtn').addEventListener('click', async function() {
+    // 1. Set semua nilai stock (baki) kepada 1000
+    document.querySelectorAll('.stock-input[data-field="stock"]').forEach(input => {
+        input.value = 1000;
+        const key = input.dataset.key;
+        stockChanges.set(key, 1000);
+    });
+    showToast('✅ Semua stok ditetapkan ke 1000. Menyimpan...');
+
+    // 2. Panggil fungsi simpan semua
+    const saveBtn = document.getElementById('saveAllStockBtn');
+    if (saveBtn) {
+        saveBtn.click();
+    } else {
+        showToast('Butang simpan tidak dijumpai', true);
+    }
 });
 
 // ==================== RENDER STOK (VERSI DIPERBAIKI) ====================
@@ -2308,7 +2346,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
+                    legend: { 
                         position: 'top',
                         labels: {
                             font: { weight: 'bold' },
@@ -2326,8 +2364,8 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
+                    y: { 
+                        beginAtZero: true, 
                         title: { display: true, text: 'Kuantiti Terjual' },
                         ticks: { stepSize: 1 }
                     }
@@ -2366,8 +2404,8 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
+                    plugins: { 
+                        legend: { 
                             position: 'bottom',
                             labels: { boxWidth: 15 }
                         }
@@ -2405,7 +2443,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
+                        legend: { 
                             position: 'bottom',
                             labels: { boxWidth: 15 }
                         },
@@ -2542,13 +2580,14 @@ async function loadExistingProducts() {
             btn.addEventListener('click', async function() {
                 if (confirm('Padam produk ini? Tindakan ini tidak boleh dibatalkan.')) {
                     try {
+                        const productId = this.dataset.id;
                         // Padam produk
-                        await deleteDoc(doc(db, "products", this.dataset.id));
-                        // Padam semua inventory untuk produk ini (cari semua key yang bermula dengan product id)
+                        await deleteDoc(doc(db, "products", productId));
+                        // Padam semua inventory untuk produk ini (cari semua key yang bermula dengan productId + '_')
                         const invSnap = await getDocs(collection(db, "inventory"));
                         const batch = [];
                         invSnap.forEach(d => {
-                            if (d.id.startsWith(this.dataset.id + '_')) {
+                            if (d.id.startsWith(productId + '_')) {
                                 batch.push(deleteDoc(doc(db, "inventory", d.id)));
                             }
                         });
@@ -2556,6 +2595,8 @@ async function loadExistingProducts() {
                         showToast('Produk dan inventory dipadam');
                         loadExistingProducts();
                         populateReadyStockProductSelect();
+                        // Muat semula data stok untuk kemaskini senarai
+                        await loadStockData();
                     } catch (err) {
                         showToast('Gagal padam: ' + err.message, true);
                     }
@@ -2660,6 +2701,7 @@ document.getElementById('addProductForm').addEventListener('submit', async funct
         `;
         loadExistingProducts();
         populateReadyStockProductSelect();
+        await loadStockData(); // refresh stok
     } catch (err) {
         showToast('Ralat: ' + err.message, true);
     } finally {
@@ -2677,7 +2719,7 @@ async function openEditProductModal(productId) {
     }
     document.getElementById('editProductId').value = productId;
     document.getElementById('editProductProgress').style.display = 'none';
-   
+    
     try {
         console.log('📦 Fetching product from Firestore...');
         const docSnap = await getDoc(doc(db, "products", productId));
@@ -2688,12 +2730,12 @@ async function openEditProductModal(productId) {
         }
         const product = docSnap.data();
         console.log('✅ Product loaded:', product);
-       
+        
         // Isi borang
         document.getElementById('editProductName').value = product.name || '';
         document.getElementById('editProductCategory').value = product.category || 'peptides';
         document.getElementById('editProductDescription').value = product.description || '';
-       
+        
         // Isi variasi
         const container = document.getElementById('editVariationsContainer');
         container.innerHTML = '';
@@ -2704,7 +2746,7 @@ async function openEditProductModal(productId) {
         } else {
             addEditVariationRow('', '', '');
         }
-       
+        
         // Tunjukkan modal
         console.log('🔄 Showing modal...');
         const modalEl = document.getElementById('editProductModal');
@@ -2729,7 +2771,7 @@ function addEditVariationRow(size = '', type = '', price = '') {
         <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-edit-variation-btn"><i class="fa-regular fa-trash-can"></i></button></div>
     `;
     container.appendChild(row);
-   
+    
     // Event untuk padam baris
     row.querySelector('.remove-edit-variation-btn').addEventListener('click', function() {
         if (document.querySelectorAll('.edit-variation-row').length > 1) {
@@ -2752,20 +2794,20 @@ document.getElementById('saveEditProductBtn').addEventListener('click', async fu
     const progress = document.getElementById('editProductProgress');
     progress.style.display = 'block';
     progress.innerHTML = '⏳ Menyimpan...';
-   
+    
     try {
         const productId = document.getElementById('editProductId').value;
         const name = document.getElementById('editProductName').value.trim();
         const category = document.getElementById('editProductCategory').value;
         const description = document.getElementById('editProductDescription').value.trim();
-       
+        
         if (!name) {
             showToast('Nama produk diperlukan', true);
             this.disabled = false;
             progress.style.display = 'none';
             return;
         }
-       
+        
         // Kumpul variasi
         const rows = document.querySelectorAll('.edit-variation-row');
         const variations = [];
@@ -2780,14 +2822,14 @@ document.getElementById('saveEditProductBtn').addEventListener('click', async fu
             }
             variations.push({ size, type, price });
         });
-       
+        
         if (hasError || variations.length === 0) {
             showToast('Sila lengkapkan semua variasi dengan harga yang sah', true);
             this.disabled = false;
             progress.style.display = 'none';
             return;
         }
-       
+        
         // Kemas kini di Firestore
         await updateDoc(doc(db, "products", productId), {
             name: name,
@@ -2796,16 +2838,16 @@ document.getElementById('saveEditProductBtn').addEventListener('click', async fu
             variations: variations,
             updatedAt: new Date().toISOString()
         });
-       
+        
         // Kemas kini produk dalam memory (jika perlu)
         const prodIndex = productsData.findIndex(p => p.id === productId);
         if (prodIndex !== -1) {
             productsData[prodIndex] = { ...productsData[prodIndex], name, category, description, variations };
         }
-       
+        
         progress.innerHTML = '✅ Berjaya!';
         showToast('Produk berjaya dikemas kini');
-       
+        
         // Tutup modal dan refresh senarai
         if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
             window.bootstrap.Modal.getInstance(document.getElementById('editProductModal')).hide();
@@ -2814,7 +2856,8 @@ document.getElementById('saveEditProductBtn').addEventListener('click', async fu
         }
         loadExistingProducts();
         populateReadyStockProductSelect();
-       
+        await loadStockData(); // refresh stok
+        
     } catch (err) {
         progress.innerHTML = '❌ Gagal: ' + err.message;
         showToast('Ralat: ' + err.message, true);
@@ -2938,6 +2981,8 @@ document.getElementById('updateReadyStockBtn').addEventListener('click', async f
 
         // Refresh senarai variasi
         document.getElementById('readyStockProductSelect').dispatchEvent(new Event('change'));
+        // Refresh stok
+        await loadStockData();
     } catch (err) {
         progress.innerHTML = '❌ Gagal: ' + err.message;
         showToast('Ralat: ' + err.message, true);
