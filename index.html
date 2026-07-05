@@ -1624,69 +1624,86 @@ async function cancelOrderItem(orderId, itemIndex) {
 }
 window.adminPrintInvoice = adminPrintInvoice;
     // ==================== STOCK MANAGEMENT ====================
-    async function loadStockData() {
-        try {
-            var prodSnap = await getDocs(collection(db, "products"));
-            var firestoreProducts = [];
-            prodSnap.forEach(function(doc) { firestoreProducts.push({ id: doc.id, data: doc.data() }); });
-            // ===== PERUBAHAN: Hanya gunakan produk dari Firestore, tidak gabung dengan hardcoded =====
-            // Ini memastikan produk yang dipadam di Firestore hilang dari senarai stok
-            productsData = firestoreProducts; // Langsung gantikan, tidak merge
+async function loadStockData() {
+    try {
+        var prodSnap = await getDocs(collection(db, "products"));
+        var firestoreProducts = [];
+        prodSnap.forEach(function(doc) { firestoreProducts.push({ id: doc.id, data: doc.data() }); });
+        var allLocalProducts = oralPeptidesData.concat(additionalProducts);
+        var mergedProducts = [];
+        // Tambah produk dari Firestore
+        for (var i = 0; i < firestoreProducts.length; i++) {
+            mergedProducts.push(firestoreProducts[i].data);
+        }
+        // Tambah produk hardcoded yang belum ada di Firestore
+        for (var j = 0; j < allLocalProducts.length; j++) {
+            var localProd = allLocalProducts[j];
+            var exists = false;
+            for (var k = 0; k < mergedProducts.length; k++) {
+                if (mergedProducts[k].id === localProd.id) { exists = true; break; }
+            }
+            if (!exists) mergedProducts.push(localProd);
+        }
 
-            var invSnap = await getDocs(collection(db, "inventory"));
-            inventoryData.clear();
-            invSnap.forEach(function(doc) { inventoryData.set(doc.id, doc.data()); });
+        // ===== TAPIS PRODUK YANG TIADA NAMA =====
+        productsData = mergedProducts.filter(function(p) {
+            return p && p.name && typeof p.name === 'string' && p.name.trim() !== '';
+        });
 
-            stockChanges.clear();
-            readyStockChanges.clear();
-            preorderChanges.clear(); // tambah clear
+        var invSnap = await getDocs(collection(db, "inventory"));
+        inventoryData.clear();
+        invSnap.forEach(function(doc) { inventoryData.set(doc.id, doc.data()); });
 
-            for (let p = 0; p < productsData.length; p++) {
-                var product = productsData[p];
-                if (product.variations) {
-                   for (let v = 0; v < product.variations.length; v++) {
-                        var varItem = product.variations[v];
-                        let key = getVariationKey(product.id, varItem.size, varItem.type);
-                        var existing = inventoryData.get(key);
-                        var currentStock = existing ? existing.stock : 1000;
-                        var currentReady = existing ? existing.readyStock : 0;
-                        var currentAllowPreorder = existing ? existing.allowPreorder : true;
+        stockChanges.clear();
+        readyStockChanges.clear();
+        preorderChanges.clear();  // <-- TAMBAH clear
 
-                        stockChanges.set(key, currentStock);
-                        readyStockChanges.set(key, currentReady);
-                        if (!preorderChanges.has(key)) {
-                            preorderChanges.set(key, currentAllowPreorder);
+        for (let p = 0; p < productsData.length; p++) {
+            var product = productsData[p];
+            if (product.variations) {
+                for (let v = 0; v < product.variations.length; v++) {
+                    var varItem = product.variations[v];
+                    let key = getVariationKey(product.id, varItem.size, varItem.type);
+                    var existing = inventoryData.get(key);
+                    var currentStock = existing ? existing.stock : 1000;
+                    var currentReady = existing ? existing.readyStock : 0;
+                    var currentAllowPreorder = existing ? existing.allowPreorder : true;
+
+                    stockChanges.set(key, currentStock);
+                    readyStockChanges.set(key, currentReady);
+                    if (!preorderChanges.has(key)) {
+                        preorderChanges.set(key, currentAllowPreorder);
+                    }
+
+                    if (!existing) {
+                        await setDoc(doc(db, "inventory", key), {
+                            initialStock: 1000,
+                            stock: currentStock,
+                            readyStock: currentReady,
+                            allowPreorder: currentAllowPreorder
+                        }, { merge: true });
+                        inventoryData.set(key, { initialStock: 1000, stock: currentStock, readyStock: currentReady, allowPreorder: currentAllowPreorder });
+                    } else {
+                        if (!existing.initialStock) {
+                            await setDoc(doc(db, "inventory", key), { initialStock: 1000 }, { merge: true });
+                            existing.initialStock = 1000;
                         }
-
-                        if (!existing) {
-                            await setDoc(doc(db, "inventory", key), {
-                                initialStock: 1000,
-                                stock: currentStock,
-                                readyStock: currentReady,
-                                allowPreorder: currentAllowPreorder
-                            }, { merge: true });
-                            inventoryData.set(key, { initialStock: 1000, stock: currentStock, readyStock: currentReady, allowPreorder: currentAllowPreorder });
-                        } else {
-                            if (!existing.initialStock) {
-                                await setDoc(doc(db, "inventory", key), { initialStock: 1000 }, { merge: true });
-                                existing.initialStock = 1000;
-                            }
-                            inventoryData.set(key, {
-                                initialStock: existing.initialStock,
-                                stock: existing.stock || 1000,
-                                readyStock: existing.readyStock || 0,
-                                allowPreorder: existing.allowPreorder || true
-                            });
-                        }
+                        inventoryData.set(key, {
+                            initialStock: existing.initialStock,
+                            stock: existing.stock || 1000,
+                            readyStock: existing.readyStock || 0,
+                            allowPreorder: existing.allowPreorder || true
+                        });
                     }
                 }
             }
-            renderStockTable();
-        } catch (err) {
-            console.error(err);
-            document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
         }
+        renderStockTable();
+    } catch (err) {
+        console.error(err);
+        document.getElementById('stockLoading').innerHTML = '<div class="alert alert-danger">Gagal memuat data stok</div>';
     }
+}
 // ===== BULK ACTIONS UNTUK STOK =====
 let selectedStockKeys = new Set();
 
