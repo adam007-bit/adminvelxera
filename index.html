@@ -371,7 +371,7 @@
         .report-card strong { display: block; font-size: 0.7rem; text-transform: uppercase; color: #64748b; }
         .report-card span { font-size: 1.2rem; font-weight: 700; color: #0b1a2e; }
 
-        /* ===== BARU: Gaya untuk date range filter ===== */
+        /* ===== Gaya untuk date range filter ===== */
         .date-filter-box {
             background: #f8fafc;
             border-radius: 20px;
@@ -380,7 +380,7 @@
             border: 1px solid #e2e8f0;
         }
         .date-filter-box .btn-show {
-            background: var(--emerald-grad);
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
             color: white;
             border: none;
             border-radius: 40px;
@@ -402,7 +402,7 @@
         .date-result-card .stat-number {
             font-size: 1.8rem;
             font-weight: 700;
-            color: var(--emerald-primary);
+            color: #10b981;
         }
         .date-result-list {
             max-height: 400px;
@@ -600,7 +600,7 @@
             </div>
         </div>
 
-        <!-- SECTION: REPORT -->
+        <!-- SECTION: REPORT (Laporan Jualan) - tanpa kalendar, hanya mingguan/bulanan -->
         <div id="reportSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
                 <h5 class="fw-bold"><i class="fa-solid fa-chart-line text-success me-2"></i> Laporan Jualan</h5>
@@ -611,30 +611,12 @@
                     <button id="weeklyReportBtn" class="active">Mingguan</button>
                     <button id="monthlyReportBtn">Bulanan</button>
                 </div>
-                <!-- ===== BARU: Date Range Filter ===== -->
-                <div class="date-filter-box">
-                    <h6 class="fw-bold"><i class="fa-regular fa-calendar me-2"></i>📅 Cari mengikut Tarikh</h6>
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-4">
-                            <label class="small fw-bold">Tarikh Mula</label>
-                            <input type="date" id="dateFrom" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="small fw-bold">Tarikh Tamat</label>
-                            <input type="date" id="dateTo" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-show w-100" id="dateFilterBtn"><i class="fa-solid fa-magnifying-glass me-1"></i> Tunjukkan</button>
-                        </div>
-                    </div>
-                    <div id="dateFilterResult" class="mt-3"></div>
-                </div>
                 <div id="reportStats" class="report-stats"></div>
                 <div id="reportDetails"></div>
             </div>
         </div>
 
-        <!-- SECTION: PRODUCT REPORT -->
+        <!-- SECTION: PRODUCT REPORT (dengan kalendar) -->
         <div id="productReportSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
                 <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk</h5>
@@ -646,6 +628,26 @@
                     <button class="btn btn-sm btn-outline-primary" id="productReportWeekly">Minggu Ini</button>
                     <button class="btn btn-sm btn-outline-primary" id="productReportMonthly">Bulan Ini</button>
                 </div>
+
+                <!-- ===== DATE RANGE FILTER (di Laporan Produk) ===== -->
+                <div class="date-filter-box">
+                    <h6 class="fw-bold"><i class="fa-regular fa-calendar me-2"></i>📅 Cari mengikut Tarikh</h6>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-4">
+                            <label class="small fw-bold">Tarikh Mula</label>
+                            <input type="date" id="productDateFrom" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="small fw-bold">Tarikh Tamat</label>
+                            <input type="date" id="productDateTo" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-show w-100" id="productDateFilterBtn"><i class="fa-solid fa-magnifying-glass me-1"></i> Tunjukkan</button>
+                        </div>
+                    </div>
+                    <div id="productDateFilterResult" class="mt-3"></div>
+                </div>
+
                 <div id="productReportStats" class="report-stats"></div>
                 <div class="row mt-4">
                     <div class="col-md-8">
@@ -866,7 +868,7 @@
                 setTimeout(function() { t.classList.remove('show'); }, 3500);
             }
 
-            // ORAL PEPTIDES - kategori 'oral'
+            // ========== HARDCODED PRODUCTS (hanya untuk seeding) ==========
             var oralPeptidesData = [
                 { id: "oral_5amino_1mq", name: "5-Amino-1MQ", category: "oral",
                     description: "Supports metabolism, helps increase calorie burning, and may assist with fat loss.",
@@ -894,7 +896,6 @@
                     variations: [{ size: "300mcg", type: "60 Capsules", price: 100 }], stock: 100 }
             ];
 
-            // ========== PRODUK TAMBAHAN ==========
             var additionalProducts = [
                 // SOLVENT
                 { id: "solvent_bac_water", name: "Bac Water", category: "solvent",
@@ -1079,18 +1080,16 @@
                     description: "Glutathione injection for skin brightening and antioxidant support.",
                     variations: [{ size: "600mg", type: "Vial", price: 10 }, { size: "15000mg", type: "Vial",
                             price: 15 }], stock: 100 },
-                // ===== MARINE COLLAGEN =====
                 { id: "beauty_marine_collagen", name: "Marine Collagen", category: "beauty",
                     description: "Marine collagen for skin elasticity and hydration.",
                     variations: [{ size: "5ml", type: "Vial", price: 25 }], stock: 100 },
-                // ===== EXOSOME PDRN =====
                 { id: "beauty_exosome_pdrn", name: "Exosome PDRN", category: "beauty",
                     description: "Exosome PDRN for cellular regeneration and tissue repair.",
                     variations: [{ size: "100mg", type: "Vial", price: 45 }], stock: 100 },
                 { id: "beauty_hikari_premium_drip", name: "Hikari Premium Drip", category: "beauty",
                     description: "Hikari Premium Drip for skin hydration and rejuvenation.",
                     variations: [{ size: "500ml", type: "Drip", price: 220 }], stock: 100 },
-                // PEPTIDES (injectable & fat loss)
+                // PEPTIDES
                 { id: "peptide_retatrutide", name: "Retatrutide", category: "peptides",
                     description: "Triple agonist for weight management.",
                     variations: [{ size: "5mg", type: "Vial", price: 25 }, { size: "10mg", type: "Vial", price: 30 },
@@ -1384,6 +1383,7 @@
                     variations: [{ size: "15mg", type: "Vial", price: 45 }, { size: "30mg", type: "Vial", price: 70 }],
                     stock: 100 }
             ];
+
             // ==================== SEED PRODUK KE FIRESTORE ====================
             async function seedProductsIfNeeded() {
                 console.log('🌱 Seeding products if needed...');
@@ -1417,7 +1417,7 @@
                                         stock: prod.stock || 100,
                                         readyStock: 0,
                                         allowPreorder: true,
-                                        customReadyPrice: null // <-- tambah field harga
+                                        customReadyPrice: null
                                     });
                                     console.log(`   ✅ Seeded inventory: ${key}`);
                                 }
@@ -1429,6 +1429,7 @@
                 }
                 console.log('🌱 Seeding complete.');
             }
+
             // ==================== STATE ====================
             var currentFilter = 'all';
             var searchOrderTerm = '';
@@ -1444,14 +1445,60 @@
             document.addEventListener('DOMContentLoaded', function() {
                 loadOrdersRealtime();
                 seedProductsIfNeeded().then(() => {
-                    loadStockData();
+                    loadStockDataFromFirestoreOnly();
                     if (document.getElementById('tabListProducts').classList.contains('active')) {
                         loadExistingProducts();
                     }
                     populateReadyStockProductSelect();
                 });
-                setupDateFilter();
+                setupProductDateFilter();
             });
+
+            // ===== FUNGSI BARU: Muat produk dari Firestore SAHAJA =====
+            async function loadStockDataFromFirestoreOnly() {
+                try {
+                    const prodSnap = await getDocs(collection(db, "products"));
+                    const firestoreProducts = [];
+                    prodSnap.forEach(doc => firestoreProducts.push({ id: doc.id, ...doc.data() }));
+                    productsData = firestoreProducts;
+
+                    const invSnap = await getDocs(collection(db, "inventory"));
+                    inventoryData.clear();
+                    invSnap.forEach(doc => inventoryData.set(doc.id, doc.data()));
+
+                    stockChanges.clear();
+                    readyStockChanges.clear();
+                    preorderChanges.clear();
+
+                    for (const product of productsData) {
+                        if (product.variations) {
+                            for (const v of product.variations) {
+                                const key = getVariationKey(product.id, v.size, v.type);
+                                if (!inventoryData.has(key)) {
+                                    const newInv = {
+                                        initialStock: product.stock || 100,
+                                        stock: product.stock || 100,
+                                        readyStock: 0,
+                                        allowPreorder: true,
+                                        customReadyPrice: null
+                                    };
+                                    inventoryData.set(key, newInv);
+                                    await setDoc(doc(db, "inventory", key), newInv);
+                                }
+                            }
+                        }
+                    }
+
+                    renderStockTable();
+                } catch (err) {
+                    console.error('Error loading stock from Firestore:', err);
+                    document.getElementById('stockLoading').innerHTML =
+                        '<div class="alert alert-danger">Gagal memuat data stok</div>';
+                }
+            }
+
+            var loadStockData = loadStockDataFromFirestoreOnly;
+
             // ===== CARIAN PESANAN =====
             var orderSearchInput = document.getElementById('orderSearchInput');
             var clearOrderSearchBtn = document.getElementById('clearOrderSearchBtn');
@@ -1989,90 +2036,10 @@
                 }
             }
             window.adminPrintInvoice = adminPrintInvoice;
+
             // ==================== STOCK MANAGEMENT ====================
-            async function loadStockData() {
-                try {
-                    var prodSnap = await getDocs(collection(db, "products"));
-                    var firestoreProducts = [];
-                    prodSnap.forEach(function(doc) { firestoreProducts.push({ id: doc.id, data: doc.data() }); });
-                    var allLocalProducts = oralPeptidesData.concat(additionalProducts);
-                    var mergedProducts = [];
-                    for (var i = 0; i < firestoreProducts.length; i++) {
-                        mergedProducts.push(firestoreProducts[i].data);
-                    }
-                    for (var j = 0; j < allLocalProducts.length; j++) {
-                        var localProd = allLocalProducts[j];
-                        var exists = false;
-                        for (var k = 0; k < mergedProducts.length; k++) {
-                            if (mergedProducts[k].id === localProd.id) { exists = true; break; }
-                        }
-                        if (!exists) mergedProducts.push(localProd);
-                    }
+            // (loadStockData sudah digantikan dengan loadStockDataFromFirestoreOnly)
 
-                    productsData = mergedProducts.filter(function(p) {
-                        return p && p.name && typeof p.name === 'string' && p.name.trim() !== '';
-                    });
-
-                    var invSnap = await getDocs(collection(db, "inventory"));
-                    inventoryData.clear();
-                    invSnap.forEach(function(doc) { inventoryData.set(doc.id, doc.data()); });
-
-                    stockChanges.clear();
-                    readyStockChanges.clear();
-                    preorderChanges.clear();
-
-                    for (let p = 0; p < productsData.length; p++) {
-                        var product = productsData[p];
-                        if (product.variations) {
-                            for (let v = 0; v < product.variations.length; v++) {
-                                var varItem = product.variations[v];
-                                let key = getVariationKey(product.id, varItem.size, varItem.type);
-                                var existing = inventoryData.get(key);
-                                var currentStock = existing ? existing.stock : 1000;
-                                var currentReady = existing ? existing.readyStock : 0;
-                                var currentAllowPreorder = existing ? existing.allowPreorder : true;
-
-                                stockChanges.set(key, currentStock);
-                                readyStockChanges.set(key, currentReady);
-                                if (!preorderChanges.has(key)) {
-                                    preorderChanges.set(key, currentAllowPreorder);
-                                }
-
-                                if (!existing) {
-                                    await setDoc(doc(db, "inventory", key), {
-                                        initialStock: 1000,
-                                        stock: currentStock,
-                                        readyStock: currentReady,
-                                        allowPreorder: currentAllowPreorder,
-                                        customReadyPrice: null
-                                    }, { merge: true });
-                                    inventoryData.set(key, { initialStock: 1000, stock: currentStock,
-                                        readyStock: currentReady, allowPreorder: currentAllowPreorder,
-                                        customReadyPrice: null });
-                                } else {
-                                    if (!existing.initialStock) {
-                                        await setDoc(doc(db, "inventory", key), { initialStock: 1000 },
-                                        { merge: true });
-                                        existing.initialStock = 1000;
-                                    }
-                                    inventoryData.set(key, {
-                                        initialStock: existing.initialStock,
-                                        stock: existing.stock || 1000,
-                                        readyStock: existing.readyStock || 0,
-                                        allowPreorder: existing.allowPreorder || true,
-                                        customReadyPrice: existing.customReadyPrice || null
-                                    });
-                                }
-                            }
-                        }
-                    }
-                    renderStockTable();
-                } catch (err) {
-                    console.error(err);
-                    document.getElementById('stockLoading').innerHTML =
-                        '<div class="alert alert-danger">Gagal memuat data stok</div>';
-                }
-            }
             // ===== BULK ACTIONS UNTUK STOK =====
             let selectedStockKeys = new Set();
 
@@ -2198,7 +2165,7 @@
                 }
             });
 
-            // ==================== RENDER STOK (VERSI DIPERBAIKI) ====================
+            // ==================== RENDER STOK ====================
             function renderStockTable() {
                 var tbody = document.getElementById('stockTableBody');
                 tbody.innerHTML = '';
@@ -2218,28 +2185,28 @@
                         var initialStock = invData.initialStock || 1000;
                         var row = document.createElement('tr');
                         row.innerHTML = `
-                <td><input type="checkbox" class="stock-checkbox" data-key="${key}"></td>
-                <td class="product-name-normal">${escapeHtml(product.name)}</td>
-                <td>${escapeHtml(varItem.size)}</td>
-                <td>${escapeHtml(varItem.type)}</td>
-                <td>${initialStock}</td>
-                <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0"></td>
-                <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0"></td>
-                <td>
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady"><span></span></div>
-                        <span class="small fw-bold" style="color:${currentReady > 0 ? '#10b981' : '#94a3b8'};">${currentReady > 0 ? 'ON' : 'OFF'}</span>
-                        <span class="small text-muted">${currentReady > 0 ? 'Ready Stock' : 'Pre-order'}</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="toggle-switch ${currentAllowPreorder ? 'active' : ''}" data-key="${key}" data-field="togglePreorder"><span></span></div>
-                        <span class="small fw-bold" style="color:${currentAllowPreorder ? '#f59e0b' : '#94a3b8'};">${currentAllowPreorder ? 'ON' : 'OFF'}</span>
-                        <span class="small text-muted">${currentAllowPreorder ? 'Boleh Pre-order' : 'Tutup Pre-order'}</span>
-                    </div>
-                </td>
-            `;
+                            <td><input type="checkbox" class="stock-checkbox" data-key="${key}"></td>
+                            <td class="product-name-normal">${escapeHtml(product.name)}</td>
+                            <td>${escapeHtml(varItem.size)}</td>
+                            <td>${escapeHtml(varItem.type)}</td>
+                            <td>${initialStock}</td>
+                            <td><input type="number" class="stock-input" data-key="${key}" data-field="stock" value="${currentStock}" min="0"></td>
+                            <td><input type="number" class="stock-input" data-key="${key}" data-field="ready" value="${currentReady}" min="0"></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="toggle-switch ${currentReady > 0 ? 'active' : ''}" data-key="${key}" data-field="toggleReady"><span></span></div>
+                                    <span class="small fw-bold" style="color:${currentReady > 0 ? '#10b981' : '#94a3b8'};">${currentReady > 0 ? 'ON' : 'OFF'}</span>
+                                    <span class="small text-muted">${currentReady > 0 ? 'Ready Stock' : 'Pre-order'}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="toggle-switch ${currentAllowPreorder ? 'active' : ''}" data-key="${key}" data-field="togglePreorder"><span></span></div>
+                                    <span class="small fw-bold" style="color:${currentAllowPreorder ? '#f59e0b' : '#94a3b8'};">${currentAllowPreorder ? 'ON' : 'OFF'}</span>
+                                    <span class="small text-muted">${currentAllowPreorder ? 'Boleh Pre-order' : 'Tutup Pre-order'}</span>
+                                </div>
+                            </td>
+                        `;
                         tbody.appendChild(row);
 
                         var toggleReady = row.querySelector('[data-field="toggleReady"]');
@@ -2385,7 +2352,8 @@
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = '<i class="fa-solid fa-save me-1"></i> Simpan Semua';
             });
-            // ==================== REPORT ====================
+
+            // ==================== REPORT (Laporan Jualan) - tanpa kalendar ====================
             var reportType = 'weekly';
 
             function updateReport() {
@@ -2423,10 +2391,10 @@
                 }
                 var latest = weeksMap.get(sorted[0]);
                 statsDiv.innerHTML = `
-                    <div class="report-card"><strong>Minggu Terkini</strong><span>${latest.week} / ${latest.year}</span><span>${latest.orders.length} pesanan<br>RM ${latest.totalSales.toFixed(2)}</span></div>
-                    <div class="report-card"><strong>Jumlah Item</strong><span>${latest.totalItems} unit</span></div>
-                    <div class="report-card"><strong>Purata / Pesanan</strong><span>RM ${(latest.totalSales/latest.orders.length).toFixed(2)}</span></div>
-                `;
+                        <div class="report-card"><strong>Minggu Terkini</strong><span>${latest.week} / ${latest.year}</span><span>${latest.orders.length} pesanan<br>RM ${latest.totalSales.toFixed(2)}</span></div>
+                        <div class="report-card"><strong>Jumlah Item</strong><span>${latest.totalItems} unit</span></div>
+                        <div class="report-card"><strong>Purata / Pesanan</strong><span>RM ${(latest.totalSales/latest.orders.length).toFixed(2)}</span></div>
+                    `;
                 var html = '<h6 class="mt-3">📋 Senarai Mingguan (terbaru ke lama)</h6><div class="list-group">';
                 for (var k = 0; k < sorted.length; k++) {
                     var key2 = sorted[k];
@@ -2469,10 +2437,10 @@
                 }
                 var latest = monthsMap.get(sorted[0]);
                 statsDiv.innerHTML = `
-                    <div class="report-card"><strong>Bulan Terkini</strong><span>${latest.month} / ${latest.year}</span><span>${latest.orders.length} pesanan<br>RM ${latest.totalSales.toFixed(2)}</span></div>
-                    <div class="report-card"><strong>Jumlah Item</strong><span>${latest.totalItems} unit</span></div>
-                    <div class="report-card"><strong>Purata / Pesanan</strong><span>RM ${(latest.totalSales/latest.orders.length).toFixed(2)}</span></div>
-                `;
+                        <div class="report-card"><strong>Bulan Terkini</strong><span>${latest.month} / ${latest.year}</span><span>${latest.orders.length} pesanan<br>RM ${latest.totalSales.toFixed(2)}</span></div>
+                        <div class="report-card"><strong>Jumlah Item</strong><span>${latest.totalItems} unit</span></div>
+                        <div class="report-card"><strong>Purata / Pesanan</strong><span>RM ${(latest.totalSales/latest.orders.length).toFixed(2)}</span></div>
+                    `;
                 var html = '<h6 class="mt-3">📋 Senarai Bulanan (terbaru ke lama)</h6><div class="list-group">';
                 for (var k = 0; k < sorted.length; k++) {
                     var key2 = sorted[k];
@@ -2513,18 +2481,18 @@
                 updateReport();
             });
 
-            // ===== DATE RANGE FILTER =====
-            function setupDateFilter() {
-                document.getElementById('dateFilterBtn').addEventListener('click', function() {
-                    var from = document.getElementById('dateFrom').value;
-                    var to = document.getElementById('dateTo').value;
+            // ===== DATE RANGE FILTER untuk Laporan Produk =====
+            function setupProductDateFilter() {
+                document.getElementById('productDateFilterBtn').addEventListener('click', function() {
+                    var from = document.getElementById('productDateFrom').value;
+                    var to = document.getElementById('productDateTo').value;
                     if (!from || !to) {
                         showToast('Sila pilih kedua-dua tarikh', true);
                         return;
                     }
                     var fromDate = new Date(from);
                     var toDate = new Date(to);
-                    toDate.setHours(23, 59, 59, 999); // include whole day
+                    toDate.setHours(23, 59, 59, 999);
 
                     var completedOrders = ordersData.filter(function(o) {
                         return o.status === 'completed' && o.completedAt;
@@ -2535,7 +2503,7 @@
                         return d >= fromDate && d <= toDate;
                     });
 
-                    var resultDiv = document.getElementById('dateFilterResult');
+                    var resultDiv = document.getElementById('productDateFilterResult');
                     if (filtered.length === 0) {
                         resultDiv.innerHTML =
                             '<div class="alert alert-info">Tiada pesanan selesai dalam tempoh ini.</div>';
@@ -2549,28 +2517,28 @@
                     }, 0);
 
                     var html = `
-                        <div class="date-result-card">
-                            <div class="row">
-                                <div class="col-4"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
-                                <div class="col-4"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
-                                <div class="col-4"><strong>Jumlah Item</strong><div class="stat-number">${totalItems}</div></div>
+                            <div class="date-result-card">
+                                <div class="row">
+                                    <div class="col-4"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
+                                    <div class="col-4"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
+                                    <div class="col-4"><strong>Jumlah Item</strong><div class="stat-number">${totalItems}</div></div>
+                                </div>
+                                <div class="date-result-list mt-3">
+                                    <h6>📋 Senarai Pesanan</h6>
+                                    ${filtered.map(o => `
+                                        <div class="border-bottom py-2">
+                                            <div><strong>${escapeHtml(o.orderId || o.id)}</strong> – RM ${o.totalAmount.toFixed(2)}</div>
+                                            <div class="small text-muted">Pelanggan: ${escapeHtml(o.customer ? o.customer.name : '')} | Tarikh: ${new Date(o.completedAt).toLocaleString()}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
-                            <div class="date-result-list mt-3">
-                                <h6>📋 Senarai Pesanan</h6>
-                                ${filtered.map(o => `
-                                    <div class="border-bottom py-2">
-                                        <div><strong>${escapeHtml(o.orderId || o.id)}</strong> – RM ${o.totalAmount.toFixed(2)}</div>
-                                        <div class="small text-muted">Pelanggan: ${escapeHtml(o.customer ? o.customer.name : '')} | Tarikh: ${new Date(o.completedAt).toLocaleString()}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
+                        `;
                     resultDiv.innerHTML = html;
                 });
             }
 
-            // ==================== PRODUCT REPORT (PREMIUM) ====================
+            // ==================== PRODUCT REPORT ====================
             let productChartInstance = null;
             let statusChartInstance = null;
             let typeChartInstance = null;
@@ -2661,12 +2629,12 @@
 
                 var statsDiv = document.getElementById('productReportStats');
                 statsDiv.innerHTML = `
-                    <div class="report-card"><strong>Jumlah Produk Terjual</strong><span>${sorted.length}</span></div>
-                    <div class="report-card"><strong>Total Unit</strong><span>${sorted.reduce(function(s, p) { return s + p.totalQty; }, 0)}</span></div>
-                    <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
-                    <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
-                    <div class="report-card"><strong>Pendapatan (RM)</strong><span>RM ${totalRevenue.toFixed(2)}</span></div>
-                `;
+                        <div class="report-card"><strong>Jumlah Produk Terjual</strong><span>${sorted.length}</span></div>
+                        <div class="report-card"><strong>Total Unit</strong><span>${sorted.reduce(function(s, p) { return s + p.totalQty; }, 0)}</span></div>
+                        <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
+                        <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
+                        <div class="report-card"><strong>Pendapatan (RM)</strong><span>RM ${totalRevenue.toFixed(2)}</span></div>
+                    `;
 
                 var analysisDiv = document.getElementById('productReportAnalysis');
                 if (analysisDiv) {
@@ -2676,11 +2644,11 @@
                         totalReadyQty)) * 100).toFixed(1) : 0;
                     var topProduct = sorted.length ? sorted[0].name : '-';
                     analysisDiv.innerHTML = `
-                        <div class="col-6 col-md-3"><strong>Purata Harga/Unit:</strong> RM ${avgPrice.toFixed(2)}</div>
-                        <div class="col-6 col-md-3"><strong>Nisbah Pre‑order:</strong> ${poPercent}%</div>
-                        <div class="col-6 col-md-3"><strong>Top Produk:</strong> ${topProduct}</div>
-                        <div class="col-6 col-md-3"><strong>Jumlah Order:</strong> ${filteredOrders.length}</div>
-                    `;
+                            <div class="col-6 col-md-3"><strong>Purata Harga/Unit:</strong> RM ${avgPrice.toFixed(2)}</div>
+                            <div class="col-6 col-md-3"><strong>Nisbah Pre‑order:</strong> ${poPercent}%</div>
+                            <div class="col-6 col-md-3"><strong>Top Produk:</strong> ${topProduct}</div>
+                            <div class="col-6 col-md-3"><strong>Jumlah Order:</strong> ${filteredOrders.length}</div>
+                        `;
                 }
 
                 var tbody = document.getElementById('productReportBody');
@@ -2918,6 +2886,7 @@
             setInterval(function() {
                 if (reportSection.style.display === 'block') updateReport();
             }, 10000);
+
             // ==================== PRODUCT MANAGEMENT ====================
             document.getElementById('toggleProductManagementBtn').addEventListener('click', function() {
                 ordersSection.style.display = 'none';
@@ -2936,11 +2905,11 @@
                 const row = document.createElement('div');
                 row.className = 'row g-2 mb-2 variation-row';
                 row.innerHTML = `
-                    <div class="col-4"><input type="text" class="form-control form-control-sm var-size" placeholder="Saiz"></div>
-                    <div class="col-4"><input type="text" class="form-control form-control-sm var-type" placeholder="Jenis"></div>
-                    <div class="col-3"><input type="number" class="form-control form-control-sm var-price" placeholder="Harga" step="0.01"></div>
-                    <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-variation-btn"><i class="fa-regular fa-trash-can"></i></button></div>
-                `;
+                        <div class="col-4"><input type="text" class="form-control form-control-sm var-size" placeholder="Saiz"></div>
+                        <div class="col-4"><input type="text" class="form-control form-control-sm var-type" placeholder="Jenis"></div>
+                        <div class="col-3"><input type="number" class="form-control form-control-sm var-price" placeholder="Harga" step="0.01"></div>
+                        <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-variation-btn"><i class="fa-regular fa-trash-can"></i></button></div>
+                    `;
                 container.appendChild(row);
                 row.querySelector('.remove-variation-btn').addEventListener('click', function() {
                     if (document.querySelectorAll('.variation-row').length > 1) {
@@ -2971,14 +2940,14 @@
                         const varStr = data.variations ? data.variations.map(v =>
                             `${v.size} ${v.type} RM${v.price}`).join(', ') : '-';
                         html += `<tr>
-                            <td>${escapeHtml(data.name)}</td>
-                            <td>${escapeHtml(data.category)}</td>
-                            <td><small>${escapeHtml(varStr)}</small></td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary edit-product-btn me-1" data-id="${doc.id}"><i class="fa-regular fa-pen-to-square"></i></button>
-                                <button class="btn btn-sm btn-outline-danger delete-product-btn" data-id="${doc.id}"><i class="fa-regular fa-trash-can"></i></button>
-                            </td>
-                        </tr>`;
+                                <td>${escapeHtml(data.name)}</td>
+                                <td>${escapeHtml(data.category)}</td>
+                                <td><small>${escapeHtml(varStr)}</small></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary edit-product-btn me-1" data-id="${doc.id}"><i class="fa-regular fa-pen-to-square"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger delete-product-btn" data-id="${doc.id}"><i class="fa-regular fa-trash-can"></i></button>
+                                </td>
+                            </tr>`;
                     });
                     tbody.innerHTML = html;
                     console.log('✅ Products rendered, edit buttons count:', document.querySelectorAll(
@@ -3036,6 +3005,7 @@
                 function() {
                     populateReadyStockProductSelect();
                 });
+
             // --- Tambah produk baru ---
             document.getElementById('addProductForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -3097,13 +3067,13 @@
                     showToast(`✅ Produk "${name}" berjaya ditambah!`);
                     document.getElementById('addProductForm').reset();
                     document.getElementById('variationsContainer').innerHTML = `
-                        <div class="row g-2 mb-2 variation-row">
-                            <div class="col-4"><input type="text" class="form-control form-control-sm var-size" placeholder="Saiz (cth: 10mg)"></div>
-                            <div class="col-4"><input type="text" class="form-control form-control-sm var-type" placeholder="Jenis (cth: Vial)"></div>
-                            <div class="col-3"><input type="number" class="form-control form-control-sm var-price" placeholder="Harga (RM)" step="0.01"></div>
-                            <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-variation-btn" style="display:none;"><i class="fa-regular fa-trash-can"></i></button></div>
-                        </div>
-                    `;
+                            <div class="row g-2 mb-2 variation-row">
+                                <div class="col-4"><input type="text" class="form-control form-control-sm var-size" placeholder="Saiz (cth: 10mg)"></div>
+                                <div class="col-4"><input type="text" class="form-control form-control-sm var-type" placeholder="Jenis (cth: Vial)"></div>
+                                <div class="col-3"><input type="number" class="form-control form-control-sm var-price" placeholder="Harga (RM)" step="0.01"></div>
+                                <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-variation-btn" style="display:none;"><i class="fa-regular fa-trash-can"></i></button></div>
+                            </div>
+                        `;
                     loadExistingProducts();
                     populateReadyStockProductSelect();
                     await loadStockData();
@@ -3114,6 +3084,7 @@
                     btn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Produk';
                 }
             });
+
             // ===== EDIT PRODUK =====
             async function openEditProductModal(productId) {
                 console.log('🔍 openEditProductModal called with ID:', productId);
@@ -3165,11 +3136,11 @@
                 const row = document.createElement('div');
                 row.className = 'row g-2 mb-2 edit-variation-row';
                 row.innerHTML = `
-                    <div class="col-4"><input type="text" class="form-control form-control-sm edit-var-size" value="${escapeHtml(size)}" placeholder="Saiz"></div>
-                    <div class="col-4"><input type="text" class="form-control form-control-sm edit-var-type" value="${escapeHtml(type)}" placeholder="Jenis"></div>
-                    <div class="col-3"><input type="number" class="form-control form-control-sm edit-var-price" value="${price}" placeholder="Harga" step="0.01"></div>
-                    <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-edit-variation-btn"><i class="fa-regular fa-trash-can"></i></button></div>
-                `;
+                        <div class="col-4"><input type="text" class="form-control form-control-sm edit-var-size" value="${escapeHtml(size)}" placeholder="Saiz"></div>
+                        <div class="col-4"><input type="text" class="form-control form-control-sm edit-var-type" value="${escapeHtml(type)}" placeholder="Jenis"></div>
+                        <div class="col-3"><input type="number" class="form-control form-control-sm edit-var-price" value="${price}" placeholder="Harga" step="0.01"></div>
+                        <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger remove-edit-variation-btn"><i class="fa-regular fa-trash-can"></i></button></div>
+                    `;
                 container.appendChild(row);
 
                 row.querySelector('.remove-edit-variation-btn').addEventListener('click', function() {
@@ -3278,6 +3249,7 @@
                     };
                 }
             }
+
             // ===== READY STOCK MANAGEMENT =====
             async function populateReadyStockProductSelect() {
                 const select = document.getElementById('readyStockProductSelect');
@@ -3322,7 +3294,6 @@
                             `${v.size} - ${v.type} (RM${v.price}) | Ready: ${readyStock} | Harga Khas: ${customPrice ? 'RM'+customPrice : 'Auto+20'}`;
                         varSelect.appendChild(opt);
                     });
-                    // Set nilai harga sedia ada
                     const firstKey = varSelect.value;
                     if (firstKey) {
                         const inv = inventoryData.get(firstKey);
@@ -3335,7 +3306,6 @@
                 }
             });
 
-            // Apabila variasi dipilih, isi harga sedia ada
             document.getElementById('readyStockVariationSelect').addEventListener('change', function() {
                 const key = this.value;
                 if (!key) return;
@@ -3395,16 +3365,16 @@
                     setTimeout(() => { progress.style.display = 'none'; }, 2000);
                 }
             });
-    </script>
+        </script>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('sw.js')
-                    .then(function(reg) { console.log('✅ Service Worker registered:', reg.scope); })
-                    .catch(function(err) { console.warn('Service Worker registration failed:', err); });
-            });
-        }
-    </script>
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('sw.js')
+                        .then(function(reg) { console.log('✅ Service Worker registered:', reg.scope); })
+                        .catch(function(err) { console.warn('Service Worker registration failed:', err); });
+                });
+            }
+        </script>
 </body>
 </html>
