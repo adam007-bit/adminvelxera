@@ -2623,9 +2623,9 @@ resultDiv.innerHTML = html;
                     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
                 }
 
-                var allOrders = ordersData.filter(function(o) {
-                    return o.status === 'completed' || o.status === 'pending';
-                });
+              var allOrders = ordersData.filter(function(o) {
+    return o.status === 'completed' || o.status === 'pending';
+});
                 var filteredOrders = startDate ? allOrders.filter(function(o) {
                     return new Date(o.createdAt) >= startDate;
                 }) : allOrders;
