@@ -713,9 +713,10 @@
                                 <label class="form-label fw-bold small">Kategori</label>
                                 <select id="newProductCategory" class="form-select">
                                     <option value="peptides">Peptides</option>
-                                    <option value="beauty">Beauty Peptides</option>
+                                    <option value="cbeauty">C-Beauty</option>
+                                    <option value="kbeauty">K-Beauty</option>
                                     <option value="solvent">Solvent</option>
-                                    <option value="oral">Oral Peptides</option>
+                                    <option value="wellness">Wellness</option>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -803,10 +804,11 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Kategori</label>
                                 <select id="editProductCategory" class="form-select">
-                                    <option value="peptides">Peptides</option>
-                                    <option value="beauty">Beauty Peptides</option>
-                                    <option value="solvent">Solvent</option>
-                                    <option value="oral">Oral Peptides</option>
+                                   <option value="peptides">Peptides</option>
+                                   <option value="cbeauty">C-Beauty</option>
+                                   <option value="kbeauty">K-Beauty</option>
+                                   <option value="solvent">Solvent</option>
+                                   <option value="wellness">Wellness</option>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -870,28 +872,28 @@
 
             // ========== HARDCODED PRODUCTS (hanya untuk seeding) ==========
             var oralPeptidesData = [
-                { id: "oral_5amino_1mq", name: "5-Amino-1MQ", category: "oral",
+                { id: "oral_5amino_1mq", name: "5-Amino-1MQ", category: "wellness",
                     description: "Supports metabolism, helps increase calorie burning, and may assist with fat loss.",
                     variations: [{ size: "50mg", type: "60 Capsules", price: 210 }], stock: 100 },
-                { id: "oral_bpc157", name: "BPC-157", category: "oral",
+                { id: "oral_bpc157", name: "BPC-157", category: "wellness",
                     description: "Supports recovery, tissue repair, gut health, and injury healing.",
                     variations: [{ size: "500mcg", type: "100 Capsules", price: 160 }], stock: 100 },
-                { id: "oral_tesofensine", name: "Tesofensine", category: "oral",
+                { id: "oral_tesofensine", name: "Tesofensine", category: "wellness",
                     description: "Helps reduce appetite, control cravings, and support weight loss.",
                     variations: [{ size: "500mcg", type: "60 Capsules", price: 140 }], stock: 100 },
-                { id: "oral_dihexa", name: "Dihexa", category: "oral",
+                { id: "oral_dihexa", name: "Dihexa", category: "wellness",
                     description: "Supports memory, focus, learning, and cognitive performance.",
                     variations: [{ size: "10mg", type: "60 Capsules", price: 150 }], stock: 100 },
-                { id: "oral_bam15", name: "BAM15", category: "oral",
+                { id: "oral_bam15", name: "BAM15", category: "wellness",
                     description: "May increase energy expenditure and support fat loss without stimulants.",
                     variations: [{ size: "50mg", type: "60 Capsules", price: 470 }], stock: 100 },
-                { id: "oral_orforglipron", name: "Orforglipron", category: "oral",
+                { id: "oral_orforglipron", name: "Orforglipron", category: "wellness",
                     description: "Helps reduce appetite, improve blood sugar control, and support weight management.",
                     variations: [{ size: "6mg", type: "90 Capsules", price: 480 }], stock: 100 },
-                { id: "oral_slupp332", name: "SLU-PP-332", category: "oral",
+                { id: "oral_slupp332", name: "SLU-PP-332", category: "wellness",
                     description: "Designed to enhance endurance, increase energy utilization, and support fat burning.",
                     variations: [{ size: "250mcg", type: "100 Capsules", price: 70 }], stock: 100 },
-                { id: "oral_kpv", name: "KPV", category: "oral",
+                { id: "oral_kpv", name: "KPV", category: "wellness",
                     description: "Used to calm inflammation in the gut, skin, and throughout the body.",
                     variations: [{ size: "300mcg", type: "60 Capsules", price: 100 }], stock: 100 }
             ];
@@ -910,183 +912,183 @@
                 { id: "solvent_acetic_acid", name: "Acetic Acid", category: "solvent",
                     description: "For peptide reconstitution.", variations: [{ size: "3ml", type: "Vial", price: 4 },
                         { size: "10ml", type: "Vial", price: 5 }], stock: 100 },
-                // BEAUTY PEPTIDES
-                { id: "beauty_ghk_cu", name: "GHK-Cu", category: "beauty",
+                // BEAUTY PEPTIDES → C-BEAUTY
+                { id: "beauty_ghk_cu", name: "GHK-Cu", category: "cbeauty",
                     description: "Copper peptide for hair and skin (injectable).", variations: [{ size: "50mg",
                         type: "Vial", price: 12 }, { size: "100mg", type: "Vial", price: 15 }], stock: 100 },
-                { id: "beauty_ahk_cu", name: "AHK-CU", category: "beauty",
+                { id: "beauty_ahk_cu", name: "AHK-CU", category: "cbeauty",
                     description: "Copper peptide for hair growth.", variations: [{ size: "50mg", type: "Vial",
                         price: 20 }, { size: "100mg", type: "Vial", price: 35 }], stock: 100 },
-                { id: "beauty_glutathione", name: "Glutathione (Fuan)", category: "beauty",
+                { id: "beauty_glutathione", name: "Glutathione (Fuan)", category: "cbeauty",
                     description: "Antioxidant for skin brightening.", variations: [{ size: "600mg", type: "Vial",
                             price: 15 }, { size: "1500mg", type: "Vial", price: 35 }], stock: 100 },
-                { id: "beauty_glow", name: "Glow", category: "beauty",
+                { id: "beauty_glow", name: "Glow", category: "cbeauty",
                     description: "Skin brightening and anti-aging.", variations: [{ size: "70mg", type: "Vial",
                             price: 70 }], stock: 100 },
-                { id: "beauty_klow", name: "Klow", category: "beauty",
+                { id: "beauty_klow", name: "Klow", category: "cbeauty",
                     description: "Brightening and anti-aging peptide complex.", variations: [{ size: "80mg", type: "Vial",
                             price: 80 }], stock: 100 },
-                { id: "beauty_snap8", name: "Snap-8", category: "beauty", description: "Anti-aging peptide.",
+                { id: "beauty_snap8", name: "Snap-8", category: "cbeauty", description: "Anti-aging peptide.",
                     variations: [{ size: "10mg", type: "Vial", price: 20 }], stock: 100 },
-                { id: "beauty_matrixyl", name: "Matrixyl", category: "beauty", description: "Anti-wrinkle peptide.",
+                { id: "beauty_matrixyl", name: "Matrixyl", category: "cbeauty", description: "Anti-wrinkle peptide.",
                     variations: [{ size: "10mg", type: "Vial", price: 25 }], stock: 100 },
-                { id: "beauty_matrixyl3000", name: "Matrixyl 3000", category: "beauty",
+                { id: "beauty_matrixyl3000", name: "Matrixyl 3000", category: "cbeauty",
                     description: "Advanced anti-aging peptide.", variations: [{ size: "10mg", type: "Vial", price: 120 }],
                     stock: 100 },
-                { id: "beauty_ggh", name: "GGH", category: "beauty",
+                { id: "beauty_ggh", name: "GGH", category: "cbeauty",
                     description: "Growth hormone releasing peptide for skin.", variations: [{ size: "10ml", type: "Vial",
                             price: 70 }], stock: 100 },
-                { id: "beauty_pdrn", name: "PDRN", category: "beauty",
+                { id: "beauty_pdrn", name: "PDRN", category: "cbeauty",
                     description: "Polydeoxyribonucleotide for tissue repair.", variations: [{ size: "5ml", type: "Vial",
                             price: 25 }], stock: 100 },
-                { id: "beauty_botulinum_toxin", name: "Botulinum Toxin", category: "beauty",
+                { id: "beauty_botulinum_toxin", name: "Botulinum Toxin", category: "cbeauty",
                     description: "Neurotoxin for cosmetic use.", variations: [{ size: "100iu", type: "Vial", price: 40 }],
                     stock: 100 },
-                { id: "beauty_super_beauty", name: "Super Beauty (HHB)", category: "beauty",
+                { id: "beauty_super_beauty", name: "Super Beauty (HHB)", category: "cbeauty",
                     description: "Skin brightening and anti-aging.", variations: [{ size: "10ml", type: "Vial",
                             price: 35 }], stock: 100 },
-                { id: "beauty_hyaluronic_acid", name: "Hyaluronic Acid", category: "beauty",
+                { id: "beauty_hyaluronic_acid", name: "Hyaluronic Acid", category: "cbeauty",
                     description: "Moisture retention.", variations: [{ size: "5mg", type: "Vial", price: 15 }],
                     stock: 100 },
-                { id: "beauty_pink_hyaluronic", name: "Pink Hyaluronic Acid", category: "beauty",
+                { id: "beauty_pink_hyaluronic", name: "Pink Hyaluronic Acid", category: "cbeauty",
                     description: "Hyaluronic acid formulation.", variations: [{ size: "5ml", type: "Vial", price: 25 }],
                     stock: 100 },
-                { id: "beauty_whitening_spot", name: "Whitening & Spot Fading", category: "beauty",
+                { id: "beauty_whitening_spot", name: "Whitening & Spot Fading", category: "cbeauty",
                     description: "Skin lightening complex.", variations: [{ size: "5ml", type: "Vial", price: 30 }],
                     stock: 100 },
-                { id: "beauty_snake_venom", name: "Snake Venom", category: "beauty",
+                { id: "beauty_snake_venom", name: "Snake Venom", category: "cbeauty",
                     description: "Synthetic peptide for anti-wrinkle.", variations: [{ size: "5ml", type: "Vial",
                             price: 10 }], stock: 100 },
-                { id: "beauty_pe_22_28", name: "PE 22 28", category: "beauty", description: "Anti-aging peptide.",
+                { id: "beauty_pe_22_28", name: "PE 22 28", category: "cbeauty", description: "Anti-aging peptide.",
                     variations: [{ size: "5mg", type: "Vial", price: 25 }, { size: "10mg", type: "Vial", price: 40 }],
                     stock: 100 },
-                { id: "beauty_pigment_serum", name: "Pigment Serum", category: "beauty",
+                { id: "beauty_pigment_serum", name: "Pigment Serum", category: "cbeauty",
                     description: "Brightening and spot fading serum.", variations: [{ size: "10ml", type: "Serum",
                             price: 10 }], stock: 100 },
-                { id: "beauty_oligo_peptide24", name: "Oligo Peptide 24", category: "beauty",
+                { id: "beauty_oligo_peptide24", name: "Oligo Peptide 24", category: "cbeauty",
                     description: "Anti-aging peptide complex.", variations: [{ size: "10mg", type: "Peptide",
                             price: 15 }], stock: 100 },
-                { id: "beauty_vitamin_c_tablet", name: "Vitamin C Tablet With Essense", category: "beauty",
+                { id: "beauty_vitamin_c_tablet", name: "Vitamin C Tablet With Essense", category: "cbeauty",
                     description: "Vitamin C brightening tablets with essence.", variations: [{ size: "10pcs",
                         type: "Tablet", price: 20 }], stock: 100 },
-                { id: "beauty_acne_serum", name: "Acne Serum", category: "beauty",
+                { id: "beauty_acne_serum", name: "Acne Serum", category: "cbeauty",
                     description: "Anti-acne and soothing serum.", variations: [{ size: "5ml", type: "Serum", price: 10 }],
                     stock: 100 },
-                { id: "beauty_hydro_glow", name: "Hydro Glow Serum", category: "beauty",
+                { id: "beauty_hydro_glow", name: "Hydro Glow Serum", category: "cbeauty",
                     description: "Hydrating and brightening serum.", variations: [{ size: "5ml", type: "Serum",
                             price: 10 }], stock: 100 },
-                { id: "beauty_ghkcu_serum", name: "GHK-Cu Serum", category: "beauty",
+                { id: "beauty_ghkcu_serum", name: "GHK-Cu Serum", category: "cbeauty",
                     description: "Copper peptide serum for anti-aging.", variations: [{ size: "5ml", type: "Serum",
                             price: 10 }], stock: 100 },
-                { id: "beauty_ghkcu_topical", name: "GHK-Cu Topical", category: "beauty",
+                { id: "beauty_ghkcu_topical", name: "GHK-Cu Topical", category: "cbeauty",
                     description: "Copper peptide topical.", variations: [{ size: "1000mg", type: "Vial", price: 80 }],
                     stock: 100 },
-                { id: "beauty_fiona_masker", name: "Fiona Masker", category: "beauty", description: "Facial mask.",
+                { id: "beauty_fiona_masker", name: "Fiona Masker", category: "cbeauty", description: "Facial mask.",
                     variations: [{ size: "10mg", type: "Set", price: 15 }], stock: 100 },
-                { id: "beauty_gluthion_600mg_1vial", name: "Gluthion Injection - 600mg", category: "beauty",
+                { id: "beauty_gluthion_600mg_1vial", name: "Gluthion Injection - 600mg", category: "cbeauty",
                     description: "Gluthion injection 600mg per vial.", variations: [{ size: "1 vial", type: "Vial",
                             price: 16 }, { size: "10 vials", type: "Vial", price: 160 }], stock: 100 },
-                { id: "beauty_glutaone_1200mg", name: "Glutaone Injection - 1200mg", category: "beauty",
+                { id: "beauty_glutaone_1200mg", name: "Glutaone Injection - 1200mg", category: "cbeauty",
                     description: "Glutaone injection 1200mg per vial.", variations: [{ size: "1 vial", type: "Vial",
                             price: 19 }, { size: "10 vials", type: "Vial", price: 190 }], stock: 100 },
-                { id: "beauty_chiotocin_25mg_10vial", name: "Chiotocin Injection - 25mg", category: "beauty",
+                { id: "beauty_chiotocin_25mg_10vial", name: "Chiotocin Injection - 25mg", category: "cbeauty",
                     description: "Chiotocin injection 25mg, 10 vials per box.", variations: [{ size: "10 vials",
                         type: "Vial", price: 100 }], stock: 100 },
-                { id: "beauty_lipotocin_600mg_10vial", name: "Lipotocin Injection - 600mg", category: "beauty",
+                { id: "beauty_lipotocin_600mg_10vial", name: "Lipotocin Injection - 600mg", category: "cbeauty",
                     description: "Lipotocin injection 600mg, 10 vials per box.", variations: [{ size: "10 vials",
                         type: "Vial", price: 160 }], stock: 100 },
-                { id: "beauty_luthione_600mg", name: "Luthione - 600mg", category: "beauty",
+                { id: "beauty_luthione_600mg", name: "Luthione - 600mg", category: "cbeauty",
                     description: "Luthione 600mg per vial.", variations: [{ size: "1 vial", type: "Vial", price: 15 },
                         { size: "10 vials", type: "Vial", price: 150 }], stock: 100 },
-                { id: "beauty_luthione_1200mg", name: "Luthione - 1200mg", category: "beauty",
+                { id: "beauty_luthione_1200mg", name: "Luthione - 1200mg", category: "cbeauty",
                     description: "Luthione 1200mg per vial.", variations: [{ size: "1 vial", type: "Vial", price: 19 },
                         { size: "10 vials", type: "Vial", price: 190 }], stock: 100 },
-                { id: "beauty_cinderella_inj_10vial", name: "Cindella Injection", category: "beauty",
+                { id: "beauty_cinderella_inj_10vial", name: "Cindella Injection", category: "cbeauty",
                     description: "Cindella injection, 10 vials per box.", variations: [{ size: "10 vials", type: "Vial",
                             price: 120 }], stock: 100 },
-                { id: "beauty_vitamin_c_inj_10vial", name: "Vitamin C Injection", category: "beauty",
+                { id: "beauty_vitamin_c_inj_10vial", name: "Vitamin C Injection", category: "cbeauty",
                     description: "Vitamin C injection, 10 vials per box.", variations: [{ size: "10 vials", type: "Vial",
                             price: 130 }], stock: 100 },
-                { id: "beauty_profhilo_1syringe", name: "Profhilo", category: "beauty",
+                { id: "beauty_profhilo_1syringe", name: "Profhilo", category: "cbeauty",
                     description: "Profhilo 1 syringe.", variations: [{ size: "1 syringe", type: "Syringe", price: 350 }],
                     stock: 100 },
-                { id: "beauty_sculptra_1vial", name: "Sculptra", category: "beauty",
+                { id: "beauty_sculptra_1vial", name: "Sculptra", category: "cbeauty",
                     description: "Sculptra 1 vial.", variations: [{ size: "1 vial", type: "Vial", price: 700 }],
                     stock: 100 },
-                { id: "beauty_juvederm_skinvive_2syringes", name: "Juvederm Skinvive", category: "beauty",
+                { id: "beauty_juvederm_skinvive_2syringes", name: "Juvederm Skinvive", category: "cbeauty",
                     description: "Juvederm Skinvive 2 syringes.", variations: [{ size: "2 syringes", type: "Syringe",
                             price: 500 }], stock: 100 },
-                { id: "beauty_juvederm_voluma_2syringes", name: "Juvederm Voluma", category: "beauty",
+                { id: "beauty_juvederm_voluma_2syringes", name: "Juvederm Voluma", category: "cbeauty",
                     description: "Juvederm Voluma 2 syringes.", variations: [{ size: "2 syringes", type: "Syringe",
                             price: 700 }], stock: 100 },
-                { id: "beauty_juvederm_volift_2syringes", name: "Juvederm Volift", category: "beauty",
+                { id: "beauty_juvederm_volift_2syringes", name: "Juvederm Volift", category: "cbeauty",
                     description: "Juvederm Volift 2 syringes.", variations: [{ size: "2 syringes", type: "Syringe",
                             price: 700 }], stock: 100 },
-                { id: "beauty_juvederm_volbella_2syringes", name: "Juvederm Volbella", category: "beauty",
+                { id: "beauty_juvederm_volbella_2syringes", name: "Juvederm Volbella", category: "cbeauty",
                     description: "Juvederm Volbella 2 syringes.", variations: [{ size: "2 syringes", type: "Syringe",
                             price: 700 }], stock: 100 },
-                { id: "beauty_juvederm_volux_2syringes", name: "Juvederm Volux", category: "beauty",
+                { id: "beauty_juvederm_volux_2syringes", name: "Juvederm Volux", category: "cbeauty",
                     description: "Juvederm Volux 2 syringes.", variations: [{ size: "2 syringes", type: "Syringe",
                             price: 700 }], stock: 100 },
-                { id: "beauty_lemon_bottle_1vial", name: "Lemon Bottle", category: "beauty",
+                { id: "beauty_lemon_bottle_1vial", name: "Lemon Bottle", category: "cbeauty",
                     description: "Lemon Bottle per vial.", variations: [{ size: "1 vial", type: "Vial", price: 50 },
                         { size: "5 vials", type: "Vial", price: 250 }], stock: 100 },
-                { id: "beauty_plenhyage_1box", name: "Plenhyage", category: "beauty",
+                { id: "beauty_plenhyage_1box", name: "Plenhyage", category: "cbeauty",
                     description: "Plenhyage 1 box.", variations: [{ size: "1 box", type: "Box", price: 720 }],
                     stock: 100 },
-                { id: "beauty_pink_glow_1vial", name: "Pink Glow", category: "beauty",
+                { id: "beauty_pink_glow_1vial", name: "Pink Glow", category: "cbeauty",
                     description: "Pink Glow per vial.", variations: [{ size: "1 vial", type: "Vial", price: 31 },
                         { size: "10 vials", type: "Vial", price: 310 }], stock: 100 },
-                { id: "beauty_rejuran_black_healer_1box", name: "Rejuran Black Healer", category: "beauty",
+                { id: "beauty_rejuran_black_healer_1box", name: "Rejuran Black Healer", category: "cbeauty",
                     description: "Rejuran Black Healer 1 box.", variations: [{ size: "1 box", type: "Box", price: 600 }],
                     stock: 100 },
-                { id: "beauty_rejuran_i_1box", name: "Rejuran I", category: "beauty",
+                { id: "beauty_rejuran_i_1box", name: "Rejuran I", category: "cbeauty",
                     description: "Rejuran I 1 box.", variations: [{ size: "1 box", type: "Box", price: 240 }],
                     stock: 100 },
-                { id: "beauty_rejuran_s_1box", name: "Rejuran S", category: "beauty",
+                { id: "beauty_rejuran_s_1box", name: "Rejuran S", category: "cbeauty",
                     description: "Rejuran S 1 box.", variations: [{ size: "1 box", type: "Box", price: 240 }],
                     stock: 100 },
-                { id: "beauty_rejuran_hb_1box", name: "Rejuran HB", category: "beauty",
+                { id: "beauty_rejuran_hb_1box", name: "Rejuran HB", category: "cbeauty",
                     description: "Rejuran HB 1 box.", variations: [{ size: "1 box", type: "Box", price: 250 }],
                     stock: 100 },
-                { id: "beauty_nctf_135_5vial", name: "NCTF 135", category: "beauty",
+                { id: "beauty_nctf_135_5vial", name: "NCTF 135", category: "cbeauty",
                     description: "NCTF 135 per vial set.", variations: [{ size: "5 vials", type: "Vial", price: 600 },
                         { size: "10 vials", type: "Vial", price: 900 }], stock: 100 },
-                { id: "beauty_luhilo_snow_1box", name: "Luhilo Snow", category: "beauty",
+                { id: "beauty_luhilo_snow_1box", name: "Luhilo Snow", category: "cbeauty",
                     description: "Luhilo Snow 1 box.", variations: [{ size: "1 box", type: "Box", price: 380 }],
                     stock: 100 },
-                { id: "beauty_cindella_set_full", name: "Cindella Set", category: "beauty",
+                { id: "beauty_cindella_set_full", name: "Cindella Set", category: "cbeauty",
                     description: "Cindella full set.", variations: [{ size: "full set", type: "Set", price: 370 }],
                     stock: 100 },
                 { id: "beauty_snow_white_advance_fullset", name: "Snow White Advance - Very Strong (Gluta 1)",
-                    category: "beauty", description: "Snow White Advance full set.",
+                    category: "cbeauty", description: "Snow White Advance full set.",
                     variations: [{ size: "full set", type: "Set", price: 480 }], stock: 100 },
-                { id: "beauty_lipo_lab_ppc_1vial", name: "Lipo Lab PPC", category: "beauty",
+                { id: "beauty_lipo_lab_ppc_1vial", name: "Lipo Lab PPC", category: "cbeauty",
                     description: "Lipo Lab PPC per vial.", variations: [{ size: "1 vial", type: "Vial", price: 19 },
                         { size: "10 vials", type: "Vial", price: 190 }], stock: 100 },
-                { id: "beauty_lipo_vela_1vial", name: "Lipo Vela", category: "beauty",
+                { id: "beauty_lipo_vela_1vial", name: "Lipo Vela", category: "cbeauty",
                     description: "Lipo Vela per vial.", variations: [{ size: "1 vial", type: "Vial", price: 18 },
                         { size: "10 vials", type: "Vial", price: 180 }], stock: 100 },
-                { id: "beauty_lipo_lab_v_line_1vial", name: "Lipo Lab V Line", category: "beauty",
+                { id: "beauty_lipo_lab_v_line_1vial", name: "Lipo Lab V Line", category: "cbeauty",
                     description: "Lipo Lab V Line per vial.", variations: [{ size: "1 vial", type: "Vial", price: 40 },
                         { size: "5 vials", type: "Vial", price: 200 }], stock: 100 },
-                { id: "beauty_kabelline_1vial", name: "Kabelline", category: "beauty",
+                { id: "beauty_kabelline_1vial", name: "Kabelline", category: "cbeauty",
                     description: "Kabelline per vial.", variations: [{ size: "1 vial", type: "Vial", price: 42 },
                         { size: "5 vials", type: "Vial", price: 210 }], stock: 100 },
-                { id: "beauty_curenex_booster", name: "Curenex Daily Skincare Booster", category: "beauty",
+                { id: "beauty_curenex_booster", name: "Curenex Daily Skincare Booster", category: "cbeauty",
                     description: "Daily skincare booster for skin rejuvenation and hydration.",
                     variations: [{ size: "1 set", type: "Booster", price: 50 }], stock: 100 },
-                { id: "beauty_glutathione_factory", name: "Glutathione (Factory)", category: "beauty",
+                { id: "beauty_glutathione_factory", name: "Glutathione (Factory)", category: "cbeauty",
                     description: "Glutathione injection for skin brightening and antioxidant support.",
                     variations: [{ size: "600mg", type: "Vial", price: 10 }, { size: "15000mg", type: "Vial",
                             price: 15 }], stock: 100 },
-                { id: "beauty_marine_collagen", name: "Marine Collagen", category: "beauty",
+                { id: "beauty_marine_collagen", name: "Marine Collagen", category: "cbeauty",
                     description: "Marine collagen for skin elasticity and hydration.",
                     variations: [{ size: "5ml", type: "Vial", price: 25 }], stock: 100 },
-                { id: "beauty_exosome_pdrn", name: "Exosome PDRN", category: "beauty",
+                { id: "beauty_exosome_pdrn", name: "Exosome PDRN", category: "cbeauty",
                     description: "Exosome PDRN for cellular regeneration and tissue repair.",
                     variations: [{ size: "100mg", type: "Vial", price: 45 }], stock: 100 },
-                { id: "beauty_hikari_premium_drip", name: "Hikari Premium Drip", category: "beauty",
+                { id: "beauty_hikari_premium_drip", name: "Hikari Premium Drip", category: "cbeauty",
                     description: "Hikari Premium Drip for skin hydration and rejuvenation.",
                     variations: [{ size: "500ml", type: "Drip", price: 220 }], stock: 100 },
                 // PEPTIDES
@@ -2604,7 +2606,7 @@ resultDiv.innerHTML = html;
                 });
             }
 
-            // ==================== PRODUCT REPORT ====================
+            // ==================== PRODUCT REPORT (DIPERBAIKI) ====================
             let productChartInstance = null;
             let statusChartInstance = null;
             let typeChartInstance = null;
@@ -2623,104 +2625,102 @@ resultDiv.innerHTML = html;
                     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
                 }
 
-              var allOrders = ordersData.filter(function(o) {
-    return o.status === 'completed' || o.status === 'pending';
-});
+                var allOrders = ordersData.filter(function(o) {
+                    return o.status === 'completed' || o.status === 'pending';
+                });
                 var filteredOrders = startDate ? allOrders.filter(function(o) {
                     return new Date(o.createdAt) >= startDate;
                 }) : allOrders;
 
-                console.log('📊 Generating product report. Orders:', filteredOrders.length);
+                // ===== KIRA STATISTIK =====
+                var totalSales = 0, totalItems = 0;
+                var statusCount = { pending: 0, completed: 0, cancelled: 0 };
+                var totalPreorderQty = 0, totalReadyQty = 0;
+                var productMap = new Map();
 
-// ===== Kira aggregat produk dari filtered orders =====
-var productMap = new Map();
-filtered.forEach(function(order) {
-    var items = order.items || [];
-    items.forEach(function(item) {
-        var varKey = item.variationKey;
-        if (!varKey) {
-            varKey = getVariationKey(item.prodName, item.size, item.type);
-        }
-        var inv = inventoryData.get(varKey);
-        var readyStock = inv ? inv.readyStock : 0;
-        var isReady = (readyStock > 0);
-        if (!inv) {
-            var typeLower = (item.type || '').toLowerCase();
-            if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
-                isReady = true;
-            }
-        }
+                filteredOrders.forEach(function(order) {
+                    totalSales += order.totalAmount || 0;
+                    statusCount[order.status] = (statusCount[order.status] || 0) + 1;
 
-        var key = item.prodName + '_' + item.size + '_' + item.type;
-        if (!productMap.has(key)) {
-            productMap.set(key, {
-                name: item.prodName,
-                size: item.size,
-                type: item.type,
-                preorderQty: 0,
-                readyQty: 0,
-                totalQty: 0
-            });
-        }
-        var data = productMap.get(key);
-        if (isReady) {
-            data.readyQty += item.qty;
-        } else {
-            data.preorderQty += item.qty;
-        }
-        data.totalQty += item.qty;
-    });
-});
+                    var items = order.items || [];
+                    items.forEach(function(item) {
+                        totalItems += item.qty;
 
-var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
-    return a.name.localeCompare(b.name);
-});
+                        // Tentukan sama ada ready stock atau pre-order
+                        var varKey = item.variationKey;
+                        if (!varKey) {
+                            varKey = getVariationKey(item.prodName, item.size, item.type);
+                        }
+                        var inv = inventoryData.get(varKey);
+                        var isReady = (inv && inv.readyStock > 0) ? true : false;
+                        // Fallback jika tiada inventory – semak jenis
+                        if (!inv) {
+                            var typeLower = (item.type || '').toLowerCase();
+                            if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
+                                isReady = true;
+                            }
+                        }
 
-var tableRows = '';
-if (sortedProducts.length === 0) {
-    tableRows = '<tr><td colspan="6" class="text-center text-muted">Tiada produk dalam tempoh ini</td></tr>';
-} else {
-    sortedProducts.forEach(function(p) {
-        tableRows += '<tr>' +
-            '<td>' + escapeHtml(p.name) + '</td>' +
-            '<td>' + escapeHtml(p.size) + '</td>' +
-            '<td>' + escapeHtml(p.type) + '</td>' +
-            '<td class="text-center">' + p.preorderQty + '</td>' +
-            '<td class="text-center">' + p.readyQty + '</td>' +
-            '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
-            '</tr>';
-    });
-}
+                        var key = item.prodName + '_' + item.size + '_' + item.type;
+                        if (!productMap.has(key)) {
+                            productMap.set(key, {
+                                name: item.prodName,
+                                size: item.size,
+                                type: item.type,
+                                preorderQty: 0,
+                                readyQty: 0,
+                                totalQty: 0
+                            });
+                        }
+                        var data = productMap.get(key);
+                        if (isReady) {
+                            data.readyQty += item.qty;
+                            totalReadyQty += item.qty;
+                        } else {
+                            data.preorderQty += item.qty;
+                            totalPreorderQty += item.qty;
+                        }
+                        data.totalQty += item.qty;
+                    });
+                });
 
-// ===== Bina semula html =====
-var html = `
-    <div class="date-result-card">
-        <div class="row">
-            <div class="col-4"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
-            <div class="col-4"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
-            <div class="col-4"><strong>Jumlah Item</strong><div class="stat-number">${totalItems}</div></div>
-        </div>
-        <div class="table-responsive mt-3">
-            <table class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Produk</th>
-                        <th>Saiz</th>
-                        <th>Jenis</th>
-                        <th>Kuantiti Pre‑order</th>
-                        <th>Kuantiti Ready Stock</th>
-                        <th>Jumlah Terjual</th>
-                    </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-        </div>
-    </div>
-`;
-resultDiv.innerHTML = html;
-                
+                var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
+                    return a.name.localeCompare(b.name);
+                });
 
-                renderProductCharts(sorted.slice(0, 10), statusCount, totalPreorderQty, totalReadyQty);
+                // ===== PAPARAN JADUAL =====
+                var tbody = document.getElementById('productReportBody');
+                if (sortedProducts.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Tiada data</td></tr>';
+                } else {
+                    var rows = '';
+                    sortedProducts.forEach(function(p) {
+                        // Pendapatan tidak dikira di sini (harga tidak disimpan)
+                        rows += '<tr>' +
+                            '<td>' + escapeHtml(p.name) + '</td>' +
+                            '<td>' + escapeHtml(p.size) + '</td>' +
+                            '<td>' + escapeHtml(p.type) + '</td>' +
+                            '<td class="text-center">' + p.preorderQty + '</td>' +
+                            '<td class="text-center">' + p.readyQty + '</td>' +
+                            '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
+                            '<td class="text-end">-</td>' +
+                            '</tr>';
+                    });
+                    tbody.innerHTML = rows;
+                }
+
+                // ===== STATISTIK DI ATAS =====
+                var statsDiv = document.getElementById('productReportStats');
+                statsDiv.innerHTML = `
+                    <div class="report-card"><strong>Jumlah Pesanan</strong><span>${filteredOrders.length}</span></div>
+                    <div class="report-card"><strong>Jumlah Pendapatan</strong><span>RM ${totalSales.toFixed(2)}</span></div>
+                    <div class="report-card"><strong>Jumlah Item</strong><span>${totalItems}</span></div>
+                    <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
+                    <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
+                `;
+
+                // ===== CARTA =====
+                renderProductCharts(sortedProducts.slice(0, 10), statusCount, totalPreorderQty, totalReadyQty);
             }
 
             function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady) {
