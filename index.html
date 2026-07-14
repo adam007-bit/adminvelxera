@@ -689,7 +689,7 @@
             </div>
         </div>
 
-        <!-- SECTION: PRODUCT MANAGEMENT -->
+        <!-- SECTION: PRODUCT MANAGEMENT (dengan kategori cosmetics ditambah) -->
         <div id="productManagementSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
                 <h5 class="fw-bold"><i class="fa-solid fa-plus-circle text-success me-2"></i> Urus Produk & Ready Stock</h5>
@@ -715,6 +715,7 @@
                                     <option value="peptides">Peptides</option>
                                     <option value="cbeauty">C-Beauty</option>
                                     <option value="kbeauty">K-Beauty</option>
+                                    <option value="cosmetics">Cosmetics</option>
                                     <option value="solvent">Solvent</option>
                                     <option value="wellness">Wellness</option>
                                 </select>
@@ -807,6 +808,7 @@
                                    <option value="peptides">Peptides</option>
                                    <option value="cbeauty">C-Beauty</option>
                                    <option value="kbeauty">K-Beauty</option>
+                                   <option value="cosmetics">Cosmetics</option>
                                    <option value="solvent">Solvent</option>
                                    <option value="wellness">Wellness</option>
                                 </select>
@@ -2625,35 +2627,32 @@ resultDiv.innerHTML = html;
                     startDate = new Date(now.getFullYear(), now.getMonth(), 1);
                 }
 
-                var allOrders = ordersData.filter(function(o) {
-                    return o.status === 'completed' || o.status === 'pending';
+                // HANYA AMBIL ORDER STATUS COMPLETED
+                var completedOrders = ordersData.filter(function(o) {
+                    return o.status === 'completed';
                 });
-                var filteredOrders = startDate ? allOrders.filter(function(o) {
-                    return new Date(o.createdAt) >= startDate;
-                }) : allOrders;
+                var filteredOrders = startDate ? completedOrders.filter(function(o) {
+                    return new Date(o.completedAt || o.createdAt) >= startDate;
+                }) : completedOrders;
 
                 // ===== KIRA STATISTIK =====
                 var totalSales = 0, totalItems = 0;
-                var statusCount = { pending: 0, completed: 0, cancelled: 0 };
+                var statusCount = { pending: 0, completed: filteredOrders.length, cancelled: 0 };
                 var totalPreorderQty = 0, totalReadyQty = 0;
                 var productMap = new Map();
 
                 filteredOrders.forEach(function(order) {
                     totalSales += order.totalAmount || 0;
-                    statusCount[order.status] = (statusCount[order.status] || 0) + 1;
-
                     var items = order.items || [];
                     items.forEach(function(item) {
                         totalItems += item.qty;
 
-                        // Tentukan sama ada ready stock atau pre-order
                         var varKey = item.variationKey;
                         if (!varKey) {
                             varKey = getVariationKey(item.prodName, item.size, item.type);
                         }
                         var inv = inventoryData.get(varKey);
                         var isReady = (inv && inv.readyStock > 0) ? true : false;
-                        // Fallback jika tiada inventory – semak jenis
                         if (!inv) {
                             var typeLower = (item.type || '').toLowerCase();
                             if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
@@ -2695,7 +2694,6 @@ resultDiv.innerHTML = html;
                 } else {
                     var rows = '';
                     sortedProducts.forEach(function(p) {
-                        // Pendapatan tidak dikira di sini (harga tidak disimpan)
                         rows += '<tr>' +
                             '<td>' + escapeHtml(p.name) + '</td>' +
                             '<td>' + escapeHtml(p.size) + '</td>' +
@@ -2712,7 +2710,7 @@ resultDiv.innerHTML = html;
                 // ===== STATISTIK DI ATAS =====
                 var statsDiv = document.getElementById('productReportStats');
                 statsDiv.innerHTML = `
-                    <div class="report-card"><strong>Jumlah Pesanan</strong><span>${filteredOrders.length}</span></div>
+                    <div class="report-card"><strong>Jumlah Pesanan (Completed)</strong><span>${filteredOrders.length}</span></div>
                     <div class="report-card"><strong>Jumlah Pendapatan</strong><span>RM ${totalSales.toFixed(2)}</span></div>
                     <div class="report-card"><strong>Jumlah Item</strong><span>${totalItems}</span></div>
                     <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
