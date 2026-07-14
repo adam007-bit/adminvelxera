@@ -2611,6 +2611,7 @@ resultDiv.innerHTML = html;
 
             // ==================== PRODUCT REPORT (HANYA COMPLETED) ====================
            // ==================== PRODUCT REPORT (DIPERBAIKI) ====================
+// ==================== PRODUCT REPORT (DIPERBAIKI - TALLY DENGAN INVOIS) ====================
 let productChartInstance = null;
 let statusChartInstance = null;
 let typeChartInstance = null;
@@ -2629,7 +2630,7 @@ function generateProductReport(filter) {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // ✅ AMBIL PESANAN COMPLETED DAN PENDING, TAPI TOLAK CANCELLED
+    // ✅ HANYA ambil pesanan COMPLETED dan PENDING (tidak termasuk CANCELLED)
     var validOrders = ordersData.filter(function(o) {
         return o.status === 'completed' || o.status === 'pending';
     });
@@ -2647,20 +2648,28 @@ function generateProductReport(filter) {
         items.forEach(function(item) {
             totalItems += item.qty;
 
-            // Tentukan sama ada item ini Ready Stock atau Pre‑order
-            var varKey = item.variationKey;
-            if (!varKey) {
-                varKey = getVariationKey(item.prodName, item.size, item.type);
-            }
-            var inv = inventoryData.get(varKey);
-            var isReady = (inv && inv.readyStock > 0) ? true : false;
-            if (!inv) {
+            // ========== TENTUKAN JENIS (PRE‑ORDER ATAU READY STOCK) ==========
+            var isReady = false;
+
+            // 1. Jika item ada field 'isReady', gunakan terus
+            if (item.isReady !== undefined) {
+                isReady = item.isReady;
+            } else {
+                // 2. Jika tiada, gunakan logik berdasarkan 'type' item
                 var typeLower = (item.type || '').toLowerCase();
-                if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
-                    isReady = true;
+                // Senarai perkataan yang menandakan ready stock
+                var readyKeywords = ['ready', 'kit', 'set', 'box', 'syringe', 'vial', 'ampul'];
+                for (var kw of readyKeywords) {
+                    if (typeLower.includes(kw)) {
+                        isReady = true;
+                        break;
+                    }
                 }
+                // Jika masih tidak dapat, anggap pre‑order (default)
+                // Boleh juga semak sama ada item.price > harga asal? Tapi itu tidak reliable.
             }
 
+            // ========== KUMPUL MENGIKUT PRODUK ==========
             var key = item.prodName + '_' + item.size + '_' + item.type;
             if (!productMap.has(key)) {
                 productMap.set(key, {
@@ -2730,9 +2739,60 @@ function generateProductReport(filter) {
 }
 
 function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady) {
-    // ... (bahagian carta produk dan type sama seperti sebelumnya)
-    // Hanya bahagian status chart diubah untuk menunjukkan pending & completed
+    // ===== CARTA PRODUK (bar) =====
+    var ctx1 = document.getElementById('productChart')?.getContext('2d');
+    if (ctx1) {
+        if (productChartInstance) {
+            productChartInstance.destroy();
+            productChartInstance = null;
+        }
+        if (topProducts.length === 0) {
+            productChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: { labels: ['Tiada Data'], datasets: [{ label: 'Tiada', data: [0], backgroundColor: '#ccc' }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        } else {
+            productChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: topProducts.map(function(p) { return p.name + ' (' + p.size + ')'; }),
+                    datasets: [{
+                        label: 'Pre‑order',
+                        data: topProducts.map(function(p) { return p.preorderQty; }),
+                        backgroundColor: 'rgba(251, 191, 36, 0.8)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1
+                    }, {
+                        label: 'Ready Stock',
+                        data: topProducts.map(function(p) { return p.readyQty; }),
+                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                        borderColor: '#10b981',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { weight: 'bold' }, boxWidth: 20 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + ' unit';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Kuantiti Terjual' }, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+        }
+    }
 
+    // ===== CARTA STATUS =====
     var ctx2 = document.getElementById('statusChart')?.getContext('2d');
     if (ctx2) {
         if (statusChartInstance) {
@@ -2761,36 +2821,20 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
         } else {
             statusChartInstance = new Chart(ctx2, {
                 type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 1
-                    }]
-                },
+                data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 1 }] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { boxWidth: 15 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.label + ': ' + context.raw + ' pesanan';
-                                }
-                            }
-                        }
+                        legend: { position: 'bottom', labels: { boxWidth: 15 } },
+                        tooltip: { callbacks: { label: function(context) { return context.label + ': ' + context.raw + ' pesanan'; } } }
                     }
                 }
             });
         }
     }
 
-    // ===== CARTA TYPE ===== (sama seperti sebelumnya)
+    // ===== CARTA PRE‑ORDER VS READY =====
     var ctx3 = document.getElementById('typeChart')?.getContext('2d');
     if (ctx3) {
         if (typeChartInstance) {
@@ -2818,10 +2862,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { boxWidth: 15 }
-                        },
+                        legend: { position: 'bottom', labels: { boxWidth: 15 } },
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
