@@ -619,7 +619,7 @@
         <!-- SECTION: PRODUCT REPORT (dengan kalendar) -->
         <div id="productReportSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk</h5>
+                <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk (COMPLETED)</h5>
                 <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersFromProductReportBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
             </div>
             <div class="report-container">
@@ -631,7 +631,7 @@
 
                 <!-- ===== DATE RANGE FILTER (di Laporan Produk) ===== -->
                 <div class="date-filter-box">
-                    <h6 class="fw-bold"><i class="fa-regular fa-calendar me-2"></i>📅 Cari mengikut Tarikh</h6>
+                    <h6 class="fw-bold"><i class="fa-regular fa-calendar me-2"></i>📅 Cari mengikut Tarikh (Completed)</h6>
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4">
                             <label class="small fw-bold">Tarikh Mula</label>
@@ -658,7 +658,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="card p-3">
-                            <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan</h6>
+                            <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan (Completed)</h6>
                             <canvas id="statusChart" height="200"></canvas>
                         </div>
                         <div class="card p-3 mt-3">
@@ -679,17 +679,18 @@
                                 <th>Kuantiti Ready Stock</th>
                                 <th>Jumlah Terjual</th>
                                 <th>Pendapatan (RM)</th>
+                                <th>Tindakan</th>
                             </tr>
                         </thead>
                         <tbody id="productReportBody">
-                            <tr><td colspan="7" class="text-center text-muted">Tiada data</td></tr>
+                            <tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- SECTION: PRODUCT MANAGEMENT (dengan kategori cosmetics ditambah) -->
+        <!-- SECTION: PRODUCT MANAGEMENT -->
         <div id="productManagementSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
                 <h5 class="fw-bold"><i class="fa-solid fa-plus-circle text-success me-2"></i> Urus Produk & Ready Stock</h5>
@@ -805,12 +806,12 @@
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Kategori</label>
                                 <select id="editProductCategory" class="form-select">
-                                   <option value="peptides">Peptides</option>
-                                   <option value="cbeauty">C-Beauty</option>
-                                   <option value="kbeauty">K-Beauty</option>
-                                   <option value="cosmetics">Cosmetics</option>
-                                   <option value="solvent">Solvent</option>
-                                   <option value="wellness">Wellness</option>
+                                    <option value="peptides">Peptides</option>
+                                    <option value="cbeauty">C-Beauty</option>
+                                    <option value="kbeauty">K-Beauty</option>
+                                    <option value="cosmetics">Cosmetics</option>
+                                    <option value="solvent">Solvent</option>
+                                    <option value="wellness">Wellness</option>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -2608,7 +2609,7 @@ resultDiv.innerHTML = html;
                 });
             }
 
-            // ==================== PRODUCT REPORT (DIPERBAIKI) ====================
+            // ==================== PRODUCT REPORT (HANYA COMPLETED) ====================
             let productChartInstance = null;
             let statusChartInstance = null;
             let typeChartInstance = null;
@@ -2690,7 +2691,7 @@ resultDiv.innerHTML = html;
                 // ===== PAPARAN JADUAL =====
                 var tbody = document.getElementById('productReportBody');
                 if (sortedProducts.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Tiada data</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>';
                 } else {
                     var rows = '';
                     sortedProducts.forEach(function(p) {
@@ -2702,9 +2703,27 @@ resultDiv.innerHTML = html;
                             '<td class="text-center">' + p.readyQty + '</td>' +
                             '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
                             '<td class="text-end">-</td>' +
+                            '<td class="text-center"><button class="btn btn-sm btn-outline-danger delete-from-report-btn" data-prodid="' + escapeHtml(p.name) + '" title="Padam produk ini"><i class="fa-regular fa-trash-can"></i></button></td>' +
                             '</tr>';
                     });
                     tbody.innerHTML = rows;
+
+                    // Event untuk padam dari jadual laporan (sebenarnya padam dari Firestore)
+                    document.querySelectorAll('.delete-from-report-btn').forEach(function(btn) {
+                        btn.addEventListener('click', function() {
+                            var prodName = this.dataset.prodid;
+                            // Cari produk dengan nama yang sama
+                            var productToDelete = productsData.find(function(p) { return p.name ===
+                                prodName; });
+                            if (productToDelete) {
+                                if (confirm('Padam produk "' + prodName + '" dari Firestore?')) {
+                                    deleteProductFromFirestore(productToDelete.id);
+                                }
+                            } else {
+                                showToast('Produk tidak dijumpai', true);
+                            }
+                        });
+                    });
                 }
 
                 // ===== STATISTIK DI ATAS =====
@@ -2925,7 +2944,9 @@ resultDiv.innerHTML = html;
                 stockSection.style.display = 'none';
                 reportSection.style.display = 'none';
                 productReportSection.style.display = 'block';
-                generateProductReport('all');
+                setTimeout(function() {
+                    generateProductReport('all');
+                }, 100);
             });
             document.getElementById('backToOrdersBtn').addEventListener('click', showOrders);
             document.getElementById('backToOrdersFromReportBtn').addEventListener('click', showOrders);
@@ -3413,6 +3434,31 @@ resultDiv.innerHTML = html;
                     setTimeout(() => { progress.style.display = 'none'; }, 2000);
                 }
             });
+
+            // ===== FUNGSI PADAM PRODUK DARI FIRESTORE =====
+            async function deleteProductFromFirestore(productId) {
+                if (!productId) return;
+                if (!confirm('Padam produk ini? Semua data inventory akan dipadam juga.')) return;
+                try {
+                    await deleteDoc(doc(db, "products", productId));
+                    const invSnap = await getDocs(collection(db, "inventory"));
+                    const batch = [];
+                    invSnap.forEach(d => {
+                        if (d.id.startsWith(productId + '_')) {
+                            batch.push(deleteDoc(doc(db, "inventory", d.id)));
+                        }
+                    });
+                    await Promise.all(batch);
+                    showToast('✅ Produk dan inventory dipadam');
+                    await loadStockData();
+                    loadExistingProducts();
+                    if (document.getElementById('productReportSection').style.display === 'block') {
+                        generateProductReport('all');
+                    }
+                } catch (err) {
+                    showToast('Gagal padam: ' + err.message, true);
+                }
+            }
         </script>
 
         <script>
