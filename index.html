@@ -2500,132 +2500,136 @@ function renderOrders() {
                 updateReport();
             });
 
-            // ===== DATE RANGE FILTER untuk Laporan Produk =====
-            function setupProductDateFilter() {
-                document.getElementById('productDateFilterBtn').addEventListener('click', function() {
-                    var from = document.getElementById('productDateFrom').value;
-                    var to = document.getElementById('productDateTo').value;
-                    if (!from || !to) {
-                        showToast('Sila pilih kedua-dua tarikh', true);
-                        return;
-                    }
-                    var fromDate = new Date(from);
-                    var toDate = new Date(to);
-                    toDate.setHours(23, 59, 59, 999);
-
-                    var completedOrders = ordersData.filter(function(o) {
-                        return o.status === 'completed' && o.completedAt;
-                    });
-
-                    var filtered = completedOrders.filter(function(o) {
-                        var d = new Date(o.completedAt);
-                        return d >= fromDate && d <= toDate;
-                    });
-
-                    var resultDiv = document.getElementById('productDateFilterResult');
-                    if (filtered.length === 0) {
-                        resultDiv.innerHTML =
-                            '<div class="alert alert-info">Tiada pesanan selesai dalam tempoh ini.</div>';
-                        return;
-                    }
-
-                    var totalSales = filtered.reduce(function(sum, o) { return sum + o.totalAmount; }, 0);
-                    var totalItems = filtered.reduce(function(sum, o) {
-                        var items = o.items || [];
-                        return sum + items.reduce(function(s, i) { return s + i.qty; }, 0);
-                    }, 0);
-
-// ===== Kira aggregat produk dari filtered orders =====
-var productMap = new Map();
-filtered.forEach(function(order) {
-    var items = order.items || [];
-    items.forEach(function(item) {
-        var varKey = item.variationKey;
-        if (!varKey) {
-            varKey = getVariationKey(item.prodName, item.size, item.type);
+// ===== DATE RANGE FILTER untuk Laporan Produk (DIPERBAIKI) =====
+function setupProductDateFilter() {
+    document.getElementById('productDateFilterBtn').addEventListener('click', function() {
+        var from = document.getElementById('productDateFrom').value;
+        var to = document.getElementById('productDateTo').value;
+        if (!from || !to) {
+            showToast('Sila pilih kedua-dua tarikh', true);
+            return;
         }
-        var inv = inventoryData.get(varKey);
-        var readyStock = inv ? inv.readyStock : 0;
-        var isReady = (readyStock > 0);
-        if (!inv) {
-            var typeLower = (item.type || '').toLowerCase();
-            if (typeLower.includes('ready') || typeLower.includes('kit') || typeLower.includes('set')) {
-                isReady = true;
-            }
+        var fromDate = new Date(from);
+        var toDate = new Date(to);
+        toDate.setHours(23, 59, 59, 999);
+
+        // ✅ AMBIL SEMUA PESANAN KECUALI CANCELLED (pending + completed)
+        var validOrders = ordersData.filter(function(o) {
+            return o.status === 'pending' || o.status === 'completed';
+        });
+
+        // ✅ GUNA createdAt UNTUK SEMUA (invois dikeluarkan semasa checkout)
+        var filtered = validOrders.filter(function(o) {
+            var d = new Date(o.createdAt);
+            return d >= fromDate && d <= toDate;
+        });
+
+        var resultDiv = document.getElementById('productDateFilterResult');
+        if (filtered.length === 0) {
+            resultDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan dalam tempoh ini.</div>';
+            return;
         }
 
-        var key = item.prodName + '_' + item.size + '_' + item.type;
-        if (!productMap.has(key)) {
-            productMap.set(key, {
-                name: item.prodName,
-                size: item.size,
-                type: item.type,
-                preorderQty: 0,
-                readyQty: 0,
-                totalQty: 0
+        var totalSales = filtered.reduce(function(sum, o) { return sum + o.totalAmount; }, 0);
+        var totalItems = filtered.reduce(function(sum, o) {
+            var items = o.items || [];
+            return sum + items.reduce(function(s, i) { return s + i.qty; }, 0);
+        }, 0);
+
+        // ===== Kira aggregat produk =====
+        var productMap = new Map();
+        filtered.forEach(function(order) {
+            var items = order.items || [];
+            items.forEach(function(item) {
+                // ===== TENTUKAN JENIS (PRE‑ORDER ATAU READY STOCK) =====
+                var isReady = false;
+                if (item.isReady !== undefined) {
+                    isReady = item.isReady;
+                } else {
+                    var typeLower = (item.type || '').toLowerCase();
+                    var readyKeywords = ['ready', 'kit', 'set', 'box', 'syringe', 'vial', 'ampul'];
+                    for (var kw of readyKeywords) {
+                        if (typeLower.includes(kw)) {
+                            isReady = true;
+                            break;
+                        }
+                    }
+                }
+
+                var key = item.prodName + '_' + item.size + '_' + item.type;
+                if (!productMap.has(key)) {
+                    productMap.set(key, {
+                        name: item.prodName,
+                        size: item.size,
+                        type: item.type,
+                        preorderQty: 0,
+                        readyQty: 0,
+                        totalQty: 0,
+                        revenue: 0
+                    });
+                }
+                var data = productMap.get(key);
+                if (isReady) {
+                    data.readyQty += item.qty;
+                } else {
+                    data.preorderQty += item.qty;
+                }
+                data.totalQty += item.qty;
+                data.revenue += (item.price * item.qty);
+            });
+        });
+
+        var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
+            return a.name.localeCompare(b.name);
+        });
+
+        var tableRows = '';
+        if (sortedProducts.length === 0) {
+            tableRows = '<tr><td colspan="7" class="text-center text-muted">Tiada produk dalam tempoh ini</td></tr>';
+        } else {
+            sortedProducts.forEach(function(p) {
+                tableRows += '<tr>' +
+                    '<td>' + escapeHtml(p.name) + '</td>' +
+                    '<td>' + escapeHtml(p.size) + '</td>' +
+                    '<td>' + escapeHtml(p.type) + '</td>' +
+                    '<td class="text-center">' + p.preorderQty + '</td>' +
+                    '<td class="text-center">' + p.readyQty + '</td>' +
+                    '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
+                    '<td class="text-end">RM ' + p.revenue.toFixed(2) + '</td>' +
+                    '</tr>';
             });
         }
-        var data = productMap.get(key);
-        if (isReady) {
-            data.readyQty += item.qty;
-        } else {
-            data.preorderQty += item.qty;
-        }
-        data.totalQty += item.qty;
-    });
-});
 
-var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
-    return a.name.localeCompare(b.name);
-});
-
-var tableRows = '';
-if (sortedProducts.length === 0) {
-    tableRows = '<tr><td colspan="6" class="text-center text-muted">Tiada produk dalam tempoh ini</td></tr>';
-} else {
-    sortedProducts.forEach(function(p) {
-        tableRows += '<tr>' +
-            '<td>' + escapeHtml(p.name) + '</td>' +
-            '<td>' + escapeHtml(p.size) + '</td>' +
-            '<td>' + escapeHtml(p.type) + '</td>' +
-            '<td class="text-center">' + p.preorderQty + '</td>' +
-            '<td class="text-center">' + p.readyQty + '</td>' +
-            '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
-            '</tr>';
+        var html = `
+            <div class="date-result-card">
+                <div class="row">
+                    <div class="col-4"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
+                    <div class="col-4"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
+                    <div class="col-4"><strong>Jumlah Item</strong><div class="stat-number">${totalItems}</div></div>
+                </div>
+                <div class="table-responsive mt-3">
+                    <table class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Produk</th>
+                                <th>Saiz</th>
+                                <th>Jenis</th>
+                                <th>Kuantiti Pre‑order</th>
+                                <th>Kuantiti Ready Stock</th>
+                                <th>Jumlah Terjual</th>
+                                <th>Pendapatan (RM)</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        resultDiv.innerHTML = html;
     });
 }
 
-var html = `
-    <div class="date-result-card">
-        <div class="row">
-            <div class="col-4"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
-            <div class="col-4"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
-            <div class="col-4"><strong>Jumlah Item</strong><div class="stat-number">${totalItems}</div></div>
-        </div>
-        <div class="table-responsive mt-3">
-            <table class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Produk</th>
-                        <th>Saiz</th>
-                        <th>Jenis</th>
-                        <th>Kuantiti Pre‑order</th>
-                        <th>Kuantiti Ready Stock</th>
-                        <th>Jumlah Terjual</th>
-                    </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-        </div>
-    </div>
-`;
-resultDiv.innerHTML = html;
-                });
-            }
-
-            // ==================== PRODUCT REPORT (HANYA COMPLETED) ====================
-           // ==================== PRODUCT REPORT (DIPERBAIKI) ====================
-// ==================== PRODUCT REPORT (DIPERBAIKI - TALLY DENGAN INVOIS) ====================
+// ==================== PRODUCT REPORT (TALLY DENGAN INVOIS) ====================
 let productChartInstance = null;
 let statusChartInstance = null;
 let typeChartInstance = null;
@@ -2644,12 +2648,14 @@ function generateProductReport(filter) {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // ✅ HANYA ambil pesanan COMPLETED dan PENDING (tidak termasuk CANCELLED)
+    // ✅ AMBIL SEMUA PESANAN KECUALI CANCELLED (pending + completed)
     var validOrders = ordersData.filter(function(o) {
-        return o.status === 'completed' || o.status === 'pending';
+        return o.status === 'pending' || o.status === 'completed';
     });
+
+    // ✅ GUNA createdAt UNTUK SEMUA PESANAN (invois dikeluarkan semasa checkout)
     var filteredOrders = startDate ? validOrders.filter(function(o) {
-        return new Date(o.completedAt || o.createdAt) >= startDate;
+        return new Date(o.createdAt) >= startDate;
     }) : validOrders;
 
     // ===== KIRA STATISTIK =====
@@ -2669,9 +2675,8 @@ function generateProductReport(filter) {
             if (item.isReady !== undefined) {
                 isReady = item.isReady;
             } else {
-                // 2. Jika tiada, gunakan logik berdasarkan 'type' item
+                // 2. Jika tiada, gunakan logik berdasarkan 'type' item SAHAJA
                 var typeLower = (item.type || '').toLowerCase();
-                // Senarai perkataan yang menandakan ready stock
                 var readyKeywords = ['ready', 'kit', 'set', 'box', 'syringe', 'vial', 'ampul'];
                 for (var kw of readyKeywords) {
                     if (typeLower.includes(kw)) {
@@ -2679,8 +2684,7 @@ function generateProductReport(filter) {
                         break;
                     }
                 }
-                // Jika masih tidak dapat, anggap pre‑order (default)
-                // Boleh juga semak sama ada item.price > harga asal? Tapi itu tidak reliable.
+                // Jika tiada perkataan ready, anggap pre‑order (default)
             }
 
             // ========== KUMPUL MENGIKUT PRODUK ==========
@@ -2714,7 +2718,7 @@ function generateProductReport(filter) {
     // ===== PAPARAN JADUAL =====
     var tbody = document.getElementById('productReportBody');
     if (sortedProducts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Tiada data</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>';
     } else {
         var rows = '';
         sortedProducts.forEach(function(p) {
@@ -2726,6 +2730,7 @@ function generateProductReport(filter) {
                 '<td class="text-center">' + p.readyQty + '</td>' +
                 '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
                 '<td class="text-end">RM ' + p.revenue.toFixed(2) + '</td>' +
+                '<td><button class="btn btn-sm btn-outline-danger delete-product-report-btn" data-product="' + escapeHtml(p.name) + '" data-size="' + escapeHtml(p.size) + '" data-type="' + escapeHtml(p.type) + '"><i class="fa-regular fa-trash-can"></i></button></td>' +
                 '</tr>';
         });
         tbody.innerHTML = rows;
@@ -2736,7 +2741,7 @@ function generateProductReport(filter) {
     var totalReadyQty = sortedProducts.reduce(function(sum, p) { return sum + p.readyQty; }, 0);
     var statsDiv = document.getElementById('productReportStats');
     statsDiv.innerHTML = `
-        <div class="report-card"><strong>Jumlah Pesanan (Completed + Pending)</strong><span>${filteredOrders.length}</span></div>
+        <div class="report-card"><strong>Jumlah Pesanan (Invois Sah)</strong><span>${filteredOrders.length}</span></div>
         <div class="report-card"><strong>Jumlah Pendapatan</strong><span>RM ${totalSales.toFixed(2)}</span></div>
         <div class="report-card"><strong>Jumlah Item</strong><span>${totalItems}</span></div>
         <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
@@ -2747,7 +2752,7 @@ function generateProductReport(filter) {
     var statusCount = {
         pending: filteredOrders.filter(o => o.status === 'pending').length,
         completed: filteredOrders.filter(o => o.status === 'completed').length,
-        cancelled: 0   // tidak termasuk
+        cancelled: 0
     };
     renderProductCharts(sortedProducts.slice(0, 10), statusCount, totalPreorderQty, totalReadyQty);
 }
