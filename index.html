@@ -1638,116 +1638,130 @@
                 pendingOrderForComplete = null;
             };
 
-            function renderOrders() {
-                var filtered = currentFilter === 'all' ? ordersData : ordersData.filter(function(o) { return o.status ===
-                        currentFilter; });
-                if (searchOrderTerm.trim() !== '') {
-                    var term = searchOrderTerm.trim().toLowerCase();
-                    filtered = filtered.filter(function(order) {
-                        var orderId = (order.orderId || order.id || '').toLowerCase();
-                        var customerName = (order.customer && order.customer.name || '').toLowerCase();
-                        var customerPhone = (order.customer && order.customer.phone || '').toLowerCase();
-                        return orderId.includes(term) || customerName.includes(term) || customerPhone.includes(
-                        term);
-                    });
+// ===== FUNGSI PEMBANTU: Papar resit (sokong array & single) =====
+function renderReceiptsHtml(order) {
+    var urls = [];
+    if (order.receiptUrls && order.receiptUrls.length) {
+        urls = order.receiptUrls;
+    } else if (order.receiptUrl) {
+        urls = [order.receiptUrl];
+    }
+    if (!urls.length) {
+        return '<span class="text-muted small"><i class="fa-regular fa-receipt"></i> Tiada resit bayaran</span>';
+    }
+    var html = '<div class="d-flex flex-wrap gap-2">';
+    urls.forEach(function(url) {
+        var isPdf = url.toLowerCase().endsWith('.pdf');
+        var isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url);
+        if (isPdf) {
+            html += '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file-pdf text-danger me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Resit (PDF)</a></div>';
+        } else if (isImage) {
+            html += '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-image text-success me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📸 Resit</a><br><img src="' + url + '" style="max-width:60px; border-radius:8px; margin-top:4px;" onerror="this.style.display=\'none\'"></div>';
+        } else {
+            html += '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Lihat Resit</a></div>';
+        }
+    });
+    html += '</div>';
+    return html;
+}
+
+// ===== FUNGSI RENDER ORDERS (DIPERBAIKI) =====
+function renderOrders() {
+    var filtered = currentFilter === 'all' ? ordersData : ordersData.filter(function(o) { return o.status === currentFilter; });
+    if (searchOrderTerm.trim() !== '') {
+        var term = searchOrderTerm.trim().toLowerCase();
+        filtered = filtered.filter(function(order) {
+            var orderId = (order.orderId || order.id || '').toLowerCase();
+            var customerName = (order.customer && order.customer.name || '').toLowerCase();
+            var customerPhone = (order.customer && order.customer.phone || '').toLowerCase();
+            return orderId.includes(term) || customerName.includes(term) || customerPhone.includes(term);
+        });
+    }
+    var container = document.getElementById('ordersList');
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-4 text-muted">Tiada pesanan</div>';
+        return;
+    }
+    var html = '';
+    filtered.forEach(function(order) {
+        var items = order.items || [];
+        var itemsHtml = '';
+        for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            var itemIndex = i;
+            var cancelBtn = (order.status === 'pending') ?
+                `<button class="btn btn-sm btn-outline-danger cancel-item-btn ms-2" data-orderid="${order.id}" data-itemindex="${itemIndex}" style="font-size:0.6rem; padding:0.1rem 0.4rem;" title="Batal item ini & pulangkan stok">✖</button>` :
+                '';
+            itemsHtml += `<li>
+                <i class="fa-solid fa-rectangle-list text-success me-2"></i>
+                ${escapeHtml(it.prodName)} (${escapeHtml(it.size)} - ${escapeHtml(it.type)}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}
+                ${cancelBtn}
+            </li>`;
+        }
+        var statusClass = order.status === 'pending' ? 'status-pending' : (order.status === 'completed' ? 'status-completed' : 'status-cancelled');
+        var statusText = order.status === 'pending' ? 'Pending' : (order.status === 'completed' ? 'Selesai' : 'Dibatalkan');
+        var trackingHtml = order.trackingNumber ?
+            '<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">' + escapeHtml(order.trackingNumber) + '</span></div>' : '';
+
+        var createdAt = 'Tarikh tidak tersedia';
+        try {
+            if (order.createdAt) {
+                var d = new Date(order.createdAt);
+                if (!isNaN(d.getTime())) {
+                    createdAt = d.toISOString();
                 }
-                var container = document.getElementById('ordersList');
-                if (filtered.length === 0) {
-                    container.innerHTML = '<div class="text-center py-4 text-muted">Tiada pesanan</div>';
-                    return;
+            }
+        } catch (e) {}
+
+        var updatedAt = null;
+        try {
+            if (order.updatedAt) {
+                var u = new Date(order.updatedAt);
+                if (!isNaN(u.getTime())) {
+                    updatedAt = u.toISOString();
                 }
-                var html = '';
-                filtered.forEach(function(order) {
-                    var items = order.items || [];
-                    var itemsHtml = '';
-                    for (var i = 0; i < items.length; i++) {
-                        var it = items[i];
-                        var itemIndex = i;
-                        var cancelBtn = (order.status === 'pending') ?
-                            `<button class="btn btn-sm btn-outline-danger cancel-item-btn ms-2" data-orderid="${order.id}" data-itemindex="${itemIndex}" style="font-size:0.6rem; padding:0.1rem 0.4rem;" title="Batal item ini & pulangkan stok">✖</button>` :
-                            '';
-                        itemsHtml += `<li>
-                            <i class="fa-solid fa-rectangle-list text-success me-2"></i>
-                            ${escapeHtml(it.prodName)} (${escapeHtml(it.size)} - ${escapeHtml(it.type)}) x${it.qty} = RM${(it.price*it.qty).toFixed(2)}
-                            ${cancelBtn}
-                        </li>`;
-                    }
-                    var statusClass = order.status === 'pending' ? 'status-pending' : (order.status === 'completed' ?
-                        'status-completed' : 'status-cancelled');
-                    var statusText = order.status === 'pending' ? 'Pending' : (order.status === 'completed' ?
-                        'Selesai' : 'Dibatalkan');
-                    var trackingHtml = order.trackingNumber ?
-                        '<div class="mt-1"><small class="text-muted">📦 Tracking:</small> <span class="fw-bold small">' +
-                        escapeHtml(order.trackingNumber) + '</span></div>' : '';
+            }
+        } catch (e) {}
 
-                    var createdAt = 'Tarikh tidak tersedia';
-                    try {
-                        if (order.createdAt) {
-                            var d = new Date(order.createdAt);
-                            if (!isNaN(d.getTime())) {
-                                createdAt = d.toISOString();
-                            }
-                        }
-                    } catch (e) {}
+        var updatedBadge = '';
+        if (updatedAt && updatedAt !== createdAt) {
+            updatedBadge = '<span class="updated-badge"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini';
+        }
 
-                    var updatedAt = null;
-                    try {
-                        if (order.updatedAt) {
-                            var u = new Date(order.updatedAt);
-                            if (!isNaN(u.getTime())) {
-                                updatedAt = u.toISOString();
-                            }
-                        }
-                    } catch (e) {}
+        html += `
+            <div class="order-card">
+                <div class="order-header">
+                    <span class="order-id"><i class="fa-regular fa-receipt"></i> ${escapeHtml(order.orderId || order.id)} ${updatedBadge}</span>
+                    <span class="status-badge-premium ${statusClass}">${statusText}</span>
+                </div>
+                <div class="order-body">
+                    <div class="customer-detail">
+                        <span><i class="fa-regular fa-user"></i> ${escapeHtml(order.customer ? order.customer.name : '')}</span>
+                        <span><i class="fa-brands fa-whatsapp"></i> ${escapeHtml(order.customer ? order.customer.phone : '')}</span>
+                        <span><i class="fa-regular fa-location-dot"></i> ${escapeHtml(order.customer ? order.customer.address_line1 : '')}, ${escapeHtml(order.customer ? order.customer.postcode : '')} ${escapeHtml(order.customer ? order.customer.state : '')}</span>
+                    </div>
+                    <div class="items-list"><ul class="small mb-0">${itemsHtml}</ul></div>
+                    <div class="d-flex justify-content-between flex-wrap">
+                        <div><small class="text-muted">Bank: ${escapeHtml(order.bankName || 'Tiada')} | ${escapeHtml(order.paymentMethod)}</small></div>
+                        <div class="total-amount fw-bold">RM ${order.totalAmount ? order.totalAmount.toFixed(2) : '0.00'}</div>
+                    </div>
+                    <div class="mt-2">
+                        ${renderReceiptsHtml(order)}
+                    </div>
+                    ${trackingHtml}
+                    <div class="order-footer">
+                        ${order.status !== 'completed' && order.status !== 'cancelled' ? '<button class="btn-action btn-outline-complete" data-id="' + order.id + '" data-status="complete_action">✔ Selesai</button>' : ''}
+                        ${order.status !== 'cancelled' ? '<button class="btn-action btn-outline-cancel" data-id="' + order.id + '" data-status="cancelled">✖ Batal</button>' : ''}
+                        ${order.status !== 'pending' ? '<button class="btn-action btn-outline-pending" data-id="' + order.id + '" data-status="pending">↩ Pending</button>' : ''}
+                        <button class="btn-action btn-outline-print" onclick="adminPrintInvoice('${order.id}')">🖨️ Print Invois</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
 
-                    var updatedBadge = '';
-                    if (updatedAt && updatedAt !== createdAt) {
-                        updatedBadge = '<span class="updated-badge"><i class="fa-regular fa-pen-to-square"></i> Dikemaskini';
-                    }
-
-                    html += `
-                        <div class="order-card">
-                            <div class="order-header">
-                                <span class="order-id"><i class="fa-regular fa-receipt"></i> ${escapeHtml(order.orderId || order.id)} ${updatedBadge}</span>
-                                <span class="status-badge-premium ${statusClass}">${statusText}</span>
-                            </div>
-                            <div class="order-body">
-                                <div class="customer-detail">
-                                    <span><i class="fa-regular fa-user"></i> ${escapeHtml(order.customer ? order.customer.name : '')}</span>
-                                    <span><i class="fa-brands fa-whatsapp"></i> ${escapeHtml(order.customer ? order.customer.phone : '')}</span>
-                                    <span><i class="fa-regular fa-location-dot"></i> ${escapeHtml(order.customer ? order.customer.address_line1 : '')}, ${escapeHtml(order.customer ? order.customer.postcode : '')} ${escapeHtml(order.customer ? order.customer.state : '')}</span>
-                                </div>
-                                <div class="items-list"><ul class="small mb-0">${itemsHtml}</ul></div>
-                                <div class="d-flex justify-content-between flex-wrap">
-                                    <div><small class="text-muted">Bank: ${escapeHtml(order.bankName || 'Tiada')} | ${escapeHtml(order.paymentMethod)}</small></div>
-                                    <div class="total-amount fw-bold">RM ${order.totalAmount ? order.totalAmount.toFixed(2) : '0.00'}</div>
-                                </div>
-                                <div class="mt-2">
-                                    ${order.receiptUrl ? (function() {
-                                        var url = order.receiptUrl;
-                                        var isPdf = url.toLowerCase().endsWith('.pdf');
-                                        var isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/i.test(url);
-                                        if (isPdf) {
-                                            return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file-pdf text-danger me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Resit Bayaran (PDF)</a></div>';
-                                        } else if (isImage) {
-                                            return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-image text-success me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📸 Resit Bayaran</a><br><img src="' + url + '" style="max-width:60px; border-radius:8px;" onerror="this.style.display=\'none\'"></div>';
-                                        } else {
-                                            return '<div class="border rounded p-2 bg-light d-inline-block"><i class="fa-regular fa-file me-1"></i><a href="' + url + '" target="_blank" class="small fw-bold">📄 Lihat Resit</a></div>';
-                                        }
-                                    })() : '<span class="text-muted small"><i class="fa-regular fa-receipt"></i> Tiada resit bayaran</span>'}
-                                </div>
-                                ${trackingHtml}
-                                <div class="order-footer">
-                                    ${order.status !== 'completed' && order.status !== 'cancelled' ? '<button class="btn-action btn-outline-complete" data-id="' + order.id + '" data-status="complete_action">✔ Selesai</button>' : ''}
-                                    ${order.status !== 'cancelled' ? '<button class="btn-action btn-outline-cancel" data-id="' + order.id + '" data-status="cancelled">✖ Batal</button>' : ''}
-                                    ${order.status !== 'pending' ? '<button class="btn-action btn-outline-pending" data-id="' + order.id + '" data-status="pending">↩ Pending</button>' : ''}
-                                    <button class="btn-action btn-outline-print" onclick="adminPrintInvoice('${order.id}')">🖨️ Print Invois</button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                container.innerHTML = html;
+            
 
                 document.querySelectorAll('.cancel-item-btn').forEach(function(btn) {
                     btn.addEventListener('click', function(e) {
