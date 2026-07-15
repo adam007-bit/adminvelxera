@@ -2008,18 +2008,32 @@ function setupProductDateFilter() {
         filtered.forEach(function(order) {
             var items = order.items || [];
             items.forEach(function(item) {
-                // ===== TENTUKAN JENIS BERDASARKAN KATEGORI =====
-                var isReady = false;
-                if (item.isReady !== undefined) {
-                    isReady = item.isReady;
-                } else {
-                    var category = getProductCategoryFromItem(item);
-                    if (category === 'readystock') {
-                        isReady = true;
-                    } else {
-                        isReady = false;
-                    }
-                }
+            // ========== TENTUKAN JENIS (PRE‑ORDER ATAU READY STOCK) ==========
+var isReady = false;
+
+// 1. Jika item ada field 'isReady' (keserasian), gunakan terus
+if (item.isReady !== undefined) {
+    isReady = item.isReady;
+} else {
+    // 2. Dapatkan variationKey
+    var varKey = item.variationKey;
+    if (!varKey) {
+        varKey = getVariationKey(item.prodName, item.size, item.type);
+    }
+    // 3. Semak inventory untuk readyStock
+    var invData = inventoryData.get(varKey);
+    if (invData && invData.readyStock !== undefined) {
+        isReady = (invData.readyStock > 0);
+    } else {
+        // 4. Fallback: jika tiada inventory, guna kategori produk (untuk keserasian)
+        var category = getProductCategoryFromItem(item);
+        if (category === 'readystock') {
+            isReady = true;
+        } else {
+            isReady = false;
+        }
+    }
+}
 
                 var key = item.variationKey;
                 if (!key) {
