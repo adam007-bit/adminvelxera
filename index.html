@@ -2121,14 +2121,14 @@ let statusChartInstance = null;
 let typeChartInstance = null;
 
 function generateProductReport(filter) {
-    if (!productsData || productsData.length === 0) {
-        console.warn('🔄 productsData kosong, memuat semula...');
-        var currentFilter = filter || 'all';
-        loadStockDataFromFirestoreOnly().then(() => {
-            generateProductReport(currentFilter);
-        });
-        return;
-    }
+   if (!productsData || productsData.length === 0 || inventoryData.size === 0) {
+    console.warn('🔄 Data belum siap, memuat semula...');
+    var currentFilter = filter || 'all';
+    loadStockDataFromFirestoreOnly().then(() => {
+        generateProductReport(currentFilter);
+    });
+    return;
+}
     filter = filter || 'all';
     var now = new Date();
     var startDate = null;
@@ -2161,20 +2161,32 @@ function generateProductReport(filter) {
         items.forEach(function(item) {
             totalItems += item.qty;
 
-            // ========== TENTUKAN JENIS BERDASARKAN KATEGORI PRODUK ==========
-            var isReady = false;
-            // 1. Jika item ada field 'isReady' (keserasian)
-            if (item.isReady !== undefined) {
-                isReady = item.isReady;
-            } else {
-                // 2. Dapatkan kategori produk
-                var category = getProductCategoryFromItem(item);
-                if (category === 'readystock') {
-                    isReady = true;
-                } else {
-                    isReady = false; // selain readystock = pre‑order
-                }
-            }
+          // ========== TENTUKAN JENIS (PRE‑ORDER ATAU READY STOCK) ==========
+var isReady = false;
+
+// 1. Jika item ada field 'isReady', gunakan terus
+if (item.isReady !== undefined) {
+    isReady = item.isReady;
+} else {
+    // 2. Dapatkan variationKey
+    var varKey = item.variationKey;
+    if (!varKey) {
+        varKey = getVariationKey(item.prodName, item.size, item.type);
+    }
+    // 3. Semak inventory untuk readyStock
+    var invData = inventoryData.get(varKey);
+    if (invData && invData.readyStock !== undefined) {
+        isReady = (invData.readyStock > 0);
+    } else {
+        // 4. Fallback: jika tiada inventory, guna kategori produk (untuk keserasian)
+        var category = getProductCategoryFromItem(item);
+        if (category === 'readystock') {
+            isReady = true;
+        } else {
+            isReady = false;
+        }
+    }
+}
 
             // ========== KUMPUL MENGIKUT PRODUK ==========
             var key = item.variationKey;
