@@ -2009,31 +2009,33 @@ function setupProductDateFilter() {
         filtered.forEach(function(order) {
             var items = order.items || [];
             items.forEach(function(item) {
-            // ========== TENTUKAN JENIS (PRE‑ORDER ATAU READY STOCK) ==========
+// ========== TENTUKAN JENIS BERDASARKAN STOK SEMASA (ABAICAN isReady) ==========
 var isReady = false;
 
-// 1. Jika item ada field 'isReady' (keserasian), gunakan terus
-if (item.isReady !== undefined) {
-    isReady = item.isReady;
-} else {
-    // 2. Dapatkan variationKey
-    var varKey = item.variationKey;
-    if (!varKey) {
-        varKey = getVariationKey(item.prodName, item.size, item.type);
-    }
-    // 3. Semak inventory untuk readyStock
-    var invData = inventoryData.get(varKey);
-    if (invData && invData.readyStock !== undefined) {
-        isReady = (invData.readyStock > 0);
+// 1. Dapatkan variationKey
+var varKey = item.variationKey;
+if (!varKey) {
+    var prodId = item.prodId || item.id;
+    if (prodId) {
+        varKey = getVariationKey(prodId, item.size, item.type);
     } else {
-        // 4. Fallback: jika tiada inventory, guna kategori produk (untuk keserasian)
-        var category = getProductCategoryFromItem(item);
-        if (category === 'readystock') {
-            isReady = true;
+        var foundProduct = productsData.find(p => p.name === item.prodName);
+        if (foundProduct) {
+            varKey = getVariationKey(foundProduct.id, item.size, item.type);
         } else {
-            isReady = false;
+            varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
         }
     }
+}
+
+// 2. Semak inventory untuk readyStock (UTAMA)
+var invData = inventoryData.get(varKey);
+if (invData && invData.readyStock !== undefined) {
+    isReady = (invData.readyStock > 0);
+} else {
+    // 3. Fallback: jika tiada inventory, guna kategori
+    var category = getProductCategoryFromItem(item);
+    isReady = (category === 'readystock');
 }
 var key = item.variationKey;
 if (!key) {
@@ -2130,14 +2132,14 @@ let statusChartInstance = null;
 let typeChartInstance = null;
 
 function generateProductReport(filter) {
-   if (!productsData || productsData.length === 0 || inventoryData.size === 0) {
-    console.warn('🔄 Data belum siap, memuat semula...');
-    var currentFilter = filter || 'all';
-    loadStockDataFromFirestoreOnly().then(() => {
-        generateProductReport(currentFilter);
-    });
-    return;
-}
+    if (!productsData || productsData.length === 0 || inventoryData.size === 0) {
+        console.warn('🔄 Data belum siap, memuat semula...');
+        var currentFilter = filter || 'all';
+        loadStockDataFromFirestoreOnly().then(() => {
+            generateProductReport(currentFilter);
+        });
+        return;
+    }
     filter = filter || 'all';
     var now = new Date();
     var startDate = null;
@@ -2151,70 +2153,68 @@ function generateProductReport(filter) {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    // ✅ AMBIL SEMUA PESANAN KECUALI CANCELLED (pending + completed)
     var validOrders = ordersData.filter(function(o) {
         return o.status === 'pending' || o.status === 'completed';
     });
 
-    // ✅ GUNA createdAt UNTUK SEMUA PESANAN (invois dikeluarkan semasa checkout)
     var filteredOrders = startDate ? validOrders.filter(function(o) {
         return new Date(o.createdAt) >= startDate;
     }) : validOrders;
-    // ===== KIRA STATISTIK =====
+
     var totalSales = 0, totalItems = 0;
     var productMap = new Map();
 
     filteredOrders.forEach(function(order) {
         totalSales += order.totalAmount || 0;
         var items = order.items || [];
+
         items.forEach(function(item) {
             totalItems += item.qty;
 
-          // ========== TENTUKAN JENIS (PRE‑ORDER ATAU READY STOCK) ==========
-var isReady = false;
+            // ========== TENTUKAN JENIS BERDASARKAN STOK SEMASA ==========
+            var isReady = false;
 
-// 1. Jika item ada field 'isReady', gunakan terus
-if (item.isReady !== undefined) {
-    isReady = item.isReady;
-} else {
-    // 2. Dapatkan variationKey
-    var varKey = item.variationKey;
-    if (!varKey) {
-        varKey = getVariationKey(item.prodName, item.size, item.type);
-    }
-    // 3. Semak inventory untuk readyStock
-    var invData = inventoryData.get(varKey);
-    if (invData && invData.readyStock !== undefined) {
-        isReady = (invData.readyStock > 0);
-    } else {
-        // 4. Fallback: jika tiada inventory, guna kategori produk (untuk keserasian)
-        var category = getProductCategoryFromItem(item);
-        if (category === 'readystock') {
-            isReady = true;
-        } else {
-            isReady = false;
-        }
-    }
-}
+            // 1. Dapatkan variationKey
+            var varKey = item.variationKey;
+            if (!varKey) {
+                var prodId = item.prodId || item.id;
+                if (prodId) {
+                    varKey = getVariationKey(prodId, item.size, item.type);
+                } else {
+                    var foundProduct = productsData.find(p => p.name === item.prodName);
+                    if (foundProduct) {
+                        varKey = getVariationKey(foundProduct.id, item.size, item.type);
+                    } else {
+                        varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+                    }
+                }
+            }
+
+            // 2. Semak inventory untuk readyStock (UTAMA)
+            var invData = inventoryData.get(varKey);
+            if (invData && invData.readyStock !== undefined) {
+                isReady = (invData.readyStock > 0);
+            } else {
+                // 3. Fallback: jika tiada inventory, guna kategori
+                var category = getProductCategoryFromItem(item);
+                isReady = (category === 'readystock');
+            }
 
             // ========== KUMPUL MENGIKUT PRODUK ==========
-           var key = item.variationKey;
-if (!key) {
-    // Guna prodId atau id jika ada
-    var prodId = item.prodId || item.id;
-    if (prodId) {
-        key = getVariationKey(prodId, item.size, item.type);
-    } else {
-        // Fallback: cuba cari produk berdasarkan nama
-        var foundProduct = productsData.find(p => p.name === item.prodName);
-        if (foundProduct) {
-            key = getVariationKey(foundProduct.id, item.size, item.type);
-        } else {
-            // Last resort: guna nama (sanitasi)
-            key = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
-        }
-    }
-}
+            var key = item.variationKey;
+            if (!key) {
+                var prodId = item.prodId || item.id;
+                if (prodId) {
+                    key = getVariationKey(prodId, item.size, item.type);
+                } else {
+                    var foundProduct = productsData.find(p => p.name === item.prodName);
+                    if (foundProduct) {
+                        key = getVariationKey(foundProduct.id, item.size, item.type);
+                    } else {
+                        key = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+                    }
+                }
+            }
 
             if (!productMap.has(key)) {
                 productMap.set(key, {
@@ -2244,23 +2244,31 @@ if (!key) {
 
     // ===== PAPARAN JADUAL =====
     var tbody = document.getElementById('productReportBody');
+    if (!tbody) {
+        console.error('❌ tbody not found!');
+        return;
+    }
     if (sortedProducts.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>';
     } else {
         var rows = '';
         sortedProducts.forEach(function(p) {
+            var safeName = (p.name || '').replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'; });
+            var safeSize = (p.size || '').replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'; });
+            var safeType = (p.type || '').replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'; });
             rows += '<tr>' +
-                '<td>' + escapeHtml(p.name) + '</td>' +
-                '<td>' + escapeHtml(p.size) + '</td>' +
-                '<td>' + escapeHtml(p.type) + '</td>' +
-                '<td class="text-center">' + p.preorderQty + '</td>' +
-                '<td class="text-center">' + p.readyQty + '</td>' +
-                '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
-                '<td class="text-end">RM ' + p.revenue.toFixed(2) + '</td>' +
-                '<td><button class="btn btn-sm btn-outline-danger delete-product-report-btn" data-product="' + escapeHtml(p.name) + '" data-size="' + escapeHtml(p.size) + '" data-type="' + escapeHtml(p.type) + '"><i class="fa-regular fa-trash-can"></i></button></td>' +
-                '</tr>';
+                '<td>' + safeName + '</td>' +
+                '<td>' + safeSize + '</td>' +
+                '<td>' + safeType + '</td>' +
+                '<td class="text-center">' + (p.preorderQty || 0) + '</td>' +
+                '<td class="text-center">' + (p.readyQty || 0) + '</td>' +
+                '<td class="fw-bold text-center">' + (p.totalQty || 0) + '</td>' +
+                '<td class="text-end">RM ' + (p.revenue || 0).toFixed(2) + '</td>' +
+                '<td><button class="btn btn-sm btn-outline-danger delete-product-report-btn" data-product="' + safeName + '" data-size="' + safeSize + '" data-type="' + safeType + '"><i class="fa-regular fa-trash-can"></i></button></td>' +
+            '</tr>';
         });
         tbody.innerHTML = rows;
+        console.log('✅ Jadual dikemas kini dengan', sortedProducts.length, 'baris');
     }
 
     // ===== STATISTIK DI ATAS =====
