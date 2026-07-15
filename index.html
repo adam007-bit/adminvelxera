@@ -861,15 +861,14 @@
             function getVariationKey(prodId, size, type) {
                 return sanitizeFirestoreId(prodId + '_' + size + '_' + type);
             }
-    // ===== DAPATKAN KATEGORI PRODUK DARI PRODNAME/VARIATIONKEY =====
+   
 
+// ===== DAPATKAN KATEGORI PRODUK DARI PRODNAME/VARIATIONKEY =====
 function getProductCategoryFromItem(item) {
-    // Cuba cari dalam productsData (sudah dimuat dari Firestore)
+    // Hanya guna productsData (sudah dimuat dari Firestore)
     var prodName = item.prodName;
-    var size = item.size;
-    var type = item.type;
-    var source = productsData.length > 0 ? productsData : allProducts;
-    
+    var source = productsData; // <-- HANYA guna productsData
+
     // Cari berdasarkan variationKey
     if (item.variationKey) {
         for (var p of source) {
@@ -2108,6 +2107,15 @@ let statusChartInstance = null;
 let typeChartInstance = null;
 
 function generateProductReport(filter) {
+     if (!productsData || productsData.length === 0) {
+    showToast('Data produk belum siap, sila tunggu...', true);
+    console.warn('🔄 productsData kosong, muat semula...');
+    loadStockDataFromFirestoreOnly().then(() => {
+        // Cuba semula selepas muat
+        document.getElementById('productDateFilterBtn').click();
+    });
+    return;
+}
     filter = filter || 'all';
     var now = new Date();
     var startDate = null;
