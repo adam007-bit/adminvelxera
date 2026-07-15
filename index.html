@@ -2990,5 +2990,82 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 });
             }
         </script>
+        <script type="module">
+// ===== SKRIP MIGRASI PESANAN LAMA =====
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getFirestore, collection, doc, getDocs, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAdUZs-P5SPcivHHP9lRmdyOC355Op8bOU",
+    authDomain: "spmn-af4f9.firebaseapp.com",
+    projectId: "spmn-af4f9",
+    storageBucket: "spmn-af4f9.firebasestorage.app",
+    messagingSenderId: "621089003979",
+    appId: "1:621089003979:web:bc819aef604b26f33b7e4e"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function sanitizeFirestoreId(raw) {
+    return raw.replace(/[\/\\\(\)&%#\?:;,.*+=|<>\[\]\{\}`~!@\$^]/g, '_').replace(/\s+/g, '_');
+}
+function getVariationKey(prodId, size, type) {
+    return sanitizeFirestoreId(prodId + '_' + size + '_' + type);
+}
+
+async function migrateOrders() {
+    console.log('🔄 Memulakan migrasi pesanan...');
+    const ordersSnap = await getDocs(collection(db, "orders"));
+    let count = 0;
+    for (const docSnap of ordersSnap.docs) {
+        const order = docSnap.data();
+        let updated = false;
+        const items = order.items || [];
+        for (const item of items) {
+            if (item.isReady === undefined) {
+                let varKey = item.variationKey;
+                if (!varKey) {
+                    const prodId = item.prodId || item.id;
+                    if (prodId) {
+                        varKey = getVariationKey(prodId, item.size, item.type);
+                    } else {
+                        const productSnap = await getDocs(collection(db, "products"));
+                        let found = false;
+                        for (const pDoc of productSnap.docs) {
+                            const pData = pDoc.data();
+                            if (pData.name === item.prodName) {
+                                varKey = getVariationKey(pDoc.id, item.size, item.type);
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+                        }
+                    }
+                }
+                const invRef = doc(db, "inventory", varKey);
+                const invSnap = await getDoc(invRef);
+                if (invSnap.exists()) {
+                    const invData = invSnap.data();
+                    item.isReady = (invData.readyStock || 0) > 0;
+                } else {
+                    item.isReady = false;
+                }
+                updated = true;
+            }
+        }
+        if (updated) {
+            await updateDoc(docSnap.ref, { items });
+            count++;
+            console.log(`✅ Pesanan ${docSnap.id} (${order.orderId}) dimigrasi`);
+        }
+    }
+    console.log(`✅ Selesai! ${count} pesanan dikemas kini.`);
+}
+
+migrateOrders();
+</script>
 </body>
 </html>
