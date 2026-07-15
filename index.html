@@ -2107,15 +2107,14 @@ let statusChartInstance = null;
 let typeChartInstance = null;
 
 function generateProductReport(filter) {
-     if (!productsData || productsData.length === 0) {
-    showToast('Data produk belum siap, sila tunggu...', true);
-    console.warn('🔄 productsData kosong, muat semula...');
-    loadStockDataFromFirestoreOnly().then(() => {
-        // Cuba semula selepas muat
-        document.getElementById('productDateFilterBtn').click();
-    });
-    return;
-}
+    if (!productsData || productsData.length === 0) {
+        console.warn('🔄 productsData kosong, memuat semula...');
+        var currentFilter = filter || 'all';
+        loadStockDataFromFirestoreOnly().then(() => {
+            generateProductReport(currentFilter);
+        });
+        return;
+    }
     filter = filter || 'all';
     var now = new Date();
     var startDate = null;
@@ -2138,7 +2137,6 @@ function generateProductReport(filter) {
     var filteredOrders = startDate ? validOrders.filter(function(o) {
         return new Date(o.createdAt) >= startDate;
     }) : validOrders;
-
     // ===== KIRA STATISTIK =====
     var totalSales = 0, totalItems = 0;
     var productMap = new Map();
