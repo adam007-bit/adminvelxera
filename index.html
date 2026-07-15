@@ -2034,15 +2034,23 @@ if (item.isReady !== undefined) {
         }
     }
 }
-
-                var key = item.variationKey;
-                if (!key) {
-                    key = getVariationKey(item.prodName, item.size, item.type);
-                }
-                if (!key) {
-                    key = item.prodName + '_' + item.size + '_' + item.type;
-                }
-
+var key = item.variationKey;
+if (!key) {
+    // Guna prodId atau id jika ada
+    var prodId = item.prodId || item.id;
+    if (prodId) {
+        key = getVariationKey(prodId, item.size, item.type);
+    } else {
+        // Fallback: cuba cari produk berdasarkan nama
+        var foundProduct = productsData.find(p => p.name === item.prodName);
+        if (foundProduct) {
+            key = getVariationKey(foundProduct.id, item.size, item.type);
+        } else {
+            // Last resort: guna nama (sanitasi)
+            key = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+        }
+    }
+}
                 if (!productMap.has(key)) {
                     productMap.set(key, {
                         name: item.prodName,
@@ -2189,13 +2197,23 @@ if (item.isReady !== undefined) {
 }
 
             // ========== KUMPUL MENGIKUT PRODUK ==========
-            var key = item.variationKey;
-            if (!key) {
-                key = getVariationKey(item.prodName, item.size, item.type);
-            }
-            if (!key) {
-                key = item.prodName + '_' + item.size + '_' + item.type;
-            }
+           var key = item.variationKey;
+if (!key) {
+    // Guna prodId atau id jika ada
+    var prodId = item.prodId || item.id;
+    if (prodId) {
+        key = getVariationKey(prodId, item.size, item.type);
+    } else {
+        // Fallback: cuba cari produk berdasarkan nama
+        var foundProduct = productsData.find(p => p.name === item.prodName);
+        if (foundProduct) {
+            key = getVariationKey(foundProduct.id, item.size, item.type);
+        } else {
+            // Last resort: guna nama (sanitasi)
+            key = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+        }
+    }
+}
 
             if (!productMap.has(key)) {
                 productMap.set(key, {
