@@ -2979,6 +2979,15 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     showToast('Gagal padam: ' + err.message, true);
                 }
             }
+                      // Dedahkan pembolehubah ke global untuk debugging
+window.ordersData = ordersData;
+window.inventoryData = inventoryData;
+window.productsData = productsData;
+window.getVariationKey = getVariationKey;
+window.sanitizeFirestoreId = sanitizeFirestoreId;
+window.escapeHtml = escapeHtml;
+window.generateProductReport = generateProductReport;
+console.log('✅ Debug variables exposed to window');
         </script>
 
         <script>
@@ -3066,15 +3075,7 @@ async function migrateOrders() {
 }
 
 migrateOrders();
-            // Dedahkan pembolehubah ke global untuk debugging
-window.ordersData = ordersData;
-window.inventoryData = inventoryData;
-window.productsData = productsData;
-window.getVariationKey = getVariationKey;
-window.sanitizeFirestoreId = sanitizeFirestoreId;
-window.escapeHtml = escapeHtml;
-window.generateProductReport = generateProductReport;
-console.log('✅ Debug variables exposed to window');
+  
 </script>
 </body>
 </html>
