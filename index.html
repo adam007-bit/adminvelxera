@@ -2010,71 +2010,68 @@ filtered.forEach(function(order) {
     var items = order.items || [];
     items.forEach(function(item) {
         // ========== TENTUKAN JENIS (GUNA HARGA) ==========
-        var isReady = false;
-        if (item.isReady !== undefined) {
-            isReady = item.isReady;
+// ========== TENTUKAN JENIS (GUNA HARGA SAHAJA - ABAIKAN isReady) ==========
+var isReady = false;
+
+// 1. Dapatkan variationKey
+var varKey = item.variationKey;
+if (!varKey) {
+    var prodId = item.prodId || item.id;
+    if (prodId) {
+        varKey = getVariationKey(prodId, item.size, item.type);
+    } else {
+        var foundProduct = productsData.find(p => p.name === item.prodName);
+        if (foundProduct) {
+            varKey = getVariationKey(foundProduct.id, item.size, item.type);
         } else {
-            // 1. Dapatkan variationKey
-            var varKey = item.variationKey;
-            if (!varKey) {
-                var prodId = item.prodId || item.id;
-                if (prodId) {
-                    varKey = getVariationKey(prodId, item.size, item.type);
-                } else {
-                    var foundProduct = productsData.find(p => p.name === item.prodName);
-                    if (foundProduct) {
-                        varKey = getVariationKey(foundProduct.id, item.size, item.type);
-                    } else {
-                        varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
-                    }
-                }
-            }
+            varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+        }
+    }
+}
 
-            // 2. Cari basePrice daripada produk
-            var basePrice = null;
-            var prodIdFromKey = varKey.split('_')[0];
-            var prod = productsData.find(p => p.id === prodIdFromKey);
-            if (prod && prod.variations) {
-                for (var v of prod.variations) {
-                    var k = getVariationKey(prod.id, v.size, v.type);
-                    if (k === varKey) {
-                        basePrice = v.price;
-                        break;
-                    }
-                }
-            }
-            // Jika tidak jumpa, cuba cari berdasarkan nama
-            if (basePrice === null) {
-                var prodByName = productsData.find(p => p.name === item.prodName);
-                if (prodByName && prodByName.variations) {
-                    for (var v of prodByName.variations) {
-                        var k = getVariationKey(prodByName.id, v.size, v.type);
-                        if (k === varKey) {
-                            basePrice = v.price;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // 3. Tentukan readyPrice
-            var invData = inventoryData.get(varKey) || {};
-            var customReady = invData.customReadyPrice;
-            var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
-
-            // 4. Bandingkan harga item dengan readyPrice
-            if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
-                isReady = true;
-            } else {
-                // 5. Fallback ke inventory.readyStock jika masih belum pasti
-                if (invData && invData.readyStock !== undefined) {
-                    isReady = (invData.readyStock > 0);
-                } else {
-                    var category = getProductCategoryFromItem(item);
-                    isReady = (category === 'readystock');
-                }
+// 2. Cari basePrice
+var basePrice = null;
+var prodIdFromKey = varKey.split('_')[0];
+var prod = productsData.find(p => p.id === prodIdFromKey);
+if (prod && prod.variations) {
+    for (var v of prod.variations) {
+        var k = getVariationKey(prod.id, v.size, v.type);
+        if (k === varKey) {
+            basePrice = v.price;
+            break;
+        }
+    }
+}
+if (basePrice === null) {
+    var prodByName = productsData.find(p => p.name === item.prodName);
+    if (prodByName && prodByName.variations) {
+        for (var v of prodByName.variations) {
+            var k = getVariationKey(prodByName.id, v.size, v.type);
+            if (k === varKey) {
+                basePrice = v.price;
+                break;
             }
         }
+    }
+}
+
+// 3. Tentukan readyPrice
+var invData = inventoryData.get(varKey) || {};
+var customReady = invData.customReadyPrice;
+var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
+
+// 4. Bandingkan harga
+if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
+    isReady = true;
+} else {
+    // Fallback ke readyStock (jika mahu)
+    if (invData && invData.readyStock !== undefined) {
+        isReady = (invData.readyStock > 0);
+    } else {
+        var category = getProductCategoryFromItem(item);
+        isReady = (category === 'readystock');
+    }
+}
 
         var key = item.variationKey;
         if (!key) {
@@ -2207,67 +2204,66 @@ function generateProductReport(filter) {
             totalItems += item.qty;
 
             // ========== TENTUKAN JENIS (GUNA HARGA) ==========
+// ========== TENTUKAN JENIS (GUNA HARGA SAHAJA - ABAIKAN isReady) ==========
 var isReady = false;
-if (item.isReady !== undefined) {
-    isReady = item.isReady;
-} else {
-    // 1. Dapatkan variationKey
-    var varKey = item.variationKey;
-    if (!varKey) {
-        var prodId = item.prodId || item.id;
-        if (prodId) {
-            varKey = getVariationKey(prodId, item.size, item.type);
+
+// 1. Dapatkan variationKey
+var varKey = item.variationKey;
+if (!varKey) {
+    var prodId = item.prodId || item.id;
+    if (prodId) {
+        varKey = getVariationKey(prodId, item.size, item.type);
+    } else {
+        var foundProduct = productsData.find(p => p.name === item.prodName);
+        if (foundProduct) {
+            varKey = getVariationKey(foundProduct.id, item.size, item.type);
         } else {
-            var foundProduct = productsData.find(p => p.name === item.prodName);
-            if (foundProduct) {
-                varKey = getVariationKey(foundProduct.id, item.size, item.type);
-            } else {
-                varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
-            }
+            varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
         }
     }
+}
 
-    // 2. Cari basePrice daripada produk
-    var basePrice = null;
-    var prodIdFromKey = varKey.split('_')[0];
-    var prod = productsData.find(p => p.id === prodIdFromKey);
-    if (prod && prod.variations) {
-        for (var v of prod.variations) {
-            var k = getVariationKey(prod.id, v.size, v.type);
+// 2. Cari basePrice
+var basePrice = null;
+var prodIdFromKey = varKey.split('_')[0];
+var prod = productsData.find(p => p.id === prodIdFromKey);
+if (prod && prod.variations) {
+    for (var v of prod.variations) {
+        var k = getVariationKey(prod.id, v.size, v.type);
+        if (k === varKey) {
+            basePrice = v.price;
+            break;
+        }
+    }
+}
+if (basePrice === null) {
+    var prodByName = productsData.find(p => p.name === item.prodName);
+    if (prodByName && prodByName.variations) {
+        for (var v of prodByName.variations) {
+            var k = getVariationKey(prodByName.id, v.size, v.type);
             if (k === varKey) {
                 basePrice = v.price;
                 break;
             }
         }
     }
-    if (basePrice === null) {
-        var prodByName = productsData.find(p => p.name === item.prodName);
-        if (prodByName && prodByName.variations) {
-            for (var v of prodByName.variations) {
-                var k = getVariationKey(prodByName.id, v.size, v.type);
-                if (k === varKey) {
-                    basePrice = v.price;
-                    break;
-                }
-            }
-        }
-    }
+}
 
-    // 3. Tentukan readyPrice
-    var invData = inventoryData.get(varKey) || {};
-    var customReady = invData.customReadyPrice;
-    var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
+// 3. Tentukan readyPrice
+var invData = inventoryData.get(varKey) || {};
+var customReady = invData.customReadyPrice;
+var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
 
-    // 4. Bandingkan harga item dengan readyPrice
-    if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
-        isReady = true;
+// 4. Bandingkan harga
+if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
+    isReady = true;
+} else {
+    // Fallback ke readyStock (jika mahu)
+    if (invData && invData.readyStock !== undefined) {
+        isReady = (invData.readyStock > 0);
     } else {
-        if (invData && invData.readyStock !== undefined) {
-            isReady = (invData.readyStock > 0);
-        } else {
-            var category = getProductCategoryFromItem(item);
-            isReady = (category === 'readystock');
-        }
+        var category = getProductCategoryFromItem(item);
+        isReady = (category === 'readystock');
     }
 }
 
