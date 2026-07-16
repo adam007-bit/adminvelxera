@@ -2010,46 +2010,43 @@ function setupProductDateFilter() {
             var items = order.items || [];
             items.forEach(function(item) {
 // ========== TENTUKAN JENIS BERDASARKAN STOK SEMASA (ABAICAN isReady) ==========
+// ========== TENTUKAN JENIS (UTAMAKAN isReady DARI ORDER) ==========
 var isReady = false;
-
-// 1. Dapatkan variationKey
-var varKey = item.variationKey;
-if (!varKey) {
-    var prodId = item.prodId || item.id;
-    if (prodId) {
-        varKey = getVariationKey(prodId, item.size, item.type);
-    } else {
-        var foundProduct = productsData.find(p => p.name === item.prodName);
-        if (foundProduct) {
-            varKey = getVariationKey(foundProduct.id, item.size, item.type);
+if (item.isReady !== undefined) {
+    isReady = item.isReady;
+} else {
+    var varKey = item.variationKey;
+    if (!varKey) {
+        var prodId = item.prodId || item.id;
+        if (prodId) {
+            varKey = getVariationKey(prodId, item.size, item.type);
         } else {
-            varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+            var foundProduct = productsData.find(p => p.name === item.prodName);
+            if (foundProduct) {
+                varKey = getVariationKey(foundProduct.id, item.size, item.type);
+            } else {
+                varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+            }
         }
     }
-}
-
-// 2. Semak inventory untuk readyStock (UTAMA)
-var invData = inventoryData.get(varKey);
-if (invData && invData.readyStock !== undefined) {
-    isReady = (invData.readyStock > 0);
-} else {
-    // 3. Fallback: jika tiada inventory, guna kategori
-    var category = getProductCategoryFromItem(item);
-    isReady = (category === 'readystock');
+    var invData = inventoryData.get(varKey);
+    if (invData && invData.readyStock !== undefined) {
+        isReady = (invData.readyStock > 0);
+    } else {
+        var category = getProductCategoryFromItem(item);
+        isReady = (category === 'readystock');
+    }
 }
 var key = item.variationKey;
 if (!key) {
-    // Guna prodId atau id jika ada
     var prodId = item.prodId || item.id;
     if (prodId) {
         key = getVariationKey(prodId, item.size, item.type);
     } else {
-        // Fallback: cuba cari produk berdasarkan nama
         var foundProduct = productsData.find(p => p.name === item.prodName);
         if (foundProduct) {
             key = getVariationKey(foundProduct.id, item.size, item.type);
         } else {
-            // Last resort: guna nama (sanitasi)
             key = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
         }
     }
@@ -2171,33 +2168,33 @@ function generateProductReport(filter) {
         items.forEach(function(item) {
             totalItems += item.qty;
 
-            // ========== TENTUKAN JENIS BERDASARKAN STOK SEMASA ==========
+            // ========== TENTUKAN JENIS (UTAMAKAN isReady DARI ORDER) ==========
             var isReady = false;
-
-            // 1. Dapatkan variationKey
-            var varKey = item.variationKey;
-            if (!varKey) {
-                var prodId = item.prodId || item.id;
-                if (prodId) {
-                    varKey = getVariationKey(prodId, item.size, item.type);
-                } else {
-                    var foundProduct = productsData.find(p => p.name === item.prodName);
-                    if (foundProduct) {
-                        varKey = getVariationKey(foundProduct.id, item.size, item.type);
+            if (item.isReady !== undefined) {
+                isReady = item.isReady;
+            } else {
+                // Fallback: guna inventory jika tiada isReady
+                var varKey = item.variationKey;
+                if (!varKey) {
+                    var prodId = item.prodId || item.id;
+                    if (prodId) {
+                        varKey = getVariationKey(prodId, item.size, item.type);
                     } else {
-                        varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+                        var foundProduct = productsData.find(p => p.name === item.prodName);
+                        if (foundProduct) {
+                            varKey = getVariationKey(foundProduct.id, item.size, item.type);
+                        } else {
+                            varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+                        }
                     }
                 }
-            }
-
-            // 2. Semak inventory untuk readyStock (UTAMA)
-            var invData = inventoryData.get(varKey);
-            if (invData && invData.readyStock !== undefined) {
-                isReady = (invData.readyStock > 0);
-            } else {
-                // 3. Fallback: jika tiada inventory, guna kategori
-                var category = getProductCategoryFromItem(item);
-                isReady = (category === 'readystock');
+                var invData = inventoryData.get(varKey);
+                if (invData && invData.readyStock !== undefined) {
+                    isReady = (invData.readyStock > 0);
+                } else {
+                    var category = getProductCategoryFromItem(item);
+                    isReady = (category === 'readystock');
+                }
             }
 
             // ========== KUMPUL MENGIKUT PRODUK ==========
