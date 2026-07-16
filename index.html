@@ -2005,123 +2005,160 @@ function setupProductDateFilter() {
         }, 0);
 
         // ===== Kira aggregat produk =====
-        var productMap = new Map();
-        filtered.forEach(function(order) {
-            var items = order.items || [];
-            items.forEach(function(item) {
-// ========== TENTUKAN JENIS BERDASARKAN STOK SEMASA (ABAICAN isReady) ==========
-// ========== TENTUKAN JENIS (UTAMAKAN isReady DARI ORDER) ==========
-var isReady = false;
-if (item.isReady !== undefined) {
-    isReady = item.isReady;
-} else {
-    var varKey = item.variationKey;
-    if (!varKey) {
-        var prodId = item.prodId || item.id;
-        if (prodId) {
-            varKey = getVariationKey(prodId, item.size, item.type);
+var productMap = new Map();
+filtered.forEach(function(order) {
+    var items = order.items || [];
+    items.forEach(function(item) {
+        // ========== TENTUKAN JENIS (GUNA HARGA) ==========
+        var isReady = false;
+        if (item.isReady !== undefined) {
+            isReady = item.isReady;
         } else {
-            var foundProduct = productsData.find(p => p.name === item.prodName);
-            if (foundProduct) {
-                varKey = getVariationKey(foundProduct.id, item.size, item.type);
+            // 1. Dapatkan variationKey
+            var varKey = item.variationKey;
+            if (!varKey) {
+                var prodId = item.prodId || item.id;
+                if (prodId) {
+                    varKey = getVariationKey(prodId, item.size, item.type);
+                } else {
+                    var foundProduct = productsData.find(p => p.name === item.prodName);
+                    if (foundProduct) {
+                        varKey = getVariationKey(foundProduct.id, item.size, item.type);
+                    } else {
+                        varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+                    }
+                }
+            }
+
+            // 2. Cari basePrice daripada produk
+            var basePrice = null;
+            var prodIdFromKey = varKey.split('_')[0];
+            var prod = productsData.find(p => p.id === prodIdFromKey);
+            if (prod && prod.variations) {
+                for (var v of prod.variations) {
+                    var k = getVariationKey(prod.id, v.size, v.type);
+                    if (k === varKey) {
+                        basePrice = v.price;
+                        break;
+                    }
+                }
+            }
+            // Jika tidak jumpa, cuba cari berdasarkan nama
+            if (basePrice === null) {
+                var prodByName = productsData.find(p => p.name === item.prodName);
+                if (prodByName && prodByName.variations) {
+                    for (var v of prodByName.variations) {
+                        var k = getVariationKey(prodByName.id, v.size, v.type);
+                        if (k === varKey) {
+                            basePrice = v.price;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // 3. Tentukan readyPrice
+            var invData = inventoryData.get(varKey) || {};
+            var customReady = invData.customReadyPrice;
+            var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
+
+            // 4. Bandingkan harga item dengan readyPrice
+            if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
+                isReady = true;
             } else {
-                varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+                // 5. Fallback ke inventory.readyStock jika masih belum pasti
+                if (invData && invData.readyStock !== undefined) {
+                    isReady = (invData.readyStock > 0);
+                } else {
+                    var category = getProductCategoryFromItem(item);
+                    isReady = (category === 'readystock');
+                }
             }
         }
-    }
-    var invData = inventoryData.get(varKey);
-    if (invData && invData.readyStock !== undefined) {
-        isReady = (invData.readyStock > 0);
-    } else {
-        var category = getProductCategoryFromItem(item);
-        isReady = (category === 'readystock');
-    }
-}
-var key = item.variationKey;
-if (!key) {
-    var prodId = item.prodId || item.id;
-    if (prodId) {
-        key = getVariationKey(prodId, item.size, item.type);
-    } else {
-        var foundProduct = productsData.find(p => p.name === item.prodName);
-        if (foundProduct) {
-            key = getVariationKey(foundProduct.id, item.size, item.type);
-        } else {
-            key = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
-        }
-    }
-}
-                if (!productMap.has(key)) {
-                    productMap.set(key, {
-                        name: item.prodName,
-                        size: item.size,
-                        type: item.type,
-                        preorderQty: 0,
-                        readyQty: 0,
-                        totalQty: 0,
-                        revenue: 0
-                    });
-                }
-                var data = productMap.get(key);
-                if (isReady) {
-                    data.readyQty += item.qty;
+
+        var key = item.variationKey;
+        if (!key) {
+            var prodId = item.prodId || item.id;
+            if (prodId) {
+                key = getVariationKey(prodId, item.size, item.type);
+            } else {
+                var foundProduct = productsData.find(p => p.name === item.prodName);
+                if (foundProduct) {
+                    key = getVariationKey(foundProduct.id, item.size, item.type);
                 } else {
-                    data.preorderQty += item.qty;
+                    key = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
                 }
-                data.totalQty += item.qty;
-                data.revenue += (item.price * item.qty);
-            });
-        });
-
-        var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
-            return a.name.localeCompare(b.name);
-        });
-
-        var tableRows = '';
-        if (sortedProducts.length === 0) {
-            tableRows = '<tr><td colspan="7" class="text-center text-muted">Tiada produk dalam tempoh ini</td></tr>';
-        } else {
-            sortedProducts.forEach(function(p) {
-                tableRows += '<tr>' +
-                    '<td>' + escapeHtml(p.name) + '</td>' +
-                    '<td>' + escapeHtml(p.size) + '</td>' +
-                    '<td>' + escapeHtml(p.type) + '</td>' +
-                    '<td class="text-center">' + p.preorderQty + '</td>' +
-                    '<td class="text-center">' + p.readyQty + '</td>' +
-                    '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
-                    '<td class="text-end">RM ' + p.revenue.toFixed(2) + '</td>' +
-                    '</tr>';
+            }
+        }
+        if (!productMap.has(key)) {
+            productMap.set(key, {
+                name: item.prodName,
+                size: item.size,
+                type: item.type,
+                preorderQty: 0,
+                readyQty: 0,
+                totalQty: 0,
+                revenue: 0
             });
         }
+        var data = productMap.get(key);
+        if (isReady) {
+            data.readyQty += item.qty;
+        } else {
+            data.preorderQty += item.qty;
+        }
+        data.totalQty += item.qty;
+        data.revenue += (item.price * item.qty);
+    });
+});
 
-        var html = `
-            <div class="date-result-card">
-                <div class="row">
-                    <div class="col-4"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
-                    <div class="col-4"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
-                    <div class="col-4"><strong>Jumlah Item</strong><div class="stat-number">${totalItems}</div></div>
-                </div>
-                <div class="table-responsive mt-3">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>Produk</th>
-                                <th>Saiz</th>
-                                <th>Jenis</th>
-                                <th>Kuantiti Pre‑order</th>
-                                <th>Kuantiti Ready Stock</th>
-                                <th>Jumlah Terjual</th>
-                                <th>Pendapatan (RM)</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tableRows}</tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-        resultDiv.innerHTML = html;
+var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
+    return a.name.localeCompare(b.name);
+});
+
+var tableRows = '';
+if (sortedProducts.length === 0) {
+    tableRows = '<tr><td colspan="7" class="text-center text-muted">Tiada produk dalam tempoh ini</td></tr>';
+} else {
+    sortedProducts.forEach(function(p) {
+        tableRows += '<tr>' +
+            '<td>' + escapeHtml(p.name) + '</td>' +
+            '<td>' + escapeHtml(p.size) + '</td>' +
+            '<td>' + escapeHtml(p.type) + '</td>' +
+            '<td class="text-center">' + p.preorderQty + '</td>' +
+            '<td class="text-center">' + p.readyQty + '</td>' +
+            '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
+            '<td class="text-end">RM ' + p.revenue.toFixed(2) + '</td>' +
+            '</tr>';
     });
 }
+
+var html = `
+    <div class="date-result-card">
+        <div class="row">
+            <div class="col-4"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
+            <div class="col-4"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
+            <div class="col-4"><strong>Jumlah Item</strong><div class="stat-number">${totalItems}</div></div>
+        </div>
+        <div class="table-responsive mt-3">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Produk</th>
+                        <th>Saiz</th>
+                        <th>Jenis</th>
+                        <th>Kuantiti Pre‑order</th>
+                        <th>Kuantiti Ready Stock</th>
+                        <th>Jumlah Terjual</th>
+                        <th>Pendapatan (RM)</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+        </div>
+    </div>
+`;
+resultDiv.innerHTML = html;
 
 // ==================== PRODUCT REPORT (TALLY DENGAN INVOIS) ====================
 let productChartInstance = null;
@@ -2168,34 +2205,70 @@ function generateProductReport(filter) {
         items.forEach(function(item) {
             totalItems += item.qty;
 
-            // ========== TENTUKAN JENIS (UTAMAKAN isReady DARI ORDER) ==========
-            var isReady = false;
-            if (item.isReady !== undefined) {
-                isReady = item.isReady;
+            // ========== TENTUKAN JENIS (GUNA HARGA) ==========
+var isReady = false;
+if (item.isReady !== undefined) {
+    isReady = item.isReady;
+} else {
+    // 1. Dapatkan variationKey
+    var varKey = item.variationKey;
+    if (!varKey) {
+        var prodId = item.prodId || item.id;
+        if (prodId) {
+            varKey = getVariationKey(prodId, item.size, item.type);
+        } else {
+            var foundProduct = productsData.find(p => p.name === item.prodName);
+            if (foundProduct) {
+                varKey = getVariationKey(foundProduct.id, item.size, item.type);
             } else {
-                // Fallback: guna inventory jika tiada isReady
-                var varKey = item.variationKey;
-                if (!varKey) {
-                    var prodId = item.prodId || item.id;
-                    if (prodId) {
-                        varKey = getVariationKey(prodId, item.size, item.type);
-                    } else {
-                        var foundProduct = productsData.find(p => p.name === item.prodName);
-                        if (foundProduct) {
-                            varKey = getVariationKey(foundProduct.id, item.size, item.type);
-                        } else {
-                            varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
-                        }
-                    }
-                }
-                var invData = inventoryData.get(varKey);
-                if (invData && invData.readyStock !== undefined) {
-                    isReady = (invData.readyStock > 0);
-                } else {
-                    var category = getProductCategoryFromItem(item);
-                    isReady = (category === 'readystock');
+                varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+            }
+        }
+    }
+
+    // 2. Cari basePrice daripada produk
+    var basePrice = null;
+    var prodIdFromKey = varKey.split('_')[0];
+    var prod = productsData.find(p => p.id === prodIdFromKey);
+    if (prod && prod.variations) {
+        for (var v of prod.variations) {
+            var k = getVariationKey(prod.id, v.size, v.type);
+            if (k === varKey) {
+                basePrice = v.price;
+                break;
+            }
+        }
+    }
+    if (basePrice === null) {
+        var prodByName = productsData.find(p => p.name === item.prodName);
+        if (prodByName && prodByName.variations) {
+            for (var v of prodByName.variations) {
+                var k = getVariationKey(prodByName.id, v.size, v.type);
+                if (k === varKey) {
+                    basePrice = v.price;
+                    break;
                 }
             }
+        }
+    }
+
+    // 3. Tentukan readyPrice
+    var invData = inventoryData.get(varKey) || {};
+    var customReady = invData.customReadyPrice;
+    var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
+
+    // 4. Bandingkan harga item dengan readyPrice
+    if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
+        isReady = true;
+    } else {
+        if (invData && invData.readyStock !== undefined) {
+            isReady = (invData.readyStock > 0);
+        } else {
+            var category = getProductCategoryFromItem(item);
+            isReady = (category === 'readystock');
+        }
+    }
+}
 
             // ========== KUMPUL MENGIKUT PRODUK ==========
             var key = item.variationKey;
