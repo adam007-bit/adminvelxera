@@ -2204,68 +2204,61 @@ function generateProductReport(filter) {
             totalItems += item.qty;
 
             // ========== TENTUKAN JENIS (GUNA HARGA) ==========
-// ========== TENTUKAN JENIS (GUNA HARGA SAHAJA - ABAIKAN isReady) ==========
-var isReady = false;
-
-// 1. Dapatkan variationKey
-var varKey = item.variationKey;
-if (!varKey) {
-    var prodId = item.prodId || item.id;
-    if (prodId) {
-        varKey = getVariationKey(prodId, item.size, item.type);
-    } else {
-        var foundProduct = productsData.find(p => p.name === item.prodName);
-        if (foundProduct) {
-            varKey = getVariationKey(foundProduct.id, item.size, item.type);
-        } else {
-            varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
-        }
-    }
-}
-
-// 2. Cari basePrice
-var basePrice = null;
-var prodIdFromKey = varKey.split('_')[0];
-var prod = productsData.find(p => p.id === prodIdFromKey);
-if (prod && prod.variations) {
-    for (var v of prod.variations) {
-        var k = getVariationKey(prod.id, v.size, v.type);
-        if (k === varKey) {
-            basePrice = v.price;
-            break;
-        }
-    }
-}
-if (basePrice === null) {
-    var prodByName = productsData.find(p => p.name === item.prodName);
-    if (prodByName && prodByName.variations) {
-        for (var v of prodByName.variations) {
-            var k = getVariationKey(prodByName.id, v.size, v.type);
-            if (k === varKey) {
-                basePrice = v.price;
-                break;
+            var isReady = false;
+            var varKey = item.variationKey;
+            if (!varKey) {
+                var prodId = item.prodId || item.id;
+                if (prodId) {
+                    varKey = getVariationKey(prodId, item.size, item.type);
+                } else {
+                    var foundProduct = productsData.find(p => p.name === item.prodName);
+                    if (foundProduct) {
+                        varKey = getVariationKey(foundProduct.id, item.size, item.type);
+                    } else {
+                        varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
+                    }
+                }
             }
-        }
-    }
-}
 
-// 3. Tentukan readyPrice
-var invData = inventoryData.get(varKey) || {};
-var customReady = invData.customReadyPrice;
-var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
+            var basePrice = null;
+            var prodIdFromKey = varKey.split('_')[0];
+            var prod = productsData.find(p => p.id === prodIdFromKey);
+            if (prod && prod.variations) {
+                for (var v of prod.variations) {
+                    var k = getVariationKey(prod.id, v.size, v.type);
+                    if (k === varKey) {
+                        basePrice = v.price;
+                        break;
+                    }
+                }
+            }
+            if (basePrice === null) {
+                var prodByName = productsData.find(p => p.name === item.prodName);
+                if (prodByName && prodByName.variations) {
+                    for (var v of prodByName.variations) {
+                        var k = getVariationKey(prodByName.id, v.size, v.type);
+                        if (k === varKey) {
+                            basePrice = v.price;
+                            break;
+                        }
+                    }
+                }
+            }
 
-// 4. Bandingkan harga
-if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
-    isReady = true;
-} else {
-    // Fallback ke readyStock (jika mahu)
-    if (invData && invData.readyStock !== undefined) {
-        isReady = (invData.readyStock > 0);
-    } else {
-        var category = getProductCategoryFromItem(item);
-        isReady = (category === 'readystock');
-    }
-}
+            var invData = inventoryData.get(varKey) || {};
+            var customReady = invData.customReadyPrice;
+            var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
+
+            if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
+                isReady = true;
+            } else {
+                if (invData && invData.readyStock !== undefined) {
+                    isReady = (invData.readyStock > 0);
+                } else {
+                    var category = getProductCategoryFromItem(item);
+                    isReady = (category === 'readystock');
+                }
+            }
 
             // ========== KUMPUL MENGIKUT PRODUK ==========
             var key = item.variationKey;
@@ -2291,7 +2284,8 @@ if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
                     preorderQty: 0,
                     readyQty: 0,
                     totalQty: 0,
-                    revenue: 0
+                    revenue: 0,
+                    orderIds: new Set()   // <--- BARU: simpan ID pesanan unik
                 });
             }
             var data = productMap.get(key);
@@ -2302,6 +2296,7 @@ if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
             }
             data.totalQty += item.qty;
             data.revenue += (item.price * item.qty);
+            data.orderIds.add(order.id);   // <--- BARU: tambah ID pesanan
         });
     });
 
@@ -2316,7 +2311,7 @@ if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
         return;
     }
     if (sortedProducts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Tiada data</td></tr>';
     } else {
         var rows = '';
         sortedProducts.forEach(function(p) {
@@ -2330,6 +2325,7 @@ if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
                 '<td class="text-center">' + (p.preorderQty || 0) + '</td>' +
                 '<td class="text-center">' + (p.readyQty || 0) + '</td>' +
                 '<td class="fw-bold text-center">' + (p.totalQty || 0) + '</td>' +
+                '<td class="text-center">' + (p.orderIds ? p.orderIds.size : 0) + '</td>' +   // <--- BARU
                 '<td class="text-end">RM ' + (p.revenue || 0).toFixed(2) + '</td>' +
                 '<td><button class="btn btn-sm btn-outline-danger delete-product-report-btn" data-product="' + safeName + '" data-size="' + safeSize + '" data-type="' + safeType + '"><i class="fa-regular fa-trash-can"></i></button></td>' +
             '</tr>';
