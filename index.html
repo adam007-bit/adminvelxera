@@ -2008,6 +2008,7 @@ filtered.forEach(function(order) {
     var items = order.items || [];
     items.forEach(function(item) {
         var varKey = item.variationKey;
+ 
         if (!varKey) {
             var prodId = item.prodId || item.id;
             if (prodId) {
@@ -2021,7 +2022,9 @@ filtered.forEach(function(order) {
                 }
             }
         }
-
+       if (!inventoryData.has(varKey)) {
+    return; // skip item ini
+}
         var isReady = false;
         var basePrice = null;
         var prodIdFromKey = varKey.split('_')[0];
@@ -2162,9 +2165,7 @@ function generateProductReport(filter) {
         var items = order.items || [];
 
         items.forEach(function(item) {
-            totalItems += item.qty;
-
-            // Dapatkan variationKey
+            // 🔥 Dapatkan variationKey
             var key = item.variationKey;
             if (!key) {
                 var prodId = item.prodId || item.id;
@@ -2179,6 +2180,13 @@ function generateProductReport(filter) {
                     }
                 }
             }
+
+            // 🔥 TAPIS: Jika inventoryData TIDAK ada key ini, SKIP item (produk sudah dipadam)
+            if (!inventoryData.has(key)) {
+                return; // skip item ini
+            }
+
+            totalItems += item.qty;
 
             // Tentukan isReady (guna harga)
             var isReady = false;
@@ -2244,7 +2252,7 @@ function generateProductReport(filter) {
         return a.name.localeCompare(b.name) || a.size.localeCompare(b.size);
     });
 
-    // Paparan Jadual (dengan Saiz dan Jenis)
+    // Paparan Jadual
     var tbody = document.getElementById('productReportBody');
     if (!tbody) {
         console.error('❌ tbody not found!');
