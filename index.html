@@ -2002,13 +2002,12 @@ function setupProductDateFilter() {
             return sum + items.reduce(function(s, i) { return s + i.qty; }, 0);
         }, 0);
 
-        // ===== Aggregat produk menggunakan product ID =====
+// ===== Aggregat produk menggunakan variationKey =====
 var productMap = new Map(); // key = variationKey
 filtered.forEach(function(order) {
     var items = order.items || [];
     items.forEach(function(item) {
         var varKey = item.variationKey;
- 
         if (!varKey) {
             var prodId = item.prodId || item.id;
             if (prodId) {
@@ -2022,17 +2021,30 @@ filtered.forEach(function(order) {
                 }
             }
         }
-       if (!inventoryData.has(varKey)) {
-    return; // skip item ini
-}
+
+        // 🔥 SEMAK 1: Pastikan inventoryData ada
+        if (!inventoryData.has(varKey)) {
+            return;
+        }
+
+        // 🔥 SEMAK 2: Pastikan produk masih wujud dalam katalog (productsData)
+        // Gunakan kombinasi NAMA + SAIZ + JENIS
+        var prodExists = productsData.some(p => {
+            if (p.name !== item.prodName) return false;
+            if (!p.variations) return false;
+            return p.variations.some(v => v.size === item.size && v.type === item.type);
+        });
+        if (!prodExists) {
+            return; // skip – produk sudah dipadam
+        }
+
+        // Tentukan isReady
         var isReady = false;
         var basePrice = null;
-        var prodIdFromKey = varKey.split('_')[0];
-        var prod = productsData.find(p => p.id === prodIdFromKey);
-        if (prod && prod.variations) {
-            for (var v of prod.variations) {
-                var k = getVariationKey(prod.id, v.size, v.type);
-                if (k === varKey) {
+        var matchedProduct = productsData.find(p => p.name === item.prodName);
+        if (matchedProduct && matchedProduct.variations) {
+            for (var v of matchedProduct.variations) {
+                if (v.size === item.size && v.type === item.type) {
                     basePrice = v.price;
                     break;
                 }
@@ -2070,7 +2082,6 @@ filtered.forEach(function(order) {
         data.orderIds.add(order.id);
     });
 });
-
 var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
     return a.name.localeCompare(b.name) || a.size.localeCompare(b.size);
 });
@@ -2181,9 +2192,20 @@ function generateProductReport(filter) {
                 }
             }
 
-            // 🔥 TAPIS: Jika inventoryData TIDAK ada key ini, SKIP item (produk sudah dipadam)
+            // 🔥 SEMAK 1: Pastikan inventoryData ada
             if (!inventoryData.has(key)) {
-                return; // skip item ini
+                return; // skip
+            }
+
+            // 🔥 SEMAK 2: Pastikan produk masih wujud dalam katalog (productsData)
+            // Gunakan kombinasi NAMA + SAIZ + JENIS (lebih tepat)
+            var prodExists = productsData.some(p => {
+                if (p.name !== item.prodName) return false;
+                if (!p.variations) return false;
+                return p.variations.some(v => v.size === item.size && v.type === item.type);
+            });
+            if (!prodExists) {
+                return; // skip – produk sudah dipadam
             }
 
             totalItems += item.qty;
@@ -2191,26 +2213,13 @@ function generateProductReport(filter) {
             // Tentukan isReady (guna harga)
             var isReady = false;
             var basePrice = null;
-            var prodIdFromKey = key.split('_')[0];
-            var prod = productsData.find(p => p.id === prodIdFromKey);
-            if (prod && prod.variations) {
-                for (var v of prod.variations) {
-                    var k = getVariationKey(prod.id, v.size, v.type);
-                    if (k === key) {
+            // Cari harga asas dari produk yang sepadan
+            var matchedProduct = productsData.find(p => p.name === item.prodName);
+            if (matchedProduct && matchedProduct.variations) {
+                for (var v of matchedProduct.variations) {
+                    if (v.size === item.size && v.type === item.type) {
                         basePrice = v.price;
                         break;
-                    }
-                }
-            }
-            if (basePrice === null) {
-                var prodByName = productsData.find(p => p.name === item.prodName);
-                if (prodByName && prodByName.variations) {
-                    for (var v of prodByName.variations) {
-                        var k = getVariationKey(prodByName.id, v.size, v.type);
-                        if (k === key) {
-                            basePrice = v.price;
-                            break;
-                        }
                     }
                 }
             }
