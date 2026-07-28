@@ -782,6 +782,22 @@
                             <div class="col-md-4 d-flex align-items-end">
                                 <button id="updateReadyStockBtn" class="btn btn-success w-100"><i class="fa-solid fa-save"></i> Set Ready Stock</button>
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small d-block">Status Ready Stock (kategori)</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="toggle-switch" id="rsToggleReady"><span></span></div>
+                                    <span class="small fw-bold" id="rsToggleReadyLabel" style="color:#94a3b8;">OFF</span>
+                                    <span class="small text-muted" id="rsToggleReadyDesc">Bukan Ready Stock</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small d-block">Status Pre-order</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="toggle-switch active" id="rsTogglePreorder"><span></span></div>
+                                    <span class="small fw-bold" id="rsTogglePreorderLabel" style="color:#f59e0b;">ON</span>
+                                    <span class="small text-muted" id="rsTogglePreorderDesc">Boleh Pre-order</span>
+                                </div>
+                            </div>
                             <div id="readyStockProgress" style="display:none;" class="text-success small mt-2">⏳ Menyimpan...</div>
                         </div>
                     </div>
@@ -2868,6 +2884,58 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
             }
 
             // ===== READY STOCK MANAGEMENT =====
+            var rsCurrentReadyOn = false;
+            var rsCurrentAllowPreorder = true;
+
+            function setRsToggleReadyUI(val) {
+                rsCurrentReadyOn = val;
+                var el = document.getElementById('rsToggleReady');
+                var label = document.getElementById('rsToggleReadyLabel');
+                var desc = document.getElementById('rsToggleReadyDesc');
+                if (el) el.classList.toggle('active', val);
+                if (label) { label.innerText = val ? 'ON' : 'OFF'; label.style.color = val ? '#10b981' : '#94a3b8'; }
+                if (desc) desc.innerText = val ? 'Ready Stock' : 'Bukan Ready Stock';
+            }
+
+            function setRsTogglePreorderUI(val) {
+                rsCurrentAllowPreorder = val;
+                var el = document.getElementById('rsTogglePreorder');
+                var label = document.getElementById('rsTogglePreorderLabel');
+                var desc = document.getElementById('rsTogglePreorderDesc');
+                if (el) el.classList.toggle('active', val);
+                if (label) { label.innerText = val ? 'ON' : 'OFF'; label.style.color = val ? '#f59e0b' : '#94a3b8'; }
+                if (desc) desc.innerText = val ? 'Boleh Pre-order' : 'Tutup Pre-order';
+            }
+
+            var rsToggleReadyEl = document.getElementById('rsToggleReady');
+            if (rsToggleReadyEl) {
+                rsToggleReadyEl.addEventListener('click', function() {
+                    setRsToggleReadyUI(!rsCurrentReadyOn);
+                    var qtyInput = document.getElementById('readyStockQty');
+                    if (!rsCurrentReadyOn) {
+                        qtyInput.dataset.prevQty = qtyInput.value;
+                        qtyInput.value = 0;
+                    } else if (qtyInput && (!qtyInput.value || parseInt(qtyInput.value) <= 0)) {
+                        qtyInput.value = qtyInput.dataset.prevQty && parseInt(qtyInput.dataset.prevQty) > 0 ? qtyInput.dataset.prevQty : 1;
+                    }
+                });
+            }
+
+            var rsQtyInputEl = document.getElementById('readyStockQty');
+            if (rsQtyInputEl) {
+                rsQtyInputEl.addEventListener('input', function() {
+                    var val = parseInt(this.value) || 0;
+                    setRsToggleReadyUI(val > 0);
+                });
+            }
+
+            var rsTogglePreorderEl = document.getElementById('rsTogglePreorder');
+            if (rsTogglePreorderEl) {
+                rsTogglePreorderEl.addEventListener('click', function() {
+                    setRsTogglePreorderUI(!rsCurrentAllowPreorder);
+                });
+            }
+
             async function populateReadyStockProductSelect() {
                 const select = document.getElementById('readyStockProductSelect');
                 select.innerHTML = '<option value="">-- Pilih --</option>';
@@ -2913,10 +2981,15 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     });
                     const firstKey = varSelect.value;
                     if (firstKey) {
-                        const inv = inventoryData.get(firstKey);
-                        document.getElementById('readyStockPrice').value = inv?.customReadyPrice || '';
+                        const inv = inventoryData.get(firstKey) || {};
+                        document.getElementById('readyStockPrice').value = inv.customReadyPrice || '';
+                        document.getElementById('readyStockQty').value = inv.readyStock || 0;
+                        setRsToggleReadyUI((inv.readyStock || 0) > 0);
+                        setRsTogglePreorderUI(inv.allowPreorder ?? true);
                     } else {
                         document.getElementById('readyStockPrice').value = '';
+                        setRsToggleReadyUI(false);
+                        setRsTogglePreorderUI(true);
                     }
                 } catch (err) {
                     showToast('Ralat memuat variasi: ' + err.message, true);
@@ -2925,9 +2998,12 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
 
             document.getElementById('readyStockVariationSelect').addEventListener('change', function() {
                 const key = this.value;
-                if (!key) return;
-                const inv = inventoryData.get(key);
-                document.getElementById('readyStockPrice').value = inv?.customReadyPrice || '';
+                if (!key) { setRsToggleReadyUI(false); setRsTogglePreorderUI(true); return; }
+                const inv = inventoryData.get(key) || {};
+                document.getElementById('readyStockPrice').value = inv.customReadyPrice || '';
+                document.getElementById('readyStockQty').value = inv.readyStock || 0;
+                setRsToggleReadyUI((inv.readyStock || 0) > 0);
+                setRsTogglePreorderUI(inv.allowPreorder ?? true);
             });
 
             document.getElementById('updateReadyStockBtn').addEventListener('click', async function() {
@@ -2957,11 +3033,12 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     const invSnap = await getDoc(invRef);
                     const existingData = invSnap.exists() ? invSnap.data() : {};
 
+                    const finalReadyStock = rsCurrentReadyOn ? qty : 0;
                     const updateData = {
-                        readyStock: qty,
+                        readyStock: finalReadyStock,
                         stock: existingData.stock ?? 100,
                         initialStock: existingData.initialStock ?? 100,
-                        allowPreorder: existingData.allowPreorder ?? true,
+                        allowPreorder: rsCurrentAllowPreorder,
                         customReadyPrice: (!isNaN(price) && price > 0) ? price : null
                     };
 
