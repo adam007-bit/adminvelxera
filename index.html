@@ -1682,10 +1682,10 @@ function renderOrders() {
                     for (let v = 0; v < product.variations.length; v++) {
                         var varItem = product.variations[v];
                         let key = getVariationKey(product.id, varItem.size, varItem.type);
-                        var currentStock = stockChanges.has(key) ? stockChanges.get(key) : 1000;
-                        var currentReady = readyStockChanges.has(key) ? readyStockChanges.get(key) : 0;
-                        var currentAllowPreorder = preorderChanges.has(key) ? preorderChanges.get(key) : true;
                         var invData = inventoryData.get(key) || {};
+                        var currentStock = stockChanges.has(key) ? stockChanges.get(key) : (invData.stock ?? 1000);
+                        var currentReady = readyStockChanges.has(key) ? readyStockChanges.get(key) : (invData.readyStock || 0);
+                        var currentAllowPreorder = preorderChanges.has(key) ? preorderChanges.get(key) : (invData.allowPreorder ?? true);
                         var initialStock = invData.initialStock || 1000;
                         var row = document.createElement('tr');
                         row.innerHTML = `
