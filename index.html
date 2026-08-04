@@ -798,6 +798,19 @@
                                     <span class="small text-muted" id="rsTogglePreorderDesc">Boleh Pre-order</span>
                                 </div>
                             </div>
+                            <div class="col-12"><hr class="my-1"></div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold small text-danger"><i class="fa-solid fa-tag"></i> Harga Promo (RM)</label>
+                                <input type="number" id="readyStockPromoPrice" class="form-control" step="0.01" placeholder="Cth: 49.90">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold small d-block">Status Promo</label>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="toggle-switch" id="rsTogglePromo"><span></span></div>
+                                    <span class="small fw-bold" id="rsTogglePromoLabel" style="color:#94a3b8;">OFF</span>
+                                    <span class="small text-muted" id="rsTogglePromoDesc">Pelanggan akan nampak harga promo ini bila diaktifkan</span>
+                                </div>
+                            </div>
                             <div id="readyStockProgress" style="display:none;" class="text-success small mt-2">⏳ Menyimpan...</div>
                         </div>
                     </div>
@@ -2886,6 +2899,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
             // ===== READY STOCK MANAGEMENT =====
             var rsCurrentReadyOn = false;
             var rsCurrentAllowPreorder = true;
+            var rsCurrentPromoOn = false;
 
             function setRsToggleReadyUI(val) {
                 rsCurrentReadyOn = val;
@@ -2905,6 +2919,35 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 if (el) el.classList.toggle('active', val);
                 if (label) { label.innerText = val ? 'ON' : 'OFF'; label.style.color = val ? '#f59e0b' : '#94a3b8'; }
                 if (desc) desc.innerText = val ? 'Boleh Pre-order' : 'Tutup Pre-order';
+            }
+
+            function setRsTogglePromoUI(val) {
+                rsCurrentPromoOn = val;
+                var el = document.getElementById('rsTogglePromo');
+                var label = document.getElementById('rsTogglePromoLabel');
+                var desc = document.getElementById('rsTogglePromoDesc');
+                if (el) el.classList.toggle('active', val);
+                if (label) { label.innerText = val ? 'ON' : 'OFF'; label.style.color = val ? '#ef4444' : '#94a3b8'; }
+                if (desc) desc.innerText = val ? 'Promo aktif - pelanggan nampak harga promo' : 'Pelanggan akan nampak harga promo ini bila diaktifkan';
+            }
+
+            var rsTogglePromoEl = document.getElementById('rsTogglePromo');
+            if (rsTogglePromoEl) {
+                rsTogglePromoEl.addEventListener('click', function() {
+                    setRsTogglePromoUI(!rsCurrentPromoOn);
+                });
+            }
+
+            var rsPromoPriceInputEl = document.getElementById('readyStockPromoPrice');
+            if (rsPromoPriceInputEl) {
+                rsPromoPriceInputEl.addEventListener('input', function() {
+                    var val = parseFloat(this.value);
+                    if (!isNaN(val) && val > 0) {
+                        setRsTogglePromoUI(true);
+                    } else {
+                        setRsTogglePromoUI(false);
+                    }
+                });
             }
 
             var rsToggleReadyEl = document.getElementById('rsToggleReady');
@@ -2975,8 +3018,9 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                         const invData = inventoryData.get(key) || {};
                         const readyStock = invData.readyStock || 0;
                         const customPrice = invData.customReadyPrice || '';
+                        const promoTxt = invData.promoActive && invData.promoPrice ? ` | PROMO: RM${invData.promoPrice}` : '';
                         opt.textContent =
-                            `${v.size} - ${v.type} (RM${v.price}) | Ready: ${readyStock} | Harga Khas: ${customPrice ? 'RM'+customPrice : 'Auto+20'}`;
+                            `${v.size} - ${v.type} (RM${v.price}) | Ready: ${readyStock} | Harga Khas: ${customPrice ? 'RM'+customPrice : 'Auto+20'}${promoTxt}`;
                         varSelect.appendChild(opt);
                     });
                     const firstKey = varSelect.value;
@@ -2986,10 +3030,14 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                         document.getElementById('readyStockQty').value = inv.readyStock || 0;
                         setRsToggleReadyUI((inv.readyStock || 0) > 0);
                         setRsTogglePreorderUI(inv.allowPreorder ?? true);
+                        document.getElementById('readyStockPromoPrice').value = inv.promoPrice || '';
+                        setRsTogglePromoUI(inv.promoActive ?? false);
                     } else {
                         document.getElementById('readyStockPrice').value = '';
                         setRsToggleReadyUI(false);
                         setRsTogglePreorderUI(true);
+                        document.getElementById('readyStockPromoPrice').value = '';
+                        setRsTogglePromoUI(false);
                     }
                 } catch (err) {
                     showToast('Ralat memuat variasi: ' + err.message, true);
@@ -2998,12 +3046,20 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
 
             document.getElementById('readyStockVariationSelect').addEventListener('change', function() {
                 const key = this.value;
-                if (!key) { setRsToggleReadyUI(false); setRsTogglePreorderUI(true); return; }
+                if (!key) {
+                    setRsToggleReadyUI(false);
+                    setRsTogglePreorderUI(true);
+                    document.getElementById('readyStockPromoPrice').value = '';
+                    setRsTogglePromoUI(false);
+                    return;
+                }
                 const inv = inventoryData.get(key) || {};
                 document.getElementById('readyStockPrice').value = inv.customReadyPrice || '';
                 document.getElementById('readyStockQty').value = inv.readyStock || 0;
                 setRsToggleReadyUI((inv.readyStock || 0) > 0);
                 setRsTogglePreorderUI(inv.allowPreorder ?? true);
+                document.getElementById('readyStockPromoPrice').value = inv.promoPrice || '';
+                setRsTogglePromoUI(inv.promoActive ?? false);
             });
 
             document.getElementById('updateReadyStockBtn').addEventListener('click', async function() {
@@ -3017,9 +3073,16 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 const varKey = varSelect.value;
                 const qty = parseInt(qtyInput.value);
                 const price = parseFloat(priceInput.value);
+                const promoPriceInput = document.getElementById('readyStockPromoPrice');
+                const promoPrice = parseFloat(promoPriceInput.value);
 
                 if (!prodId || !varKey || isNaN(qty) || qty < 0) {
                     showToast('Sila pilih produk, variasi dan kuantiti yang sah', true);
+                    return;
+                }
+
+                if (rsCurrentPromoOn && (isNaN(promoPrice) || promoPrice <= 0)) {
+                    showToast('Sila masukkan harga promo yang sah sebelum mengaktifkan Promo', true);
                     return;
                 }
 
@@ -3039,7 +3102,9 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                         stock: existingData.stock ?? 100,
                         initialStock: existingData.initialStock ?? 100,
                         allowPreorder: rsCurrentAllowPreorder,
-                        customReadyPrice: (!isNaN(price) && price > 0) ? price : null
+                        customReadyPrice: (!isNaN(price) && price > 0) ? price : null,
+                        promoPrice: (!isNaN(promoPrice) && promoPrice > 0) ? promoPrice : null,
+                        promoActive: rsCurrentPromoOn && !isNaN(promoPrice) && promoPrice > 0
                     };
 
                     await setDoc(invRef, updateData, { merge: true });
