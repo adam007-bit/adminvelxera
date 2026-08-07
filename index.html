@@ -805,6 +805,7 @@
                                     <span class="small text-muted" id="rsTogglePreorderDesc">Boleh Pre-order</span>
                                 </div>
                             </div>
+                            <div id="readyStockUnsavedWarning" style="display:none;" class="text-warning small mt-2 fw-bold">⚠️ Perubahan belum disimpan — tekan "Set Ready Stock" di atas untuk simpan.</div>
                             <div id="readyStockProgress" style="display:none;" class="text-success small mt-2">⏳ Menyimpan...</div>
                         </div>
                     </div>
@@ -1600,6 +1601,33 @@ function renderOrders() {
             // ==================== STOCK MANAGEMENT ====================
             // (loadStockData sudah digantikan dengan loadStockDataFromFirestoreOnly)
 
+            // ===== SIMPAN SATU MEDAN INVENTORI SERTA-MERTA (elak "lupa klik Simpan Semua") =====
+            async function saveSingleInventoryField(key, updates, silent) {
+                try {
+                    const docRef = doc(db, "inventory", key);
+                    const docSnap = await getDoc(docRef);
+                    const existingData = docSnap.exists() ? docSnap.data() : {};
+                    const finalData = {
+                        stock: existingData.stock ?? 1000,
+                        initialStock: existingData.initialStock ?? 1000,
+                        readyStock: existingData.readyStock ?? 0,
+                        allowPreorder: existingData.allowPreorder ?? true,
+                        customReadyPrice: existingData.customReadyPrice ?? null,
+                        ...updates
+                    };
+                    if (docSnap.exists()) {
+                        await updateDoc(docRef, updates);
+                    } else {
+                        await setDoc(docRef, finalData);
+                    }
+                    inventoryData.set(key, { ...existingData, ...finalData });
+                    if (!silent) showToast('✅ Disimpan');
+                } catch (err) {
+                    console.error('Gagal simpan segera:', key, err);
+                    showToast('❌ Gagal simpan: ' + err.message, true);
+                }
+            }
+
             // ===== BULK ACTIONS UNTUK STOK =====
             let selectedStockKeys = new Set();
 
@@ -1661,7 +1689,8 @@ function renderOrders() {
                     value = true; } else if (action === 'preorder_off') { field = 'preorder';
                     value = false; }
 
-                selectedStockKeys.forEach(key => {
+                const keysToSave = Array.from(selectedStockKeys);
+                keysToSave.forEach(key => {
                     if (field === 'ready') {
                         readyStockChanges.set(key, value);
                         const row = document.querySelector(`tr [data-key="${key}"]`)?.closest('tr');
@@ -1695,7 +1724,19 @@ function renderOrders() {
                     }
                 });
 
-                showToast(`✅ ${selectedStockKeys.size} item dikemas kini. Jangan lupa klik "Simpan Semua".`);
+                // TERUS SIMPAN bulk action ke Firestore serta-merta (elak bergantung pada "Simpan Semua")
+                (async () => {
+                    showToast(`⏳ Menyimpan ${keysToSave.length} item...`);
+                    for (const key of keysToSave) {
+                        if (field === 'ready') {
+                            await saveSingleInventoryField(key, { readyStock: value }, true);
+                        } else if (field === 'preorder') {
+                            await saveSingleInventoryField(key, { allowPreorder: value }, true);
+                        }
+                    }
+                    showToast(`✅ ${keysToSave.length} item berjaya disimpan ke server`);
+                })();
+
                 selectedStockKeys.clear();
                 updateSelectedCount();
                 document.getElementById('bulkActionSelect').value = '';
@@ -1774,7 +1815,7 @@ function renderOrders() {
                         var statusSpanReady = row.querySelector('td:nth-child(8) span.fw-bold');
                         var statusLabelReady = row.querySelector('td:nth-child(8) span.text-muted');
                         if (toggleReady) {
-                            toggleReady.addEventListener('click', function(e) {
+                            toggleReady.addEventListener('click', async function(e) {
                                 var key = this.dataset.key;
                                 var val = parseInt(readyInput.value) || 0;
                                 val = val > 0 ? 0 : 1;
@@ -1788,6 +1829,9 @@ function renderOrders() {
                                 if (statusLabelReady) {
                                     statusLabelReady.innerText = val > 0 ? 'Ready Stock' : 'Pre-order';
                                 }
+                                // TERUS SIMPAN ke Firestore supaya toggle ON/OFF tak hilang
+                                // walau admin lupa tekan "Simpan Semua"
+                                await saveSingleInventoryField(key, { readyStock: val });
                             });
                         }
 
@@ -1795,7 +1839,7 @@ function renderOrders() {
                         var statusSpanPreorder = row.querySelector('td:nth-child(9) span.fw-bold');
                         var statusLabelPreorder = row.querySelector('td:nth-child(9) span.text-muted');
                         if (togglePreorder) {
-                            togglePreorder.addEventListener('click', function(e) {
+                            togglePreorder.addEventListener('click', async function(e) {
                                 var key = this.dataset.key;
                                 var current = preorderChanges.has(key) ? preorderChanges.get(key) : true;
                                 var newVal = !current;
@@ -1809,6 +1853,8 @@ function renderOrders() {
                                     statusLabelPreorder.innerText = newVal ? 'Boleh Pre-order' :
                                         'Tutup Pre-order';
                                 }
+                                // TERUS SIMPAN ke Firestore
+                                await saveSingleInventoryField(key, { allowPreorder: newVal });
                             });
                         }
                     }
@@ -3010,6 +3056,13 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 if (desc) desc.innerText = val ? 'Boleh Pre-order' : 'Tutup Pre-order';
             }
 
+            function showRsUnsavedWarning() {
+                var w = document.getElementById('readyStockUnsavedWarning');
+                if (w) w.style.display = 'block';
+                var progress = document.getElementById('readyStockProgress');
+                if (progress) progress.style.display = 'none';
+            }
+
             var rsToggleReadyEl = document.getElementById('rsToggleReady');
             if (rsToggleReadyEl) {
                 rsToggleReadyEl.addEventListener('click', function() {
@@ -3021,6 +3074,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     } else if (qtyInput && (!qtyInput.value || parseInt(qtyInput.value) <= 0)) {
                         qtyInput.value = qtyInput.dataset.prevQty && parseInt(qtyInput.dataset.prevQty) > 0 ? qtyInput.dataset.prevQty : 1;
                     }
+                    showRsUnsavedWarning();
                 });
             }
 
@@ -3029,6 +3083,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 rsQtyInputEl.addEventListener('input', function() {
                     var val = parseInt(this.value) || 0;
                     setRsToggleReadyUI(val > 0);
+                    showRsUnsavedWarning();
                 });
             }
 
@@ -3036,6 +3091,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
             if (rsTogglePreorderEl) {
                 rsTogglePreorderEl.addEventListener('click', function() {
                     setRsTogglePreorderUI(!rsCurrentAllowPreorder);
+                    showRsUnsavedWarning();
                 });
             }
 
@@ -3127,6 +3183,8 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 }
 
                 const progress = document.getElementById('readyStockProgress');
+                const unsavedWarning = document.getElementById('readyStockUnsavedWarning');
+                if (unsavedWarning) unsavedWarning.style.display = 'none';
                 progress.style.display = 'block';
                 progress.innerHTML = '⏳ Menyimpan...';
                 this.disabled = true;
