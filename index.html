@@ -648,45 +648,48 @@
                     <div id="productDateFilterResult" class="mt-3"></div>
                 </div>
 
-                <div id="productReportStats" class="report-stats"></div>
-                <div class="row mt-4">
-                    <div class="col-md-8">
-                        <div class="card p-3">
-                            <h6 class="fw-bold"><i class="fa-solid fa-chart-bar text-success me-2"></i> Jualan Mengikut Produk (Top 10)</h6>
-                            <canvas id="productChart" height="250"></canvas>
+                <!-- ===== MAIN REPORT (Semua Masa / Minggu Ini / Bulan Ini) ===== -->
+                <div id="mainProductReportContent">
+                    <div id="productReportStats" class="report-stats"></div>
+                    <div class="row mt-4">
+                        <div class="col-md-8">
+                            <div class="card p-3">
+                                <h6 class="fw-bold"><i class="fa-solid fa-chart-bar text-success me-2"></i> Jualan Mengikut Produk (Top 10)</h6>
+                                <canvas id="productChart" height="250"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card p-3">
+                                <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan (Completed)</h6>
+                                <canvas id="statusChart" height="200"></canvas>
+                            </div>
+                            <div class="card p-3 mt-3">
+                                <h6 class="fw-bold"><i class="fa-solid fa-tag text-success me-2"></i> Pre‑order vs Ready Stock</h6>
+                                <canvas id="typeChart" height="200"></canvas>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="card p-3">
-                            <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan (Completed)</h6>
-                            <canvas id="statusChart" height="200"></canvas>
-                        </div>
-                        <div class="card p-3 mt-3">
-                            <h6 class="fw-bold"><i class="fa-solid fa-tag text-success me-2"></i> Pre‑order vs Ready Stock</h6>
-                            <canvas id="typeChart" height="200"></canvas>
-                        </div>
+                    <div id="productReportAnalysis" class="row mt-3 text-center"></div>
+                    <div class="table-responsive mt-4">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+       <tr>
+        <th>Produk</th>
+        <th>Saiz</th>
+        <th>Jenis</th>
+        <th>Kuantiti Pre‑order</th>
+        <th>Kuantiti Ready Stock</th>
+        <th>Jumlah Terjual</th>
+        <th>Bilangan Pesanan</th>
+        <th>Pendapatan (RM)</th>
+        <th>Tindakan</th>
+    </tr>
+                            </thead>
+                            <tbody id="productReportBody">
+                                <tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-                <div id="productReportAnalysis" class="row mt-3 text-center"></div>
-                <div class="table-responsive mt-4">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-   <tr>
-    <th>Produk</th>
-    <th>Saiz</th>
-    <th>Jenis</th>
-    <th>Kuantiti Pre‑order</th>
-    <th>Kuantiti Ready Stock</th>
-    <th>Jumlah Terjual</th>
-    <th>Bilangan Pesanan</th>
-    <th>Pendapatan (RM)</th>
-    <th>Tindakan</th>
-</tr>
-                        </thead>
-                        <tbody id="productReportBody">
-                            <tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
@@ -2223,6 +2226,10 @@ if (sortedProducts.length === 0) {
 }
         var html = `
             <div class="date-result-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div></div>
+                    <button class="btn btn-sm btn-outline-secondary" id="backToMainProductReportBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Laporan Penuh</button>
+                </div>
                 <div class="row">
                     <div class="col-3"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
                     <div class="col-3"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
@@ -2249,6 +2256,21 @@ if (sortedProducts.length === 0) {
             </div>
         `;
         resultDiv.innerHTML = html;
+
+        // Sorok report utama (Semua Masa/Minggu Ini/Bulan Ini + chart) supaya tak nampak dua-dua serentak
+        var mainReport = document.getElementById('mainProductReportContent');
+        if (mainReport) mainReport.style.display = 'none';
+
+        // Butang "Kembali ke Laporan Penuh"
+        var backBtn = document.getElementById('backToMainProductReportBtn');
+        if (backBtn) {
+            backBtn.addEventListener('click', function() {
+                resultDiv.innerHTML = '';
+                document.getElementById('productDateFrom').value = '';
+                document.getElementById('productDateTo').value = '';
+                if (mainReport) mainReport.style.display = '';
+            });
+        }
     });
 }
 // ==================== PRODUCT REPORT (TALLY DENGAN INVOIS) ====================
@@ -2571,11 +2593,21 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
         }
     }
 }
-            document.getElementById('productReportAll').addEventListener('click', function() { generateProductReport(
+            function resetProductDateFilterUI() {
+                var resultDiv = document.getElementById('productDateFilterResult');
+                if (resultDiv) resultDiv.innerHTML = '';
+                var dFrom = document.getElementById('productDateFrom');
+                var dTo = document.getElementById('productDateTo');
+                if (dFrom) dFrom.value = '';
+                if (dTo) dTo.value = '';
+                var mainReport = document.getElementById('mainProductReportContent');
+                if (mainReport) mainReport.style.display = '';
+            }
+            document.getElementById('productReportAll').addEventListener('click', function() { resetProductDateFilterUI(); generateProductReport(
                     'all'); });
-            document.getElementById('productReportWeekly').addEventListener('click', function() { generateProductReport(
+            document.getElementById('productReportWeekly').addEventListener('click', function() { resetProductDateFilterUI(); generateProductReport(
                     'weekly'); });
-            document.getElementById('productReportMonthly').addEventListener('click', function() { generateProductReport(
+            document.getElementById('productReportMonthly').addEventListener('click', function() { resetProductDateFilterUI(); generateProductReport(
                     'monthly'); });
 
             // ==================== SECTION TOGGLING ====================
