@@ -705,6 +705,7 @@
                     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabAddProduct">Tambah Produk</a></li>
                     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabListProducts">Senarai Produk</a></li>
                     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabReadyStock">Urus Ready Stock</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabDeletedProducts" id="tabDeletedProductsLink">Sejarah Padam <span id="deletedProductsCount" class="badge bg-danger rounded-pill" style="display:none;">0</span></a></li>
                 </ul>
                 <div class="tab-content">
                     <!-- Tab 1: Tambah Produk -->
@@ -763,6 +764,16 @@
                             <table class="table table-bordered table-striped">
                                 <thead><tr><th>Gambar</th><th>Nama</th><th>Kategori</th><th>Variasi</th><th>Tindakan</th></tr></thead>
                                 <tbody id="existingProductsBody"><tr><td colspan="5" class="text-center text-muted">Memuatkan...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Tab: Sejarah Padam (Trash / Undo) -->
+                    <div class="tab-pane fade" id="tabDeletedProducts">
+                        <p class="text-muted small mb-3"><i class="fa-solid fa-circle-info me-1"></i> Produk yang dipadam disimpan di sini. Boleh dipulihkan bila-bila masa dengan klik "Pulihkan".</p>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped">
+                                <thead><tr><th>Gambar</th><th>Nama</th><th>Kategori</th><th>Variasi</th><th>Dipadam Pada</th><th>Tindakan</th></tr></thead>
+                                <tbody id="deletedProductsBody"><tr><td colspan="6" class="text-center text-muted">Memuatkan...</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -876,7 +887,7 @@
         </script>
         <script type="module">
             import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-            import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, getDoc, runTransaction, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+            import { getFirestore, collection, doc, updateDoc, onSnapshot, getDocs, setDoc, getDoc, runTransaction, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
             var firebaseConfig = {
                 apiKey: "AIzaSyAdUZs-P5SPcivHHP9lRmdyOC355Op8bOU",
                 authDomain: "spmn-af4f9.firebaseapp.com",
@@ -2723,22 +2734,45 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                         '.edit-product-btn').length);
                     document.querySelectorAll('.delete-product-btn').forEach(btn => {
                         btn.addEventListener('click', async function() {
-                            if (confirm('Padam produk ini? Tindakan ini tidak boleh dibatalkan.')) {
+                            if (confirm('Padam produk ini? Produk akan dipindah ke "Sejarah Padam" dan boleh dipulihkan bila-bila masa.')) {
                                 try {
                                     const productId = this.dataset.id;
-                                    await deleteDoc(doc(db, "products", productId));
-                                    const invSnap = await getDocs(collection(db,
-                                    "inventory"));
-                                    const batch = [];
+
+                                    // 1. Ambil data produk sebelum padam
+                                    const productSnap = await getDoc(doc(db, "products", productId));
+                                    if (!productSnap.exists()) {
+                                        showToast('Produk tidak dijumpai', true);
+                                        return;
+                                    }
+                                    const productData = productSnap.data();
+
+                                    // 2. Ambil semua data inventory berkaitan produk ini
+                                    const invSnap = await getDocs(collection(db, "inventory"));
+                                    const inventoryEntries = {};
                                     invSnap.forEach(d => {
                                         if (d.id.startsWith(productId + '_')) {
-                                            batch.push(deleteDoc(doc(db,
-                                            "inventory", d.id)));
+                                            inventoryEntries[d.id] = d.data();
                                         }
                                     });
+
+                                    // 3. Simpan salinan penuh (produk + inventory) ke koleksi "deletedProducts"
+                                    await setDoc(doc(db, "deletedProducts", productId), {
+                                        productData: productData,
+                                        inventoryData: inventoryEntries,
+                                        deletedAt: serverTimestamp()
+                                    });
+
+                                    // 4. Baru padam dari koleksi asal (products + inventory)
+                                    await deleteDoc(doc(db, "products", productId));
+                                    const batch = [];
+                                    Object.keys(inventoryEntries).forEach(invId => {
+                                        batch.push(deleteDoc(doc(db, "inventory", invId)));
+                                    });
                                     await Promise.all(batch);
-                                    showToast('Produk dan inventory dipadam');
+
+                                    showToast('✅ Produk dipindah ke Sejarah Padam (boleh dipulihkan)');
                                     loadExistingProducts();
+                                    loadDeletedProducts();
                                     populateReadyStockProductSelect();
                                     await loadStockDataFromFirestoreOnly();
                                 } catch (err) {
@@ -2769,6 +2803,122 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 function() {
                     loadExistingProducts();
                 });
+
+            // ===== FUNGSI: SEJARAH PADAM (senarai produk dalam trash) =====
+            async function loadDeletedProducts() {
+                const tbody = document.getElementById('deletedProductsBody');
+                if (!tbody) return;
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">Memuatkan...</td></tr>';
+                try {
+                    const snap = await getDocs(collection(db, "deletedProducts"));
+                    const badge = document.getElementById('deletedProductsCount');
+                    if (snap.empty) {
+                        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Tiada produk dalam sejarah padam</td></tr>';
+                        if (badge) badge.style.display = 'none';
+                        return;
+                    }
+                    if (badge) {
+                        badge.textContent = snap.size;
+                        badge.style.display = 'inline-block';
+                    }
+                    // Susun ikut tarikh dipadam terbaru dahulu
+                    const entries = [];
+                    snap.forEach(d => entries.push({ id: d.id, ...d.data() }));
+                    entries.sort((a, b) => {
+                        const ta = a.deletedAt && a.deletedAt.toMillis ? a.deletedAt.toMillis() : 0;
+                        const tb = b.deletedAt && b.deletedAt.toMillis ? b.deletedAt.toMillis() : 0;
+                        return tb - ta;
+                    });
+
+                    let html = '';
+                    entries.forEach(entry => {
+                        const data = entry.productData || {};
+                        const varStr = data.variations ? data.variations.map(v =>
+                            `${v.size} ${v.type} RM${v.price}`).join(', ') : '-';
+                        const thumb = data.imageUrl ? `<img src="${escapeHtml(data.imageUrl)}" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:8px;opacity:0.6;">` : '<span class="text-muted small">-</span>';
+                        const deletedDateStr = entry.deletedAt && entry.deletedAt.toDate ?
+                            entry.deletedAt.toDate().toLocaleString('ms-MY') : '-';
+                        html += `<tr>
+                                <td>${thumb}</td>
+                                <td><span class="text-muted">${escapeHtml(data.name || '(tiada nama)')}</span></td>
+                                <td>${escapeHtml(data.category || '-')}</td>
+                                <td><small>${escapeHtml(varStr)}</small></td>
+                                <td><small>${deletedDateStr}</small></td>
+                                <td>
+                                    <button class="btn btn-sm btn-success restore-product-btn" data-id="${entry.id}"><i class="fa-solid fa-rotate-left"></i> Pulihkan</button>
+                                    <button class="btn btn-sm btn-outline-danger purge-product-btn" data-id="${entry.id}" title="Padam kekal (tidak boleh dibatalkan)"><i class="fa-solid fa-trash-can"></i></button>
+                                </td>
+                            </tr>`;
+                    });
+                    tbody.innerHTML = html;
+
+                    document.querySelectorAll('.restore-product-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            restoreProduct(this.dataset.id);
+                        });
+                    });
+                    document.querySelectorAll('.purge-product-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            purgeDeletedProduct(this.dataset.id);
+                        });
+                    });
+                } catch (err) {
+                    console.error('❌ Error loading deleted products:', err);
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Ralat: ${err.message}</td></tr>`;
+                }
+            }
+
+            // ===== FUNGSI: PULIHKAN PRODUK (UNDO) — boleh guna bila-bila masa =====
+            async function restoreProduct(productId) {
+                if (!confirm('Pulihkan produk ini? Produk dan inventory akan dikembalikan seperti asal.')) return;
+                try {
+                    const trashSnap = await getDoc(doc(db, "deletedProducts", productId));
+                    if (!trashSnap.exists()) {
+                        showToast('Data sejarah tidak dijumpai', true);
+                        return;
+                    }
+                    const trashData = trashSnap.data();
+
+                    // 1. Kembalikan dokumen produk
+                    await setDoc(doc(db, "products", productId), trashData.productData);
+
+                    // 2. Kembalikan semua entri inventory berkaitan
+                    const invEntries = trashData.inventoryData || {};
+                    const restoreBatch = Object.keys(invEntries).map(invId =>
+                        setDoc(doc(db, "inventory", invId), invEntries[invId])
+                    );
+                    await Promise.all(restoreBatch);
+
+                    // 3. Buang dari koleksi sejarah padam
+                    await deleteDoc(doc(db, "deletedProducts", productId));
+
+                    showToast('✅ Produk berjaya dipulihkan');
+                    loadExistingProducts();
+                    loadDeletedProducts();
+                    populateReadyStockProductSelect();
+                    await loadStockDataFromFirestoreOnly();
+                } catch (err) {
+                    showToast('Gagal pulihkan: ' + err.message, true);
+                }
+            }
+
+            // ===== FUNGSI: PADAM KEKAL dari Sejarah Padam (tiada undo lepas ini) =====
+            async function purgeDeletedProduct(productId) {
+                if (!confirm('Padam KEKAL produk ini dari Sejarah Padam? Tindakan ini TIDAK BOLEH dibatalkan.')) return;
+                try {
+                    await deleteDoc(doc(db, "deletedProducts", productId));
+                    showToast('Produk dipadam kekal dari sejarah');
+                    loadDeletedProducts();
+                } catch (err) {
+                    showToast('Gagal padam kekal: ' + err.message, true);
+                }
+            }
+
+            document.getElementById('tabDeletedProductsLink').addEventListener('click', function() {
+                loadDeletedProducts();
+            });
+            // Muat kiraan badge sejak awal (tanpa perlu buka tab dulu)
+            loadDeletedProducts();
 
             document.querySelector('[data-bs-toggle="tab"][href="#tabReadyStock"]').addEventListener('click',
                 function() {
@@ -3253,23 +3403,40 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 }
             });
 
-            // ===== FUNGSI PADAM PRODUK DARI FIRESTORE =====
+            // ===== FUNGSI PADAM PRODUK DARI FIRESTORE (soft-delete, boleh pulih) =====
             async function deleteProductFromFirestore(productId) {
                 if (!productId) return;
-                if (!confirm('Padam produk ini? Semua data inventory akan dipadam juga.')) return;
+                if (!confirm('Padam produk ini? Produk akan dipindah ke Sejarah Padam dan boleh dipulihkan bila-bila masa.')) return;
                 try {
-                    await deleteDoc(doc(db, "products", productId));
+                    const productSnap = await getDoc(doc(db, "products", productId));
+                    if (!productSnap.exists()) {
+                        showToast('Produk tidak dijumpai', true);
+                        return;
+                    }
+                    const productData = productSnap.data();
+
                     const invSnap = await getDocs(collection(db, "inventory"));
-                    const batch = [];
+                    const inventoryEntries = {};
                     invSnap.forEach(d => {
                         if (d.id.startsWith(productId + '_')) {
-                            batch.push(deleteDoc(doc(db, "inventory", d.id)));
+                            inventoryEntries[d.id] = d.data();
                         }
                     });
+
+                    await setDoc(doc(db, "deletedProducts", productId), {
+                        productData: productData,
+                        inventoryData: inventoryEntries,
+                        deletedAt: serverTimestamp()
+                    });
+
+                    await deleteDoc(doc(db, "products", productId));
+                    const batch = Object.keys(inventoryEntries).map(invId => deleteDoc(doc(db, "inventory", invId)));
                     await Promise.all(batch);
-                    showToast('✅ Produk dan inventory dipadam');
+
+                    showToast('✅ Produk dipindah ke Sejarah Padam (boleh dipulihkan)');
                     await loadStockDataFromFirestoreOnly();
                     loadExistingProducts();
+                    if (typeof loadDeletedProducts === 'function') loadDeletedProducts();
                     if (document.getElementById('productReportSection').style.display === 'block') {
                         generateProductReport('all');
                     }
