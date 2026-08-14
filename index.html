@@ -2628,7 +2628,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 stockSection.style.display = 'block';
                 reportSection.style.display = 'none';
                 productReportSection.style.display = 'none';
-                loadStockData();
+                loadStockDataFromFirestoreOnly();
             });
             document.getElementById('toggleReportBtn').addEventListener('click', function() {
                 ordersSection.style.display = 'none';
@@ -2740,7 +2740,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                                     showToast('Produk dan inventory dipadam');
                                     loadExistingProducts();
                                     populateReadyStockProductSelect();
-                                    await loadStockData();
+                                    await loadStockDataFromFirestoreOnly();
                                 } catch (err) {
                                     showToast('Gagal padam: ' + err.message, true);
                                 }
@@ -2863,7 +2863,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                         `;
                     loadExistingProducts();
                     populateReadyStockProductSelect();
-                    await loadStockData();
+                    await loadStockDataFromFirestoreOnly();
                 } catch (err) {
                     showToast('Ralat: ' + err.message, true);
                 } finally {
@@ -3036,7 +3036,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     }
                     loadExistingProducts();
                     populateReadyStockProductSelect();
-                    await loadStockData();
+                    await loadStockDataFromFirestoreOnly();
 
                 } catch (err) {
                     progress.innerHTML = '❌ Gagal: ' + err.message;
@@ -3243,7 +3243,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     showToast('Ready Stock dikemas kini');
 
                     document.getElementById('readyStockProductSelect').dispatchEvent(new Event('change'));
-                    await loadStockData();
+                    await loadStockDataFromFirestoreOnly();
                 } catch (err) {
                     progress.innerHTML = '❌ Gagal: ' + err.message;
                     showToast('Ralat: ' + err.message, true);
@@ -3268,7 +3268,7 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                     });
                     await Promise.all(batch);
                     showToast('✅ Produk dan inventory dipadam');
-                    await loadStockData();
+                    await loadStockDataFromFirestoreOnly();
                     loadExistingProducts();
                     if (document.getElementById('productReportSection').style.display === 'block') {
                         generateProductReport('all');
