@@ -1021,6 +1021,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const firestoreProducts = [];
                     prodSnap.forEach(doc => firestoreProducts.push({ id: doc.id, ...doc.data() }));
                     productsData = firestoreProducts;
+                    if (typeof window !== 'undefined') window.productsData = productsData;
 
                     const invSnap = await getDocs(collection(db, "inventory"));
                     inventoryData.clear();
