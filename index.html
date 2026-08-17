@@ -619,7 +619,7 @@
         <!-- SECTION: PRODUCT REPORT (dengan kalendar) -->
         <div id="productReportSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk (COMPLETED)</h5>
+                <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk</h5>
                 <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersFromProductReportBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
             </div>
             <div class="report-container">
@@ -631,7 +631,7 @@
 
                 <!-- ===== DATE RANGE FILTER (di Laporan Produk) ===== -->
                 <div class="date-filter-box">
-                    <h6 class="fw-bold"><i class="fa-regular fa-calendar me-2"></i>📅 Cari mengikut Tarikh (Completed)</h6>
+                    <h6 class="fw-bold"><i class="fa-regular fa-calendar me-2"></i>📅 Cari mengikut Tarikh</h6>
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4">
                             <label class="small fw-bold">Tarikh Mula</label>
@@ -660,7 +660,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="card p-3">
-                                <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan (Completed)</h6>
+                                <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan</h6>
                                 <canvas id="statusChart" height="200"></canvas>
                             </div>
                             <div class="card p-3 mt-3">
@@ -686,7 +686,7 @@
     </tr>
                             </thead>
                             <tbody id="productReportBody">
-                                <tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>
+                                <tr><td colspan="9" class="text-center text-muted">Tiada data</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1594,7 +1594,8 @@ function renderOrders() {
                         const newItems = [...itemsTx];
                         newItems.splice(itemIndex, 1);
 
-                        const newTotal = newItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                        const newSubtotal = newItems.reduce((sum, item) => sum + (toNumber(item.price) * toNumber(item.qty)), 0);
+                        const newTotal = newSubtotal + toNumber(orderDataTx.shipping && orderDataTx.shipping.cost);
 
                         transaction.update(orderRef, {
                             items: newItems,
@@ -2102,209 +2103,80 @@ function renderOrders() {
                 updateReport();
             });
 
+
+// ==================== LAPORAN / INVOIS: SUMBER KIRAAN YANG SAMA ====================
+// ===== INI YANG PALING PENTING: KIRA SEMUA ORDER KECUALI CANCELLED =====
+function isValidInvoice(order) { return !!order && order.status !== 'cancelled'; }
+function toNumber(value) { var n = Number(value); return Number.isFinite(n) ? n : 0; }
+function getValidInvoices(orders) { return (orders || []).filter(isValidInvoice); }
+function getItemsSubtotal(order) { return (order.items || []).reduce(function(sum, item) { return sum + toNumber(item.price) * toNumber(item.qty); }, 0); }
+function getItemsQuantity(order) { return (order.items || []).reduce(function(sum, item) { return sum + toNumber(item.qty); }, 0); }
+function getShippingCost(order) { return toNumber(order && order.shipping && order.shipping.cost); }
+function getInvoiceTotal(order) { var stored = toNumber(order && order.totalAmount); return stored > 0 ? stored : getItemsSubtotal(order) + getShippingCost(order); }
+function getOrderDate(order) { if (!order || !order.createdAt) return null; var d = new Date(order.createdAt); return isNaN(d.getTime()) ? null : d; }
+function getReportProductKey(item) {
+    if (item.variationKey) return item.variationKey;
+    var prodId = item.prodId || item.id;
+    if (prodId) return getVariationKey(prodId, item.size || '', item.type || '');
+    return sanitizeFirestoreId((item.prodName || 'Produk Tidak Diketahui') + '_' + (item.size || '') + '_' + (item.type || ''));
+}
+
 function setupProductDateFilter() {
-    document.getElementById('productDateFilterBtn').addEventListener('click', function() {
+    var btn = document.getElementById('productDateFilterBtn');
+    if (!btn) return;
+    btn.addEventListener('click', function() {
         var from = document.getElementById('productDateFrom').value;
         var to = document.getElementById('productDateTo').value;
-        if (!from || !to) {
-            showToast('Sila pilih kedua-dua tarikh', true);
-            return;
-        }
-        var fromDate = new Date(from);
-        var toDate = new Date(to);
-        toDate.setHours(23, 59, 59, 999);
-
-        var validOrders = ordersData.filter(function(o) {
-            return o.status === 'pending' || o.status === 'completed';
-        });
-
-        var filtered = validOrders.filter(function(o) {
-            var d = new Date(o.createdAt);
-            return d >= fromDate && d <= toDate;
-        });
-
-        var resultDiv = document.getElementById('productDateFilterResult');
-        if (filtered.length === 0) {
-            resultDiv.innerHTML = '<div class="alert alert-info">Tiada pesanan dalam tempoh ini.</div>';
-            return;
-        }
-
-        var totalSales = filtered.reduce(function(sum, o) { return sum + o.totalAmount; }, 0);
-        var totalItems = filtered.reduce(function(sum, o) {
-            var items = o.items || [];
-            return sum + items.reduce(function(s, i) { return s + i.qty; }, 0);
-        }, 0);
-
-// ===== Aggregat produk menggunakan variationKey =====
-var productMap = new Map(); // key = variationKey
-filtered.forEach(function(order) {
-    var items = order.items || [];
-    items.forEach(function(item) {
-        var varKey = item.variationKey;
-        if (!varKey) {
-            var prodId = item.prodId || item.id;
-            if (prodId) {
-                varKey = getVariationKey(prodId, item.size, item.type);
-            } else {
-                var foundProduct = productsData.find(p => p.name === item.prodName);
-                if (foundProduct) {
-                    varKey = getVariationKey(foundProduct.id, item.size, item.type);
-                } else {
-                    varKey = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
-                }
-            }
-        }
-
-        // 🔥 SEMAK 1: Pastikan inventoryData ada
-        if (!inventoryData.has(varKey)) {
-            return;
-        }
-
-        // 🔥 SEMAK 2: Pastikan produk masih wujud dalam katalog (productsData)
-        // Gunakan kombinasi NAMA + SAIZ + JENIS
-        var prodExists = productsData.some(p => {
-            if (p.name !== item.prodName) return false;
-            if (!p.variations) return false;
-            return p.variations.some(v => v.size === item.size && v.type === item.type);
-        });
-        if (!prodExists) {
-            return; // skip – produk sudah dipadam
-        }
-
-        // Tentukan isReady
-        var isReady = false;
-        var basePrice = null;
-        var matchedProduct = productsData.find(p => p.name === item.prodName);
-        if (matchedProduct && matchedProduct.variations) {
-            for (var v of matchedProduct.variations) {
-                if (v.size === item.size && v.type === item.type) {
-                    basePrice = v.price;
-                    break;
-                }
-            }
-        }
-        var invData = inventoryData.get(varKey) || {};
-        var customReady = invData.customReadyPrice;
-        var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
-        if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
-            isReady = true;
-        } else {
-            isReady = (invData.readyStock || 0) > 0;
-        }
-
-        if (!productMap.has(varKey)) {
-            productMap.set(varKey, {
-                name: item.prodName,
-                size: item.size,
-                type: item.type,
-                preorderQty: 0,
-                readyQty: 0,
-                totalQty: 0,
-                revenue: 0,
-                orderIds: new Set()
+        if (!from || !to) { showToast('Sila pilih kedua-dua tarikh', true); return; }
+        var fromDate = new Date(from + 'T00:00:00');
+        var toDate = new Date(to + 'T23:59:59.999');
+        if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime()) || fromDate > toDate) { showToast('Tarikh tidak sah', true); return; }
+        var filtered = getValidInvoices(ordersData).filter(function(o) { var d=getOrderDate(o); return d && d>=fromDate && d<=toDate; });
+        var resultDiv=document.getElementById('productDateFilterResult');
+        if (!filtered.length) { resultDiv.innerHTML='<div class="alert alert-info">Tiada invois sah dalam tempoh ini.</div>'; return; }
+        var productMap=new Map(), totalInvoice=0, totalProducts=0, totalShipping=0, totalItems=0;
+        filtered.forEach(function(order){
+            totalInvoice += getInvoiceTotal(order); totalProducts += getItemsSubtotal(order); totalShipping += getShippingCost(order); totalItems += getItemsQuantity(order);
+            (order.items||[]).forEach(function(item){
+                var key=getReportProductKey(item), qty=toNumber(item.qty), revenue=toNumber(item.price)*qty;
+                if(!productMap.has(key)) productMap.set(key,{name:item.prodName||'Produk Tidak Diketahui',size:item.size||'-',type:item.type||'-',preorderQty:0,readyQty:0,totalQty:0,revenue:0,orderIds:new Set()});
+                var d=productMap.get(key);
+                var isReady=false, basePrice=null, matchedProduct=productsData.find(function(prod){return prod.name===item.prodName;});
+                if(matchedProduct && matchedProduct.variations){ var variation=matchedProduct.variations.find(function(v){return v.size===item.size && v.type===item.type;}); if(variation) basePrice=toNumber(variation.price); }
+                var invData=inventoryData.get(key)||{};
+                var customReady=invData.customReadyPrice;
+                var readyPrice=(customReady!==undefined && customReady!==null) ? toNumber(customReady) : (basePrice!==null ? basePrice+20 : null);
+                if(readyPrice!==null && Math.abs(toNumber(item.price)-readyPrice)<0.01) isReady=true;
+                else isReady=(toNumber(invData.readyStock)>0);
+                if(isReady) d.readyQty+=qty; else d.preorderQty+=qty;
+                d.totalQty+=qty; d.revenue+=revenue; d.orderIds.add(order.id);
             });
-        }
-        var data = productMap.get(varKey);
-        if (isReady) {
-            data.readyQty += item.qty;
-        } else {
-            data.preorderQty += item.qty;
-        }
-        data.totalQty += item.qty;
-        data.revenue += (item.price * item.qty);
-        data.orderIds.add(order.id);
-    });
-});
-var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
-    return a.name.localeCompare(b.name) || a.size.localeCompare(b.size);
-});
-
-var tableRows = '';
-if (sortedProducts.length === 0) {
-    tableRows = '<tr><td colspan="9" class="text-center text-muted">Tiada produk dalam tempoh ini</td></tr>';
-} else {
-    sortedProducts.forEach(function(p) {
-        tableRows += '<tr>' +
-            '<td>' + escapeHtml(p.name) + '</td>' +
-            '<td>' + escapeHtml(p.size) + '</td>' +
-            '<td>' + escapeHtml(p.type) + '</td>' +
-            '<td class="text-center">' + p.preorderQty + '</td>' +
-            '<td class="text-center">' + p.readyQty + '</td>' +
-            '<td class="fw-bold text-center">' + p.totalQty + '</td>' +
-            '<td class="text-center">' + (p.orderIds ? p.orderIds.size : 0) + '</td>' +
-            '<td class="text-end">RM ' + p.revenue.toFixed(2) + '</td>' +
-            '</tr>';
+        });
+        var products=Array.from(productMap.values()).sort(function(a,b){return a.name.localeCompare(b.name)||String(a.size).localeCompare(String(b.size));});
+        var tableRevenue=products.reduce(function(sum,x){return sum+x.revenue;},0);
+        var rows=products.map(function(x){return '<tr><td>'+escapeHtml(x.name)+'</td><td>'+escapeHtml(String(x.size))+'</td><td>'+escapeHtml(String(x.type))+'</td><td class="text-center">'+x.preorderQty+'</td><td class="text-center">'+x.readyQty+'</td><td class="fw-bold text-center">'+x.totalQty+'</td><td class="text-center">'+x.orderIds.size+'</td><td class="text-end">RM '+x.revenue.toFixed(2)+'</td></tr>';}).join('') || '<tr><td colspan="8" class="text-center text-muted">Tiada produk</td></tr>';
+        resultDiv.innerHTML='<div class="date-result-card"><div class="d-flex justify-content-between align-items-center mb-3"><strong>Laporan Invois Sah: '+from+' hingga '+to+'</strong><button class="btn btn-sm btn-outline-secondary" id="backToMainProductReportBtn">Kembali</button></div><div class="row"><div class="col-md-3 mb-2"><strong>Jumlah Invois Sah</strong><div class="stat-number">'+filtered.length+'</div></div><div class="col-md-3 mb-2"><strong>Pendapatan Produk</strong><div class="stat-number">RM '+totalProducts.toFixed(2)+'</div></div><div class="col-md-3 mb-2"><strong>Penghantaran</strong><div class="stat-number">RM '+totalShipping.toFixed(2)+'</div></div><div class="col-md-3 mb-2"><strong>Jumlah Invois</strong><div class="stat-number">RM '+totalInvoice.toFixed(2)+'</div></div></div><div class="table-responsive mt-3"><table class="table table-bordered table-striped"><thead><tr><th>Produk</th><th>Saiz</th><th>Jenis</th><th>Pre-order</th><th>Ready Stock</th><th>Jumlah Terjual</th><th>Bilangan Pesanan</th><th>Pendapatan Produk (RM)</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="text-end mt-3"><strong>Jumlah Pendapatan Produk:</strong> RM '+tableRevenue.toFixed(2)+'<br><strong>Penghantaran:</strong> RM '+totalShipping.toFixed(2)+'<hr><strong>JUMLAH SEMUA INVOIS SAH:</strong> RM '+totalInvoice.toFixed(2)+'</div></div>';
+        var main=document.getElementById('mainProductReportContent'); if(main) main.style.display='none';
+        document.getElementById('backToMainProductReportBtn').addEventListener('click',function(){resultDiv.innerHTML=''; if(main) main.style.display='';});
     });
 }
-        var html = `
-            <div class="date-result-card">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div></div>
-                    <button class="btn btn-sm btn-outline-secondary" id="backToMainProductReportBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Laporan Penuh</button>
-                </div>
-                <div class="row">
-                    <div class="col-3"><strong>Jumlah Pesanan</strong><div class="stat-number">${filtered.length}</div></div>
-                    <div class="col-3"><strong>Jumlah Pendapatan</strong><div class="stat-number">RM ${totalSales.toFixed(2)}</div></div>
-                    <div class="col-3"><strong>Jumlah Item</strong><div class="stat-number">${totalItems}</div></div>
-                    <div class="col-3"><strong>Produk Unik</strong><div class="stat-number">${productMap.size}</div></div>
-                </div>
-                <div class="table-responsive mt-3">
-                    <table class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th>Produk</th>
-                                <th>Saiz</th>
-                                <th>Jenis</th>
-                                <th>Kuantiti Pre‑order</th>
-                                <th>Kuantiti Ready Stock</th>
-                                <th>Jumlah Terjual</th>
-                                <th>Bilangan Pesanan</th>
-                                <th>Pendapatan (RM)</th>
-                            </tr>
-                        </thead>
-                        <tbody>${tableRows}</tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-        resultDiv.innerHTML = html;
-
-        // Sorok report utama (Semua Masa/Minggu Ini/Bulan Ini + chart) supaya tak nampak dua-dua serentak
-        var mainReport = document.getElementById('mainProductReportContent');
-        if (mainReport) mainReport.style.display = 'none';
-
-        // Butang "Kembali ke Laporan Penuh"
-        var backBtn = document.getElementById('backToMainProductReportBtn');
-        if (backBtn) {
-            backBtn.addEventListener('click', function() {
-                resultDiv.innerHTML = '';
-                document.getElementById('productDateFrom').value = '';
-                document.getElementById('productDateTo').value = '';
-                if (mainReport) mainReport.style.display = '';
-            });
-        }
-    });
-}
-// ==================== PRODUCT REPORT (TALLY DENGAN INVOIS) ====================
+// ==================== PRODUCT REPORT (FIX FINAL) ====================
 let productChartInstance = null;
 let statusChartInstance = null;
 let typeChartInstance = null;
 
-function generateProductReport(filter) {
-    if (!productsData || productsData.length === 0 || inventoryData.size === 0) {
-        console.warn('🔄 Data belum siap, memuat semula...');
-        var currentFilter = filter || 'all';
-        loadStockDataFromFirestoreOnly().then(() => {
-            generateProductReport(currentFilter);
-        });
-        return;
-    }
+// Fungsi utama – guna inventory semasa untuk tentukan ready/preorder
+async function generateProductReport(filter) {
     filter = filter || 'all';
-    var now = new Date();
-    var startDate = null;
+
+    // Pastikan data produk & inventory dimuat
+    if (productsData.length === 0 || inventoryData.size === 0) {
+        await loadStockDataFromFirestoreOnly();
+    }
+
+    let now = new Date(), startDate = null;
     if (filter === 'weekly') {
-        var day = now.getDay();
-        var diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        let day = now.getDay(), diff = now.getDate() - day + (day === 0 ? -6 : 1);
         startDate = new Date(now);
         startDate.setDate(diff);
         startDate.setHours(0, 0, 0, 0);
@@ -2312,84 +2184,41 @@ function generateProductReport(filter) {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1);
     }
 
-    var validOrders = ordersData.filter(function(o) {
-        return o.status === 'pending' || o.status === 'completed';
+    // Hanya ambil invois sah (status bukan cancelled)
+    let filteredOrders = getValidInvoices(ordersData).filter(o => {
+        let d = getOrderDate(o);
+        return d && (!startDate || d >= startDate);
     });
 
-    var filteredOrders = startDate ? validOrders.filter(function(o) {
-        return new Date(o.createdAt) >= startDate;
-    }) : validOrders;
+    let totalInvoiceSales = 0, totalProductRevenue = 0, totalShipping = 0, totalItems = 0;
+    let productMap = new Map();
 
-    var totalSales = 0, totalItems = 0;
-    var productMap = new Map(); // key = variationKey
+    filteredOrders.forEach(order => {
+        totalInvoiceSales += getInvoiceTotal(order);
+        totalProductRevenue += getItemsSubtotal(order);
+        totalShipping += getShippingCost(order);
+        totalItems += getItemsQuantity(order);
 
-    filteredOrders.forEach(function(order) {
-        totalSales += order.totalAmount || 0;
-        var items = order.items || [];
-
-        items.forEach(function(item) {
-            // 🔥 Dapatkan variationKey
-            var key = item.variationKey;
-            if (!key) {
-                var prodId = item.prodId || item.id;
+        (order.items || []).forEach(item => {
+            // Dapatkan variationKey dengan pasti
+            let varKey = item.variationKey;
+            if (!varKey) {
+                let prodId = item.prodId || item.id;
                 if (prodId) {
-                    key = getVariationKey(prodId, item.size, item.type);
+                    varKey = getVariationKey(prodId, item.size || '', item.type || '');
                 } else {
-                    var foundProduct = productsData.find(p => p.name === item.prodName);
-                    if (foundProduct) {
-                        key = getVariationKey(foundProduct.id, item.size, item.type);
-                    } else {
-                        key = sanitizeFirestoreId(item.prodName + '_' + item.size + '_' + item.type);
-                    }
+                    varKey = sanitizeFirestoreId((item.prodName || 'Produk') + '_' + (item.size || '') + '_' + (item.type || ''));
                 }
             }
 
-            // 🔥 SEMAK 1: Pastikan inventoryData ada
-            if (!inventoryData.has(key)) {
-                return; // skip
-            }
+            let qty = toNumber(item.qty);
+            let rev = toNumber(item.price) * qty;
 
-            // 🔥 SEMAK 2: Pastikan produk masih wujud dalam katalog (productsData)
-            // Gunakan kombinasi NAMA + SAIZ + JENIS (lebih tepat)
-            var prodExists = productsData.some(p => {
-                if (p.name !== item.prodName) return false;
-                if (!p.variations) return false;
-                return p.variations.some(v => v.size === item.size && v.type === item.type);
-            });
-            if (!prodExists) {
-                return; // skip – produk sudah dipadam
-            }
-
-            totalItems += item.qty;
-
-            // Tentukan isReady (guna harga)
-            var isReady = false;
-            var basePrice = null;
-            // Cari harga asas dari produk yang sepadan
-            var matchedProduct = productsData.find(p => p.name === item.prodName);
-            if (matchedProduct && matchedProduct.variations) {
-                for (var v of matchedProduct.variations) {
-                    if (v.size === item.size && v.type === item.type) {
-                        basePrice = v.price;
-                        break;
-                    }
-                }
-            }
-            var invData = inventoryData.get(key) || {};
-            var customReady = invData.customReadyPrice;
-            var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
-            if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
-                isReady = true;
-            } else {
-                isReady = (invData.readyStock || 0) > 0;
-            }
-
-            // Aggregatkan mengikut variationKey
-            if (!productMap.has(key)) {
-                productMap.set(key, {
-                    name: item.prodName,
-                    size: item.size,
-                    type: item.type,
+            if (!productMap.has(varKey)) {
+                productMap.set(varKey, {
+                    name: item.prodName || 'Produk Tidak Diketahui',
+                    size: item.size || '-',
+                    type: item.type || '-',
                     preorderQty: 0,
                     readyQty: 0,
                     totalQty: 0,
@@ -2397,117 +2226,138 @@ function generateProductReport(filter) {
                     orderIds: new Set()
                 });
             }
-            var data = productMap.get(key);
-            if (isReady) {
-                data.readyQty += item.qty;
+
+            let entry = productMap.get(varKey);
+
+            // ===== TENTUKAN READY / PRE-ORDER =====
+            // Keutamaan: guna item.isReady jika ada (dari checkout)
+            let isReady = false;
+            if (item.isReady !== undefined) {
+                isReady = item.isReady === true;
             } else {
-                data.preorderQty += item.qty;
+                // Fallback: semak inventory semasa
+                let inv = inventoryData.get(varKey) || {};
+                // Jika readyStock > 0, anggap ready
+                if (inv.readyStock && inv.readyStock > 0) {
+                    isReady = true;
+                } else {
+                    // Cuba bandingkan harga dengan harga ready (base+20)
+                    let basePrice = null;
+                    let matchedProduct = productsData.find(p => p.name === item.prodName);
+                    if (matchedProduct && matchedProduct.variations) {
+                        let variation = matchedProduct.variations.find(v => v.size === item.size && v.type === item.type);
+                        if (variation) basePrice = toNumber(variation.price);
+                    }
+                    let customReady = inv.customReadyPrice;
+                    let readyPrice = (customReady !== undefined && customReady !== null) ? toNumber(customReady) : (basePrice !== null ? basePrice + 20 : null);
+                    if (readyPrice !== null && Math.abs(toNumber(item.price) - readyPrice) < 0.01) {
+                        isReady = true;
+                    }
+                }
             }
-            data.totalQty += item.qty;
-            data.revenue += (item.price * item.qty);
-            data.orderIds.add(order.id);
+
+            if (isReady) {
+                entry.readyQty += qty;
+            } else {
+                entry.preorderQty += qty;
+            }
+
+            entry.totalQty += qty;
+            entry.revenue += rev;
+            entry.orderIds.add(order.id);
         });
     });
 
-    var sortedProducts = Array.from(productMap.values()).sort(function(a, b) {
-        return a.name.localeCompare(b.name) || a.size.localeCompare(b.size);
-    });
+    let products = Array.from(productMap.values()).sort((a, b) => a.name.localeCompare(b.name) || String(a.size).localeCompare(String(b.size)));
 
-    // Paparan Jadual
-    var tbody = document.getElementById('productReportBody');
-    if (!tbody) {
-        console.error('❌ tbody not found!');
-        return;
-    }
-    if (sortedProducts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Tiada data</td></tr>';
-    } else {
-        var rows = '';
-        sortedProducts.forEach(function(p) {
-            var safeName = (p.name || '').replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'; });
-            var safeSize = (p.size || '').replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'; });
-            var safeType = (p.type || '').replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'; });
-            rows += '<tr>' +
-                '<td>' + safeName + '</td>' +
-                '<td>' + safeSize + '</td>' +
-                '<td>' + safeType + '</td>' +
-                '<td class="text-center">' + (p.preorderQty || 0) + '</td>' +
-                '<td class="text-center">' + (p.readyQty || 0) + '</td>' +
-                '<td class="fw-bold text-center">' + (p.totalQty || 0) + '</td>' +
-                '<td class="text-center">' + (p.orderIds ? p.orderIds.size : 0) + '</td>' +
-                '<td class="text-end">RM ' + (p.revenue || 0).toFixed(2) + '</td>' +
-                '<td><button class="btn btn-sm btn-outline-danger delete-product-report-btn" data-product="' + safeName + '" data-size="' + safeSize + '" data-type="' + safeType + '"><i class="fa-regular fa-trash-can"></i></button></td>' +
-            '</tr>';
-        });
-        tbody.innerHTML = rows;
+    // Kemaskini jadual
+    let tbody = document.getElementById('productReportBody');
+    if (tbody) {
+        if (products.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">Tiada data</td></tr>';
+        } else {
+            tbody.innerHTML = products.map(x => `
+                <tr>
+                    <td>${escapeHtml(x.name)}</td>
+                    <td>${escapeHtml(String(x.size))}</td>
+                    <td>${escapeHtml(String(x.type))}</td>
+                    <td class="text-center">${x.preorderQty}</td>
+                    <td class="text-center">${x.readyQty}</td>
+                    <td class="fw-bold text-center">${x.totalQty}</td>
+                    <td class="text-center">${x.orderIds.size}</td>
+                    <td class="text-end">RM ${x.revenue.toFixed(2)}</td>
+                    <td></td>
+                </tr>
+            `).join('');
+        }
     }
 
     // Statistik
-    var totalPreorderQty = sortedProducts.reduce(function(sum, p) { return sum + p.preorderQty; }, 0);
-    var totalReadyQty = sortedProducts.reduce(function(sum, p) { return sum + p.readyQty; }, 0);
-    var statsDiv = document.getElementById('productReportStats');
-    statsDiv.innerHTML = `
-        <div class="report-card"><strong>Jumlah Pesanan (Invois Sah)</strong><span>${filteredOrders.length}</span></div>
-        <div class="report-card"><strong>Jumlah Pendapatan</strong><span>RM ${totalSales.toFixed(2)}</span></div>
-        <div class="report-card"><strong>Jumlah Item</strong><span>${totalItems}</span></div>
-        <div class="report-card"><strong>Pre‑order</strong><span>${totalPreorderQty}</span></div>
-        <div class="report-card"><strong>Ready Stock</strong><span>${totalReadyQty}</span></div>
-    `;
+    let stats = document.getElementById('productReportStats');
+    if (stats) {
+        stats.innerHTML = `
+            <div class="report-card"><strong>Jumlah Pesanan (Kecuali Batal)</strong><span>${filteredOrders.length}</span></div>
+            <div class="report-card"><strong>Pendapatan Produk</strong><span>RM ${totalProductRevenue.toFixed(2)}</span></div>
+            <div class="report-card"><strong>Penghantaran</strong><span>RM ${totalShipping.toFixed(2)}</span></div>
+            <div class="report-card"><strong>Jumlah Pendapatan Invois</strong><span>RM ${totalInvoiceSales.toFixed(2)}</span></div>
+            <div class="report-card"><strong>Jumlah Item</strong><span>${totalItems}</span></div>
+        `;
+    }
 
-    // Carta
-    var topProducts = sortedProducts.slice(0, 10);
-    var statusCount = {
+    // Kira status untuk carta (pending/completed)
+    let statusCount = {
         pending: filteredOrders.filter(o => o.status === 'pending').length,
         completed: filteredOrders.filter(o => o.status === 'completed').length,
         cancelled: 0
     };
-    renderProductCharts(topProducts, statusCount, totalPreorderQty, totalReadyQty);
+
+    let totalPreorder = products.reduce((s, x) => s + x.preorderQty, 0);
+    let totalReady = products.reduce((s, x) => s + x.readyQty, 0);
+
+    renderProductCharts(products.slice(0, 10), statusCount, totalPreorder, totalReady);
+
+    console.log('✅ Laporan produk dikemas kini', { filteredOrders: filteredOrders.length, products: products.length });
 }
+
+// ============ RENDER CHARTS (STABIL) ============
 function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady) {
-    // ===== CARTA PRODUK (bar) =====
-    var ctx1 = document.getElementById('productChart')?.getContext('2d');
-    if (ctx1) {
-        if (productChartInstance) {
-            productChartInstance.destroy();
-            productChartInstance = null;
-        }
-        if (topProducts.length === 0) {
-            productChartInstance = new Chart(ctx1, {
-                type: 'bar',
-                data: { labels: ['Tiada Data'], datasets: [{ label: 'Tiada', data: [0], backgroundColor: '#ccc' }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        } else {
-            productChartInstance = new Chart(ctx1, {
+    // Carta produk (bar)
+    const canvas1 = document.getElementById('productChart');
+    if (canvas1) {
+        // Pastikan parent ada height
+        const parent = canvas1.parentElement;
+        if (parent && !parent.style.height) parent.style.height = '250px';
+
+        const ctx = canvas1.getContext('2d');
+        if (ctx) {
+            if (productChartInstance) productChartInstance.destroy();
+            productChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: topProducts.map(function(p) { return p.name + ' (' + p.size + ')'; }),
-                    datasets: [{
-                        label: 'Pre‑order',
-                        data: topProducts.map(function(p) { return p.preorderQty; }),
-                        backgroundColor: 'rgba(251, 191, 36, 0.8)',
-                        borderColor: '#f59e0b',
-                        borderWidth: 1
-                    }, {
-                        label: 'Ready Stock',
-                        data: topProducts.map(function(p) { return p.readyQty; }),
-                        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-                        borderColor: '#10b981',
-                        borderWidth: 1
-                    }]
+                    labels: topProducts.length ? topProducts.map(p => p.name + ' (' + p.size + ')') : ['Tiada Data'],
+                    datasets: [
+                        {
+                            label: 'Pre‑order',
+                            data: topProducts.length ? topProducts.map(p => p.preorderQty) : [0],
+                            backgroundColor: 'rgba(251, 191, 36, 0.8)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Ready Stock',
+                            data: topProducts.length ? topProducts.map(p => p.readyQty) : [0],
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                            borderColor: '#10b981',
+                            borderWidth: 1
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'top', labels: { font: { weight: 'bold' }, boxWidth: 20 } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.raw + ' unit';
-                                }
-                            }
-                        }
+                        legend: { position: 'top', labels: { boxWidth: 20 } },
+                        tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw + ' unit' } }
                     },
                     scales: {
                         y: { beginAtZero: true, title: { display: true, text: 'Kuantiti Terjual' }, ticks: { stepSize: 1 } }
@@ -2517,91 +2367,74 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
         }
     }
 
-    // ===== CARTA STATUS =====
-    var ctx2 = document.getElementById('statusChart')?.getContext('2d');
-    if (ctx2) {
-        if (statusChartInstance) {
-            statusChartInstance.destroy();
-            statusChartInstance = null;
-        }
-        var labels = [];
-        var data = [];
-        var colors = [];
-        if (statusCount.pending > 0) {
-            labels.push('Pending');
-            data.push(statusCount.pending);
-            colors.push('#f59e0b');
-        }
-        if (statusCount.completed > 0) {
-            labels.push('Completed');
-            data.push(statusCount.completed);
-            colors.push('#10b981');
-        }
-        if (data.length === 0) {
-            statusChartInstance = new Chart(ctx2, {
+    // Carta status (pie)
+    const canvas2 = document.getElementById('statusChart');
+    if (canvas2) {
+        const ctx = canvas2.getContext('2d');
+        if (ctx) {
+            if (statusChartInstance) statusChartInstance.destroy();
+            let labels = [], data = [], colors = [];
+            if (statusCount.pending > 0) { labels.push('Pending'); data.push(statusCount.pending); colors.push('#f59e0b'); }
+            if (statusCount.completed > 0) { labels.push('Completed'); data.push(statusCount.completed); colors.push('#10b981'); }
+            if (data.length === 0) { labels = ['Tiada']; data = [1]; colors = ['#e5e7eb']; }
+            statusChartInstance = new Chart(ctx, {
                 type: 'pie',
-                data: { labels: ['Tiada'], datasets: [{ data: [1], backgroundColor: ['#e5e7eb'] }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        } else {
-            statusChartInstance = new Chart(ctx2, {
-                type: 'pie',
-                data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 1 }] },
+                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 1 }] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'bottom', labels: { boxWidth: 15 } },
-                        tooltip: { callbacks: { label: function(context) { return context.label + ': ' + context.raw + ' pesanan'; } } }
+                        tooltip: { callbacks: { label: ctx => ctx.label + ': ' + ctx.raw + ' pesanan' } }
                     }
                 }
             });
         }
     }
 
-    // ===== CARTA PRE‑ORDER VS READY =====
-    var ctx3 = document.getElementById('typeChart')?.getContext('2d');
-    if (ctx3) {
-        if (typeChartInstance) {
-            typeChartInstance.destroy();
-            typeChartInstance = null;
-        }
-        if (totalPreorder === 0 && totalReady === 0) {
-            typeChartInstance = new Chart(ctx3, {
-                type: 'pie',
-                data: { labels: ['Tiada'], datasets: [{ data: [1], backgroundColor: ['#e5e7eb'] }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-        } else {
-            typeChartInstance = new Chart(ctx3, {
-                type: 'pie',
-                data: {
-                    labels: ['Pre‑order', 'Ready Stock'],
-                    datasets: [{
-                        data: [totalPreorder, totalReady],
-                        backgroundColor: ['rgba(251, 191, 36, 0.8)', 'rgba(16, 185, 129, 0.8)'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 15 } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    var label = context.label || '';
-                                    var value = context.raw || 0;
-                                    var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
-                                    var percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                    return label + ': ' + value + ' unit (' + percentage + '%)';
+    // Carta pre-order vs ready (pie)
+    const canvas3 = document.getElementById('typeChart');
+    if (canvas3) {
+        const ctx = canvas3.getContext('2d');
+        if (ctx) {
+            if (typeChartInstance) typeChartInstance.destroy();
+            if (totalPreorder === 0 && totalReady === 0) {
+                typeChartInstance = new Chart(ctx, {
+                    type: 'pie',
+                    data: { labels: ['Tiada'], datasets: [{ data: [1], backgroundColor: ['#e5e7eb'] }] },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            } else {
+                typeChartInstance = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Pre‑order', 'Ready Stock'],
+                        datasets: [{
+                            data: [totalPreorder, totalReady],
+                            backgroundColor: ['rgba(251, 191, 36, 0.8)', 'rgba(16, 185, 129, 0.8)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 15 } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        let value = context.raw || 0;
+                                        let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        let percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return label + ': ' + value + ' unit (' + percentage + '%)';
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+            }
         }
     }
 }
@@ -2649,14 +2482,17 @@ function renderProductCharts(topProducts, statusCount, totalPreorder, totalReady
                 productReportSection.style.display = 'none';
                 updateReport();
             });
-            document.getElementById('toggleProductReportBtn').addEventListener('click', function() {
+            document.getElementById('toggleProductReportBtn').addEventListener('click', async function() {
                 ordersSection.style.display = 'none';
                 stockSection.style.display = 'none';
                 reportSection.style.display = 'none';
                 productReportSection.style.display = 'block';
-                setTimeout(function() {
-                    generateProductReport('all');
-                }, 100);
+                
+                // Tunggu data dimuat
+                if (productsData.length === 0 || inventoryData.size === 0) {
+                    await loadStockDataFromFirestoreOnly();
+                }
+                generateProductReport('all');
             });
             document.getElementById('backToOrdersBtn').addEventListener('click', showOrders);
             document.getElementById('backToOrdersFromReportBtn').addEventListener('click', showOrders);
