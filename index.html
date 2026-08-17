@@ -2362,26 +2362,26 @@ function generateProductReport(filter) {
 
             totalItems += item.qty;
 
-            // Tentukan isReady (guna harga)
-            var isReady = false;
-            var basePrice = null;
-            // Cari harga asas dari produk yang sepadan
-            var matchedProduct = productsData.find(p => p.name === item.prodName);
-            if (matchedProduct && matchedProduct.variations) {
-                for (var v of matchedProduct.variations) {
-                    if (v.size === item.size && v.type === item.type) {
-                        basePrice = v.price;
-                        break;
+            // Tentukan isReady — GUNA data yang dah disimpan masa checkout (BOLEH DIPERCAYAI, tak berubah walau harga produk diubah kemudian)
+            var isReady;
+            if (item.isReady !== undefined && item.isReady !== null) {
+                isReady = item.isReady;
+            } else {
+                // Fallback untuk order LAMA yang belum ada field isReady (sebelum fix ni dipasang)
+                var basePrice = null;
+                var matchedProduct = productsData.find(p => p.name === item.prodName);
+                if (matchedProduct && matchedProduct.variations) {
+                    for (var v of matchedProduct.variations) {
+                        if (v.size === item.size && v.type === item.type) {
+                            basePrice = v.price;
+                            break;
+                        }
                     }
                 }
-            }
-            var invData = inventoryData.get(key) || {};
-            var customReady = invData.customReadyPrice;
-            var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
-            if (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01) {
-                isReady = true;
-            } else {
-                isReady = (invData.readyStock || 0) > 0;
+                var invData = inventoryData.get(key) || {};
+                var customReady = invData.customReadyPrice;
+                var readyPrice = (customReady !== undefined && customReady !== null) ? customReady : (basePrice !== null ? basePrice + 20 : null);
+                isReady = (readyPrice !== null && Math.abs(item.price - readyPrice) < 0.01);
             }
 
             // Aggregatkan mengikut variationKey
