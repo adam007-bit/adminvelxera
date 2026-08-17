@@ -619,7 +619,7 @@
         <!-- SECTION: PRODUCT REPORT (dengan kalendar) -->
         <div id="productReportSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk (COMPLETED)</h5>
+                <h5 class="fw-bold"><i class="fa-solid fa-box text-success me-2"></i> Laporan Jualan Mengikut Produk</h5>
                 <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersFromProductReportBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
             </div>
             <div class="report-container">
@@ -631,7 +631,7 @@
 
                 <!-- ===== DATE RANGE FILTER (di Laporan Produk) ===== -->
                 <div class="date-filter-box">
-                    <h6 class="fw-bold"><i class="fa-regular fa-calendar me-2"></i>📅 Cari mengikut Tarikh (Completed)</h6>
+                    <h6 class="fw-bold"><i class="fa-regular fa-calendar me-2"></i>📅 Cari mengikut Tarikh</h6>
                     <div class="row g-2 align-items-end">
                         <div class="col-md-4">
                             <label class="small fw-bold">Tarikh Mula</label>
@@ -660,7 +660,7 @@
                         </div>
                         <div class="col-md-4">
                             <div class="card p-3">
-                                <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan (Completed)</h6>
+                                <h6 class="fw-bold"><i class="fa-solid fa-chart-pie text-success me-2"></i> Status Pesanan</h6>
                                 <canvas id="statusChart" height="200"></canvas>
                             </div>
                             <div class="card p-3 mt-3">
@@ -686,7 +686,7 @@
     </tr>
                             </thead>
                             <tbody id="productReportBody">
-                                <tr><td colspan="8" class="text-center text-muted">Tiada data</td></tr>
+                                <tr><td colspan="9" class="text-center text-muted">Tiada data</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -2105,6 +2105,7 @@ function renderOrders() {
 
 
 // ==================== LAPORAN / INVOIS: SUMBER KIRAAN YANG SAMA ====================
+// ===== INI YANG PALING PENTING: KIRA SEMUA ORDER KECUALI CANCELLED =====
 function isValidInvoice(order) { return !!order && order.status !== 'cancelled'; }
 function toNumber(value) { var n = Number(value); return Number.isFinite(n) ? n : 0; }
 function getValidInvoices(orders) { return (orders || []).filter(isValidInvoice); }
@@ -2295,7 +2296,7 @@ async function generateProductReport(filter) {
     let stats = document.getElementById('productReportStats');
     if (stats) {
         stats.innerHTML = `
-            <div class="report-card"><strong>Jumlah Pesanan (Invois Sah)</strong><span>${filteredOrders.length}</span></div>
+            <div class="report-card"><strong>Jumlah Pesanan (Kecuali Batal)</strong><span>${filteredOrders.length}</span></div>
             <div class="report-card"><strong>Pendapatan Produk</strong><span>RM ${totalProductRevenue.toFixed(2)}</span></div>
             <div class="report-card"><strong>Penghantaran</strong><span>RM ${totalShipping.toFixed(2)}</span></div>
             <div class="report-card"><strong>Jumlah Pendapatan Invois</strong><span>RM ${totalInvoiceSales.toFixed(2)}</span></div>
