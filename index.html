@@ -2344,21 +2344,9 @@ function generateProductReport(filter) {
                 }
             }
 
-            // 🔥 SEMAK 1: Pastikan inventoryData ada
-            if (!inventoryData.has(key)) {
-                return; // skip
-            }
-
-            // 🔥 SEMAK 2: Pastikan produk masih wujud dalam katalog (productsData)
-            // Gunakan kombinasi NAMA + SAIZ + JENIS (lebih tepat)
-            var prodExists = productsData.some(p => {
-                if (p.name !== item.prodName) return false;
-                if (!p.variations) return false;
-                return p.variations.some(v => v.size === item.size && v.type === item.type);
-            });
-            if (!prodExists) {
-                return; // skip – produk sudah dipadam
-            }
+            // NOTA: TIDAK skip item walaupun produk sudah dipadam/tiada dalam inventoryData semasa.
+            // Order adalah rekod SEJARAH — invoice sentiasa papar item ni, jadi report pun WAJIB kira sama,
+            // supaya total report sentiasa padan dengan total invoice.
 
             totalItems += item.qty;
 
