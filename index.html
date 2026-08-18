@@ -2121,6 +2121,7 @@ function getReportProductKey(item) {
     return sanitizeFirestoreId((item.prodName || 'Produk Tidak Diketahui') + '_' + (item.size || '') + '_' + (item.type || ''));
 }
 
+// ==================== setupProductDateFilter (FIX: TANPA BANDING HARGA) ====================
 function setupProductDateFilter() {
     var btn = document.getElementById('productDateFilterBtn');
     if (!btn) return;
@@ -2141,13 +2142,14 @@ function setupProductDateFilter() {
                 var key=getReportProductKey(item), qty=toNumber(item.qty), revenue=toNumber(item.price)*qty;
                 if(!productMap.has(key)) productMap.set(key,{name:item.prodName||'Produk Tidak Diketahui',size:item.size||'-',type:item.type||'-',preorderQty:0,readyQty:0,totalQty:0,revenue:0,orderIds:new Set()});
                 var d=productMap.get(key);
-                var isReady=false, basePrice=null, matchedProduct=productsData.find(function(prod){return prod.name===item.prodName;});
-                if(matchedProduct && matchedProduct.variations){ var variation=matchedProduct.variations.find(function(v){return v.size===item.size && v.type===item.type;}); if(variation) basePrice=toNumber(variation.price); }
-                var invData=inventoryData.get(key)||{};
-                var customReady=invData.customReadyPrice;
-                var readyPrice=(customReady!==undefined && customReady!==null) ? toNumber(customReady) : (basePrice!==null ? basePrice+20 : null);
-                if(readyPrice!==null && Math.abs(toNumber(item.price)-readyPrice)<0.01) isReady=true;
-                else isReady=(toNumber(invData.readyStock)>0);
+                // ===== TANPA BANDING HARGA =====
+                var isReady = false;
+                if (item.isReady !== undefined) {
+                    isReady = item.isReady === true;
+                } else {
+                    var invData = inventoryData.get(key) || {};
+                    isReady = (invData.readyStock || 0) > 0;
+                }
                 if(isReady) d.readyQty+=qty; else d.preorderQty+=qty;
                 d.totalQty+=qty; d.revenue+=revenue; d.orderIds.add(order.id);
             });
@@ -2160,7 +2162,8 @@ function setupProductDateFilter() {
         document.getElementById('backToMainProductReportBtn').addEventListener('click',function(){resultDiv.innerHTML=''; if(main) main.style.display='';});
     });
 }
-// ==================== PRODUCT REPORT (FIX FINAL) ====================
+
+// ==================== PRODUCT REPORT (FIX: TANPA BANDING HARGA) ====================
 let productChartInstance = null;
 let statusChartInstance = null;
 let typeChartInstance = null;
@@ -2229,31 +2232,13 @@ async function generateProductReport(filter) {
 
             let entry = productMap.get(varKey);
 
-            // ===== TENTUKAN READY / PRE-ORDER =====
-            // Keutamaan: guna item.isReady jika ada (dari checkout)
+            // ===== TENTUKAN READY / PRE-ORDER (TANPA BANDING HARGA) =====
             let isReady = false;
             if (item.isReady !== undefined) {
                 isReady = item.isReady === true;
             } else {
-                // Fallback: semak inventory semasa
                 let inv = inventoryData.get(varKey) || {};
-                // Jika readyStock > 0, anggap ready
-                if (inv.readyStock && inv.readyStock > 0) {
-                    isReady = true;
-                } else {
-                    // Cuba bandingkan harga dengan harga ready (base+20)
-                    let basePrice = null;
-                    let matchedProduct = productsData.find(p => p.name === item.prodName);
-                    if (matchedProduct && matchedProduct.variations) {
-                        let variation = matchedProduct.variations.find(v => v.size === item.size && v.type === item.type);
-                        if (variation) basePrice = toNumber(variation.price);
-                    }
-                    let customReady = inv.customReadyPrice;
-                    let readyPrice = (customReady !== undefined && customReady !== null) ? toNumber(customReady) : (basePrice !== null ? basePrice + 20 : null);
-                    if (readyPrice !== null && Math.abs(toNumber(item.price) - readyPrice) < 0.01) {
-                        isReady = true;
-                    }
-                }
+                isReady = (inv.readyStock || 0) > 0;
             }
 
             if (isReady) {
@@ -2316,7 +2301,7 @@ async function generateProductReport(filter) {
 
     renderProductCharts(products.slice(0, 10), statusCount, totalPreorder, totalReady);
 
-    console.log('✅ Laporan produk dikemas kini', { filteredOrders: filteredOrders.length, products: products.length });
+    console.log('✅ Laporan produk dikemas kini (tanpa banding harga)');
 }
 
 // ============ RENDER CHARTS (STABIL) ============
