@@ -1,24 +1,24 @@
 <!DOCTYPE html>
-<html lang="ms">
-<head>
-    <meta charset="UTF-8">
+<!-- saved from url=(0072)https://velxera-pricing-fix.preview.emergentagent.com/velxera/admin.html -->
+<html lang="ms"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VELXERA Admin • Premium Dashboard</title>
     
     <!-- PWA Meta Tags -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="https://velxera-pricing-fix.preview.emergentagent.com/velxera/manifest.json">
+    <link rel="apple-touch-icon" href="https://velxera-pricing-fix.preview.emergentagent.com/velxera/icon.png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#10b981">
     
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="./VELXERA Admin • Premium Dashboard_files/bootstrap.min.css" rel="stylesheet">
+    <link href="./VELXERA Admin • Premium Dashboard_files/css2" rel="stylesheet">
+    <link rel="stylesheet" href="./VELXERA Admin • Premium Dashboard_files/all.min.css">
     <!-- jsPDF & html2canvas untuk PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="./VELXERA Admin • Premium Dashboard_files/html2canvas.min.js.download"></script>
+    <script src="./VELXERA Admin • Premium Dashboard_files/jspdf.umd.min.js.download"></script>
+    <script src="./VELXERA Admin • Premium Dashboard_files/chart.umd.min.js.download"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { 
@@ -439,7 +439,7 @@
 <body>
 
 <!-- ======== PREVIEW INVOIS ADMIN (tersembunyi) ======== -->
-<div id="adminInvoicePreview" style="position:fixed; left:-9999px; top:-9999px; width:800px; background:white; padding:40px; font-family:'Inter',sans-serif; z-index:-1; font-size:14px; line-height:1.6; color:#0b1a2e;">
+<div id="adminInvoicePreview" style="position:fixed; left:-9999px; top:-9999px; width:800px; background:white; padding:40px; font-family:&#39;Inter&#39;,sans-serif; z-index:-1; font-size:14px; line-height:1.6; color:#0b1a2e;">
     <style>
         #adminInvoicePreview h2 { font-size:28px; margin:0 0 8px 0; letter-spacing:-0.5px; }
         #adminInvoicePreview .subhead { font-size:13px; color:#64748b; margin:0; }
@@ -463,7 +463,7 @@
         <hr>
     </div>
     <div id="adminInvoiceContent"></div>
-    <div class="footer-note">Terima kasih atas kepercayaan anda! &copy; VELXERA VENTURES</div>
+    <div class="footer-note">Terima kasih atas kepercayaan anda! © VELXERA VENTURES</div>
 </div>
 
 <!-- ======== MODAL TRACKING ======== -->
@@ -475,7 +475,7 @@
         <div id="trackingProgress" class="small text-success" style="display:none;">⏳ Menyimpan...</div>
         <div class="d-flex gap-2 justify-content-end mt-3">
             <button class="btn btn-secondary btn-sm" id="cancelModalBtn">Batal</button>
-            <button class="btn btn-success btn-sm" id="confirmCompleteBtn">Selesai & Simpan</button>
+            <button class="btn btn-success btn-sm" id="confirmCompleteBtn">Selesai &amp; Simpan</button>
         </div>
     </div>
 </div>
@@ -571,7 +571,7 @@
                 <span class="ms-2 text-muted small" id="selectedCount">0 dipilih</span>
                 <span class="text-muted mx-1">|</span>
                 <button class="btn btn-sm btn-outline-secondary" id="setAllStockBtn"><i class="fa-solid fa-rotate"></i> Set Stok Awal (1000)</button>
-                <button class="btn btn-sm btn-success" id="setAllStockAndSaveBtn"><i class="fa-solid fa-bolt"></i> Set Semua Stok (1000) & Simpan</button>
+                <button class="btn btn-sm btn-success" id="setAllStockAndSaveBtn"><i class="fa-solid fa-bolt"></i> Set Semua Stok (1000) &amp; Simpan</button>
             </div>
 
             <div id="stockLoading" class="loading-placeholder"><i class="fa-solid fa-circle-notch"></i> Memuatkan data stok...</div>
@@ -697,23 +697,23 @@
         <!-- SECTION: PRODUCT MANAGEMENT -->
         <div id="productManagementSection" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-                <h5 class="fw-bold"><i class="fa-solid fa-plus-circle text-success me-2"></i> Urus Produk & Ready Stock</h5>
+                <h5 class="fw-bold"><i class="fa-solid fa-plus-circle text-success me-2"></i> Urus Produk &amp; Ready Stock</h5>
                 <button class="btn btn-sm btn-secondary rounded-pill" id="backToOrdersFromProductMgmtBtn"><i class="fa-solid fa-arrow-left me-1"></i> Kembali ke Pesanan</button>
             </div>
             <div class="report-container">
-                <ul class="nav nav-tabs mb-3" id="productMgmtTabs">
-                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabAddProduct">Tambah Produk</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabListProducts">Senarai Produk</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabReadyStock">Urus Ready Stock</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabDeletedProducts" id="tabDeletedProductsLink">Sejarah Padam <span id="deletedProductsCount" class="badge bg-danger rounded-pill" style="display:none;">0</span></a></li>
+                <ul class="nav nav-tabs mb-3" id="productMgmtTabs" role="tablist">
+                    <li class="nav-item" role="presentation"><a class="nav-link active" data-bs-toggle="tab" href="https://velxera-pricing-fix.preview.emergentagent.com/velxera/admin.html#tabAddProduct" aria-selected="true" role="tab">Tambah Produk</a></li>
+                    <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="https://velxera-pricing-fix.preview.emergentagent.com/velxera/admin.html#tabListProducts" aria-selected="false" tabindex="-1" role="tab">Senarai Produk</a></li>
+                    <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="https://velxera-pricing-fix.preview.emergentagent.com/velxera/admin.html#tabReadyStock" aria-selected="false" tabindex="-1" role="tab">Urus Ready Stock</a></li>
+                    <li class="nav-item" role="presentation"><a class="nav-link" data-bs-toggle="tab" href="https://velxera-pricing-fix.preview.emergentagent.com/velxera/admin.html#tabDeletedProducts" id="tabDeletedProductsLink" aria-selected="false" tabindex="-1" role="tab">Sejarah Padam <span id="deletedProductsCount" class="badge bg-danger rounded-pill" style="display:none;">0</span></a></li>
                 </ul>
                 <div class="tab-content">
                     <!-- Tab 1: Tambah Produk -->
-                    <div class="tab-pane fade show active" id="tabAddProduct">
+                    <div class="tab-pane fade show active" id="tabAddProduct" role="tabpanel">
                         <form id="addProductForm" class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Nama Produk</label>
-                                <input type="text" id="newProductName" class="form-control" required>
+                                <input type="text" id="newProductName" class="form-control" required="">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Kategori</label>
@@ -734,7 +734,7 @@
                             <div class="col-12">
                                 <label class="form-label fw-bold small">Gambar Produk</label>
                                 <input type="file" id="newProductImage" class="form-control" accept="image/*">
-                                <img id="newProductImagePreview" src="" alt="" style="display:none; max-width:120px; max-height:120px; border-radius:12px; margin-top:8px; object-fit:cover;">
+                                <img id="newProductImagePreview" src="https://velxera-pricing-fix.preview.emergentagent.com/velxera/admin.html" alt="" style="display:none; max-width:120px; max-height:120px; border-radius:12px; margin-top:8px; object-fit:cover;">
                                 <div id="newProductImageProgress" style="display:none;" class="text-success small mt-1">⏳ Memuat naik gambar...</div>
                             </div>
                             <div class="col-12">
@@ -759,7 +759,7 @@
                         </form>
                     </div>
                     <!-- Tab 2: Senarai Produk -->
-                    <div class="tab-pane fade" id="tabListProducts">
+                    <div class="tab-pane fade" id="tabListProducts" role="tabpanel">
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped">
                                 <thead><tr><th>Gambar</th><th>Nama</th><th>Kategori</th><th>Variasi</th><th>Tindakan</th></tr></thead>
@@ -768,7 +768,7 @@
                         </div>
                     </div>
                     <!-- Tab: Sejarah Padam (Trash / Undo) -->
-                    <div class="tab-pane fade" id="tabDeletedProducts">
+                    <div class="tab-pane fade" id="tabDeletedProducts" role="tabpanel" aria-labelledby="tabDeletedProductsLink">
                         <p class="text-muted small mb-3"><i class="fa-solid fa-circle-info me-1"></i> Produk yang dipadam disimpan di sini. Boleh dipulihkan bila-bila masa dengan klik "Pulihkan".</p>
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped">
@@ -778,7 +778,7 @@
                         </div>
                     </div>
                     <!-- Tab 3: Urus Ready Stock -->
-                    <div class="tab-pane fade" id="tabReadyStock">
+                    <div class="tab-pane fade" id="tabReadyStock" role="tabpanel">
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Pilih Produk</label>
@@ -840,7 +840,7 @@
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Nama Produk</label>
-                                <input type="text" id="editProductName" class="form-control" required>
+                                <input type="text" id="editProductName" class="form-control" required="">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold small">Kategori</label>
@@ -860,7 +860,7 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-bold small">Gambar Produk</label><br>
-                                <img id="editProductImagePreview" src="" alt="" style="display:none; max-width:120px; max-height:120px; border-radius:12px; margin-bottom:8px; object-fit:cover;">
+                                <img id="editProductImagePreview" src="https://velxera-pricing-fix.preview.emergentagent.com/velxera/admin.html" alt="" style="display:none; max-width:120px; max-height:120px; border-radius:12px; margin-bottom:8px; object-fit:cover;">
                                 <input type="file" id="editProductImage" class="form-control" accept="image/*">
                                 <div id="editProductImageProgress" style="display:none;" class="text-success small mt-1">⏳ Memuat naik gambar...</div>
                             </div>
@@ -883,7 +883,7 @@
         <!-- Toast -->
         <div id="toastMsg" class="toast-notif">✅ Status dikemaskini</div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js">
+        <script src="./VELXERA Admin • Premium Dashboard_files/bootstrap.bundle.min.js.download">
         </script>
         <script type="module">
             import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
@@ -1077,6 +1077,24 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('logoutBtn').addEventListener('click', function() { location.reload(); });
 
             // ==================== ORDER FUNCTIONS ====================
+            // ===== MIGRASI STATUS LAMA (Fasa 4) — isi status untuk order lama =====
+            var _statusMigrationDone = false;
+            async function migrateMissingStatuses(orders) {
+                if (_statusMigrationDone) return;
+                _statusMigrationDone = true;
+                var valid = ['pending', 'paid', 'completed', 'cancelled', 'refunded'];
+                for (var i = 0; i < orders.length; i++) {
+                    var o = orders[i];
+                    if (!o.status || valid.indexOf(o.status) === -1) {
+                        var inferred = o.completedAt ? 'completed' : 'pending';
+                        try {
+                            await updateDoc(doc(db, "orders", o.id), { status: inferred });
+                            o.status = inferred;
+                        } catch (e) { console.warn('Migrasi status gagal:', o.id, e); }
+                    }
+                }
+            }
+
             function updateStats() {
                 var total = ordersData.length;
                 var pending = ordersData.filter(function(o) { return o.status === 'pending'; }).length;
@@ -1124,6 +1142,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         showToast('🛒 Pesanan Baru! Semak senarai.');
                     }
 
+                    migrateMissingStatuses(newOrders);
                     updateStats();
                     renderOrders();
                 });
@@ -1979,9 +1998,11 @@ function renderOrders() {
             var reportType = 'weekly';
 
             function updateReport() {
-                var completedOrders = ordersData.filter(function(o) { return o.status === 'completed'; });
-                if (reportType === 'weekly') generateWeeklyReport(completedOrders);
-                else generateMonthlyReport(completedOrders);
+                // Laporan Jualan kini guna sumber sah yang SAMA seperti Laporan Produk
+                // (paid + completed sahaja) supaya jumlah sentiasa padan.
+                var validOrders = getValidInvoices(ordersData);
+                if (reportType === 'weekly') generateWeeklyReport(validOrders);
+                else generateMonthlyReport(validOrders);
             }
 
             function generateWeeklyReport(completedOrders) {
@@ -1996,10 +2017,11 @@ function renderOrders() {
                             totalSales: 0, totalItems: 0 });
                     var data = weeksMap.get(key);
                     data.orders.push(order);
-                    data.totalSales += order.totalAmount;
+                    data.totalSales += toNumber(order.totalAmount);
                     var totalItems = 0;
-                    for (var j = 0; j < order.items.length; j++) {
-                        totalItems += order.items[j].qty;
+                    var _items = order.items || [];
+                    for (var j = 0; j < _items.length; j++) {
+                        totalItems += toNumber(_items[j].qty);
                     }
                     data.totalItems += totalItems;
                 }
@@ -2042,10 +2064,11 @@ function renderOrders() {
                             totalSales: 0, totalItems: 0 });
                     var data = monthsMap.get(key);
                     data.orders.push(order);
-                    data.totalSales += order.totalAmount;
+                    data.totalSales += toNumber(order.totalAmount);
                     var totalItems = 0;
-                    for (var j = 0; j < order.items.length; j++) {
-                        totalItems += order.items[j].qty;
+                    var _items = order.items || [];
+                    for (var j = 0; j < _items.length; j++) {
+                        totalItems += toNumber(_items[j].qty);
                     }
                     data.totalItems += totalItems;
                 }
@@ -2106,7 +2129,8 @@ function renderOrders() {
 
 // ==================== LAPORAN / INVOIS: SUMBER KIRAAN YANG SAMA ====================
 // ===== INI YANG PALING PENTING: KIRA SEMUA ORDER KECUALI CANCELLED =====
-function isValidInvoice(order) { return !!order && order.status !== 'cancelled'; }
+const VALID_REPORT_STATUSES = ['paid', 'completed'];
+function isValidInvoice(order) { return !!order && VALID_REPORT_STATUSES.includes(order.status); }
 function toNumber(value) { var n = Number(value); return Number.isFinite(n) ? n : 0; }
 function getValidInvoices(orders) { return (orders || []).filter(isValidInvoice); }
 function getItemsSubtotal(order) { return (order.items || []).reduce(function(sum, item) { return sum + toNumber(item.price) * toNumber(item.qty); }, 0); }
@@ -3379,5 +3403,7 @@ async function migrateOrders() {
 migrateOrders();
   
 </script>
-</body>
-</html>
+<script type="module" src="./VELXERA Admin • Premium Dashboard_files/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;7f7b0fd8732c4326aae4b9d58d5c514a&quot;}" crossorigin="anonymous"></script>
+
+
+</div></div></body></html>
